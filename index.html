@@ -885,7 +885,7 @@
 /* ── 1. CUSTOM NEON CURSOR ── */
 *, *::before, *::after { cursor: none !important; }
 #ux-cursor {
-  position: fixed; z-index: 999998; pointer-events: none;
+  position: fixed; z-index: 99999999; pointer-events: none;
   top: 0; left: 0; will-change: transform;
 }
 #ux-cursor-ring {
@@ -1104,8 +1104,51 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 <body>
 
 <!-- ── LOGIN SCREEN ── -->
+<style>
+#login-screen { overflow: hidden; }
+#login-screen::before {
+  content: ''; position: absolute; inset: -20%; z-index: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(0,212,170,0.20), transparent 42%),
+    radial-gradient(circle at 80% 70%, rgba(59,130,246,0.18), transparent 42%),
+    radial-gradient(circle at 50% 95%, rgba(201,168,76,0.14), transparent 42%);
+  filter: blur(10px);
+  animation: ls-drift 18s ease-in-out infinite;
+}
+@keyframes ls-drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(3%,-4%) scale(1.08); }
+  66% { transform: translate(-4%,3%) scale(1.05); }
+}
+#login-screen::after {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
+}
+.ls-orb { position: absolute; z-index: 0; border-radius: 50%; filter: blur(55px); opacity: .5; pointer-events: none; }
+.ls-orb1 { width: 280px; height: 280px; background: var(--green); top: 8%;  left: 10%; animation: ls-float1 14s ease-in-out infinite; }
+.ls-orb2 { width: 230px; height: 230px; background: var(--blue);  bottom: 10%; right: 12%; animation: ls-float2 16s ease-in-out infinite; }
+.ls-orb3 { width: 190px; height: 190px; background: var(--gold);  bottom: 18%; left: 18%;  animation: ls-float3 20s ease-in-out infinite; }
+@keyframes ls-float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(34px,-42px)} }
+@keyframes ls-float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-28px,32px)} }
+@keyframes ls-float3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(22px,22px)} }
+.ls-card {
+  position: relative; z-index: 2;
+  background: rgba(17,24,39,0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+body.light-mode .ls-card { background: rgba(255,255,255,0.72); }
+</style>
 <div id="login-screen" style="position:fixed;inset:0;z-index:999999;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:380px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;box-shadow:var(--shadow);">
+  <div class="ls-orb ls-orb1"></div>
+  <div class="ls-orb ls-orb2"></div>
+  <div class="ls-orb ls-orb3"></div>
+  <div class="ls-card" style="width:100%;max-width:380px;border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;box-shadow:var(--shadow);">
     <div style="text-align:center;margin-bottom:28px;">
       <div style="font-size:32px;margin-bottom:8px;">🔒</div>
       <div style="font-size:20px;font-weight:700;color:var(--text);font-family:var(--font);">TraderPro</div>
@@ -1119,6 +1162,7 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
     </form>
   </div>
 </div>
+
 
 <!-- ── SLEEP MODE SCREEN ── -->
 <div id="sleep-screen" onclick="sleepModeOff()">
