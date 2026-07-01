@@ -518,6 +518,7 @@
     background:linear-gradient(135deg, var(--green), #00B894);
     color:#000;
   }
+  .btn-sm { padding:6px 12px; font-size:12px; }
   .btn-primary:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,212,170,0.3); }
   .btn-outline {
     background:transparent; color:var(--text);
@@ -528,6 +529,42 @@
     background:var(--red-dim); color:var(--red);
     border:1px solid rgba(255,71,87,0.3);
   }
+  /* ─── AI CHAT ─── */
+  .ai-msg { display:flex; gap:10px; max-width:82%; }
+  .ai-msg.user { align-self:flex-end; flex-direction:row-reverse; }
+  .ai-msg.assistant { align-self:flex-start; }
+  .ai-msg-avatar {
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+    background:var(--bg-card2); border:1px solid var(--border);
+  }
+  .ai-msg.user .ai-msg-avatar { background:linear-gradient(135deg,var(--green),#00B894); }
+  .ai-msg-bubble {
+    padding:11px 14px; border-radius:14px; font-size:13.5px; line-height:1.6;
+    white-space:pre-wrap; word-break:break-word;
+    background:var(--bg-card2); border:1px solid var(--border); color:var(--text);
+  }
+  .ai-msg.user .ai-msg-bubble { background:rgba(0,212,170,0.1); border-color:rgba(0,212,170,0.25); }
+  .ai-msg-bubble img { max-width:220px; border-radius:8px; display:block; margin-top:6px; }
+  .ai-msg-bubble .ai-chip {
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);
+    background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:4px 9px; margin-top:6px;
+  }
+  .ai-typing { display:flex; gap:4px; padding:4px 0; }
+  .ai-typing span {
+    width:6px; height:6px; border-radius:50%; background:var(--text-muted);
+    animation: ai-typing-bounce 1.1s infinite ease-in-out;
+  }
+  .ai-typing span:nth-child(2) { animation-delay:.15s; }
+  .ai-typing span:nth-child(3) { animation-delay:.3s; }
+  @keyframes ai-typing-bounce { 0%,60%,100%{ transform:translateY(0); opacity:.5; } 30%{ transform:translateY(-4px); opacity:1; } }
+  #ai-attach-preview.show { display:block !important; }
+  .ai-attach-chip {
+    display:inline-flex; align-items:center; gap:8px; background:var(--bg-card2); border:1px solid var(--border);
+    border-radius:10px; padding:6px 10px; font-size:12.5px; margin-bottom:8px;
+  }
+  .ai-attach-chip img { width:28px; height:28px; object-fit:cover; border-radius:6px; }
+  .ai-attach-chip button { background:none; border:none; color:var(--red); cursor:pointer; font-size:13px; }
 
   /* ─── TRADE LOG ─── */
   .profit { color:var(--green); font-family:var(--mono); font-weight:600; }
@@ -2083,11 +2120,33 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 </div>
 
 <!-- ADD TRADE MODAL -->
+<div class="modal-overlay" id="apiKeyModal">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">
+      🔑 Anthropic API Kalit
+      <button class="modal-close" onclick="closeModal('apiKeyModal')">✕</button>
+    </div>
+    <div class="text-muted text-sm" style="margin-bottom:14px;line-height:1.6">
+      AI Yordamchi ishlashi uchun shaxsiy API kalitingiz kerak. Kalitni <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--green)">console.anthropic.com/settings/keys</a> sahifasidan olishingiz mumkin. Kalit faqat shu qurilma brauzerida (localStorage) saqlanadi va faqat to'g'ridan-to'g'ri Anthropic serveriga yuboriladi — boshqa hech qayerga jo'natilmaydi.
+    </div>
+    <div class="form-group">
+      <label class="form-label">API kalit</label>
+      <input type="password" class="form-input" id="ai-key-input" placeholder="sk-ant-...">
+    </div>
+    <div id="ai-key-error" style="color:var(--red);font-size:13px;min-height:16px;margin-top:4px"></div>
+    <div class="flex-between" style="margin-top:16px;gap:10px">
+      <button class="btn btn-danger" onclick="clearAIKeyStored()">Kalitni o'chirish</button>
+      <button class="btn btn-primary" onclick="saveAIKey()">Saqlash</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="tradeModal">
   <div class="modal">
     <div class="modal-title">
       ➕ Yangi Bitim
       <button class="modal-close" onclick="closeModal('tradeModal')">✕</button>
+
     </div>
     <div class="grid-2">
       <div class="form-group">
@@ -2569,6 +2628,13 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     </div>
 
     <div class="nav-section" style="margin-top:8px">
+      <div class="nav-label">AI</div>
+      <button class="nav-item" onclick="nav('ai-assistant',this)">
+        <span class="nav-icon">🤖</span> AI Yordamchi
+      </button>
+    </div>
+
+    <div class="nav-section" style="margin-top:8px">
       <div class="nav-label">Vositalar</div>
       <button class="nav-item" onclick="nav('calc',this)">
         <span class="nav-icon">🧮</span> Kalkulyator
@@ -2914,6 +2980,31 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 
       <!-- ════ LIVE CHARTS ════ -->
       <div class="page" id="page-livecharts">
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+            {
+              "symbols": [
+                {"proName": "OANDA:XAUUSD", "title": "Oltin"},
+                {"proName": "BINANCE:BTCUSDT", "title": "Bitcoin"},
+                {"proName": "TVC:DXY", "title": "Dollar Indeksi"},
+                {"proName": "OANDA:EURUSD", "title": "EUR/USD"},
+                {"proName": "OANDA:GBPUSD", "title": "GBP/USD"},
+                {"proName": "OANDA:XAGUSD", "title": "Kumush"},
+                {"proName": "BINANCE:ETHUSDT", "title": "Ethereum"},
+                {"proName": "TVC:USOIL", "title": "Neft"},
+                {"proName": "OANDA:NAS100USD", "title": "NAS100"}
+              ],
+              "showSymbolLogo": true,
+              "colorTheme": "dark",
+              "isTransparentSlim": true,
+              "displayMode": "adaptive",
+              "locale": "ru"
+            }
+            </script>
+          </div>
+        </div>
         <div class="flex-between" style="margin-bottom:14px;gap:12px;flex-wrap:wrap">
           <div class="tabs" id="lc-tabs" style="margin:0;border:none;flex-wrap:wrap">
             <button class="tab active" data-symbol="OANDA:XAUUSD" onclick="switchChartSymbol('OANDA:XAUUSD',this)">🥇 Oltin (XAU/USD)</button>
@@ -2947,6 +3038,43 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <div id="tv-live-chart" style="height:640px;width:100%"></div>
+        </div>
+      </div>
+
+      <!-- ════ AI ASSISTANT ════ -->
+      <div class="page" id="page-ai-assistant">
+        <div id="ai-key-banner" class="card" style="display:none;margin-bottom:14px;border:1px solid var(--yellow, #C9A84C);">
+          <div class="flex-between" style="gap:12px;flex-wrap:wrap">
+            <div>
+              <div class="fw-700">🔑 API kalit kerak</div>
+              <div class="text-muted text-sm mt-4">AI Yordamchi ishlashi uchun o'zingizning Anthropic API kalitingizni kiriting. Kalit faqat shu brauzerda saqlanadi va faqat Anthropic serveriga yuboriladi.</div>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('apiKeyModal')">Kalitni kiritish</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:70vh;min-height:480px">
+          <div class="flex-between" style="padding:14px 18px;border-bottom:1px solid var(--border)">
+            <div class="fw-700" style="display:flex;align-items:center;gap:8px">🤖 AI Yordamchi <span class="text-muted text-sm fw-400">(Claude)</span></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="openModal('apiKeyModal')" title="API kalit sozlamalari">🔑 Kalit</button>
+              <button class="btn btn-outline btn-sm" onclick="clearAIChat()" title="Suhbatni tozalash">🗑️ Tozalash</button>
+            </div>
+          </div>
+          <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;"></div>
+          <div id="ai-attach-preview" style="display:none;padding:0 18px;"></div>
+          <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" onclick="quickAskTradeAnalysis()">📊 Savdo statistikamni tahlil qil</button>
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('ai-image-input').click()">🖼️ Rasm yuklash</button>
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('ai-file-input').click()">📎 Fayl yuklash</button>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-end">
+              <textarea id="ai-chat-input" class="form-input" placeholder="Savolingizni yozing... (Enter — yuborish, Shift+Enter — yangi qator)" style="resize:none;min-height:44px;max-height:140px;flex:1" onkeydown="handleAIChatKeydown(event)"></textarea>
+              <button class="btn btn-primary" id="ai-send-btn" onclick="sendAIMessage()">Yubor</button>
+            </div>
+            <input type="file" id="ai-image-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" onchange="handleAIFileSelect(event,'image')">
+            <input type="file" id="ai-file-input" accept=".pdf,.txt,.csv,.json,.md" style="display:none" onchange="handleAIFileSelect(event,'file')">
+          </div>
         </div>
       </div>
 
@@ -4436,12 +4564,15 @@ function buildTicker() {
 // ─── NAV ───
 const pages = {
   'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','livecharts':'Live Charts',
+  'ai-assistant':'AI Yordamchi',
   'calc':'Kalkulyator','checklist':'Pre-Trade Tekshiruv','calendar':'P&L Kalendar',
   'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','animations':'Animatsiyalar','settings':'Sozlamalar'
 };
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
-  'library':'Bilim va materiallar','livecharts':'Real vaqtli bozor grafiklari (TradingView)','calc':'Trading vositalari',
+  'library':'Bilim va materiallar','livecharts':'Real vaqtli bozor grafiklari (TradingView)',
+  'ai-assistant':'Savol bering, rasm yoki fayl yuboring — AI yordam beradi',
+  'calc':'Trading vositalari',
   'checklist':'Bitim ochishdan oldin tekshiring','calendar':'Kunlik foyda/zarar va yangiliklar',
   'strategies':'Savdo strategiyalari','goals':'Maqsad va risk nazorati','analytics':'Chuqur tahlil','animations':'Effektlar va animatsiya sozlamalari','settings':'Hisob sozlamalari'
 };
@@ -4460,6 +4591,7 @@ function nav(id, el) {
   if(id==='calendar') { renderCalendar(); renderEconCalendar(); }
   if(id==='animations') updateAnimStyleUI();
   if(id==='livecharts') initLiveChart();
+  if(id==='ai-assistant') initAIAssistant();
 }
 
 // ─── LIVE CHARTS (TradingView) ───
@@ -5422,7 +5554,7 @@ Matn/Tavsif: ${item.desc || '(tavsif kiritilmagan)'}`;
       renderLibrary();
     }
   } catch(err) {
-    box.textContent = '⚠️ AI tahlil olishda xatolik yuz berdi.';
+    box.textContent = aiErrorMessage(err);
   }
 }
 async function aiAskLib() {
@@ -5442,7 +5574,7 @@ Foydalanuvchi savoli: ${q}`;
     const text = await callClaude(prompt);
     box.textContent = text;
   } catch(err) {
-    box.textContent = '⚠️ Javob olishda xatolik yuz berdi.';
+    box.textContent = aiErrorMessage(err);
   }
 }
 
@@ -6921,22 +7053,89 @@ function renderEconCalendar() {
     </div>`).join('');
 }
 
-// ─── AI TRADE FEEDBACK (Claude API) ───
-const sessionLabelsAI = {asia:'Asia',london:'London',ny:'New York',overlap:'London/NY Overlap'};
+// ─── ANTHROPIC API HELPERS (shaxsiy API kalit bilan) ───
+function getAIKey() {
+  return localStorage.getItem('tp-anthropic-key') || '';
+}
+function saveAIKey() {
+  const input = document.getElementById('ai-key-input');
+  const errEl = document.getElementById('ai-key-error');
+  const key = (input.value || '').trim();
+  errEl.textContent = '';
+  if (!key) { errEl.textContent = 'Kalitni kiriting'; return; }
+  if (!key.startsWith('sk-ant-')) { errEl.textContent = 'Kalit "sk-ant-" bilan boshlanishi kerak'; return; }
+  localStorage.setItem('tp-anthropic-key', key);
+  input.value = '';
+  closeModal('apiKeyModal');
+  updateAIKeyBanner();
+  showToast('✅ API kalit saqlandi', 'success');
+}
+function clearAIKeyStored() {
+  localStorage.removeItem('tp-anthropic-key');
+  document.getElementById('ai-key-input').value = '';
+  updateAIKeyBanner();
+  closeModal('apiKeyModal');
+  showToast('🗑️ API kalit o\'chirildi', 'success');
+}
+function updateAIKeyBanner() {
+  const banner = document.getElementById('ai-key-banner');
+  if (!banner) return;
+  banner.style.display = getAIKey() ? 'none' : 'flex';
+}
+
+// Bitta matnli prompt yuborish uchun sodda wrapper (Trade Feedback, Weekly Coach shu funksiyadan foydalanadi)
 async function callClaude(prompt) {
+  const res = await callClaudeAPI([{ role: 'user', content: prompt }]);
+  return res || "Javob olinmadi.";
+}
+
+// To'liq suhbat tarixi va content-bloklar (matn/rasm/fayl) bilan Anthropic API'ga murojaat
+async function callClaudeAPI(messages, systemPrompt) {
+  const key = getAIKey();
+  if (!key) {
+    const err = new Error('API kalit topilmadi');
+    err.code = 'no-key';
+    throw err;
+  }
+  const body = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 1536,
+    messages: messages
+  };
+  if (systemPrompt) body.system = systemPrompt;
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }]
-    })
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
   });
+  if (!response.ok) {
+    let errBody = null;
+    try { errBody = await response.json(); } catch(e) {}
+    const err = new Error((errBody && errBody.error && errBody.error.message) || ('HTTP ' + response.status));
+    err.status = response.status;
+    throw err;
+  }
   const data = await response.json();
-  const text = (data.content||[]).map(c=>c.text||'').join('\n').trim();
+  const text = (data.content || []).map(c => c.text || '').join('\n').trim();
   return text || "Javob olinmadi.";
 }
+
+function aiErrorMessage(err) {
+  if (err && err.code === 'no-key') return '⚠️ AI ishlashi uchun API kalit kerak. "AI Yordamchi" bo\'limida 🔑 Kalit tugmasidan kiriting.';
+  if (err && err.status === 401) return '⚠️ API kalit noto\'g\'ri. "AI Yordamchi" bo\'limida kalitni tekshiring.';
+  if (err && err.status === 429) return '⚠️ So\'rovlar limiti tugadi, birozdan keyin qayta urinib ko\'ring.';
+  if (err && err.status === 400) return '⚠️ So\'rov noto\'g\'ri: ' + (err.message || '');
+  return '⚠️ AI javob berishda xatolik yuz berdi. Internet aloqasini tekshiring.';
+}
+
+// ─── AI TRADE FEEDBACK (Claude API) ───
+const sessionLabelsAI = {asia:'Asia',london:'London',ny:'New York',overlap:'London/NY Overlap'};
+
 
 let lastAITradeId = null;
 async function getAITradeFeedback(t) {
@@ -6971,7 +7170,7 @@ Umumiy hisob konteksti:
     const text = await callClaude(prompt);
     if(lastAITradeId===t.id) box.textContent = text;
   } catch(err) {
-    if(lastAITradeId===t.id) box.textContent = '⚠️ AI tahlil olishda xatolik yuz berdi. Internet aloqasini tekshiring.';
+    if(lastAITradeId===t.id) box.textContent = aiErrorMessage(err);
   }
 }
 function reRunLastAIFeedback() {
@@ -7014,7 +7213,7 @@ ${compact}`;
     const text = await callClaude(prompt);
     box.textContent = text;
   } catch(err) {
-    box.textContent = '⚠️ AI hisobot olishda xatolik yuz berdi. Internet aloqasini tekshiring.';
+    box.textContent = aiErrorMessage(err);
   } finally {
     btn.disabled = false; btn.textContent = '🧠 Hisobotni Yaratish';
   }
@@ -7524,6 +7723,207 @@ document.addEventListener('keydown', e=>{
   ['mousemove','keydown','click','touchstart'].forEach(ev=> document.addEventListener(ev, resetIdle, {passive:true}));
   resetIdle();
 })();
+</script>
+<script>
+// ─── AI ASSISTANT CHAT ───
+let aiChatMessages = [];      // Anthropic API'ga yuboriladigan to'liq tarix (content-bloklar bilan)
+let aiPendingAttachment = null; // {kind:'image'|'pdf'|'text', name, mediaType, base64, textContent}
+let aiChatInited = false;
+let aiIsSending = false;
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : String(str);
+  return d.innerHTML;
+}
+
+function initAIAssistant() {
+  updateAIKeyBanner();
+  const msgsBox = document.getElementById('ai-chat-messages');
+  if (!aiChatInited && msgsBox) {
+    aiChatInited = true;
+    msgsBox.innerHTML = '';
+    appendAIBubble('assistant', "Salom! 👋 Men sizning AI trading yordamchingizman. Savdo statistikangiz, strategiyalar, bozor haqida savol berishingiz, yoki chart/skrinshot rasm yuklab tahlil so'rashingiz mumkin.");
+  }
+  setTimeout(() => { const inp = document.getElementById('ai-chat-input'); if (inp) inp.focus(); }, 100);
+}
+
+function handleAIChatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAIMessage();
+  }
+}
+
+function handleAIFileSelect(event, kind) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const MAX_SIZE = 8 * 1024 * 1024; // 8MB
+  if (file.size > MAX_SIZE) {
+    showToast('⚠️ Fayl juda katta (8MB dan kichik bo\'lishi kerak)', 'error');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  if (kind === 'image') {
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(',')[1];
+      aiPendingAttachment = { kind: 'image', name: file.name, mediaType: file.type || 'image/png', base64, dataUrl };
+      renderAIAttachPreview();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const base64 = dataUrl.split(',')[1];
+        aiPendingAttachment = { kind: 'pdf', name: file.name, mediaType: 'application/pdf', base64 };
+        renderAIAttachPreview();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      reader.onload = () => {
+        let text = String(reader.result || '');
+        if (text.length > 12000) text = text.slice(0, 12000) + '\n...(fayl qisqartirildi)...';
+        aiPendingAttachment = { kind: 'text', name: file.name, textContent: text };
+        renderAIAttachPreview();
+      };
+      reader.readAsText(file);
+    }
+  }
+  event.target.value = '';
+}
+
+function removeAIAttachment() {
+  aiPendingAttachment = null;
+  renderAIAttachPreview();
+}
+
+function renderAIAttachPreview() {
+  const box = document.getElementById('ai-attach-preview');
+  if (!box) return;
+  if (!aiPendingAttachment) {
+    box.classList.remove('show');
+    box.innerHTML = '';
+    return;
+  }
+  box.classList.add('show');
+  const a = aiPendingAttachment;
+  if (a.kind === 'image') {
+    box.innerHTML = `<div class="ai-attach-chip"><img src="${a.dataUrl}" alt="preview">${escapeHtml(a.name)}<button onclick="removeAIAttachment()">✕</button></div>`;
+  } else if (a.kind === 'pdf') {
+    box.innerHTML = `<div class="ai-attach-chip">📄 ${escapeHtml(a.name)}<button onclick="removeAIAttachment()">✕</button></div>`;
+  } else {
+    box.innerHTML = `<div class="ai-attach-chip">📎 ${escapeHtml(a.name)}<button onclick="removeAIAttachment()">✕</button></div>`;
+  }
+}
+
+function appendAIBubble(role, text, extraHtml) {
+  const msgsBox = document.getElementById('ai-chat-messages');
+  if (!msgsBox) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'ai-msg ' + role;
+  const avatar = role === 'user' ? '🧑' : '🤖';
+  wrap.innerHTML = `<div class="ai-msg-avatar">${avatar}</div><div class="ai-msg-bubble">${text ? escapeHtml(text) : ''}${extraHtml || ''}</div>`;
+  msgsBox.appendChild(wrap);
+  msgsBox.scrollTop = msgsBox.scrollHeight;
+  return wrap;
+}
+
+function showAITyping() {
+  const msgsBox = document.getElementById('ai-chat-messages');
+  if (!msgsBox) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'ai-msg assistant';
+  wrap.id = 'ai-typing-indicator';
+  wrap.innerHTML = `<div class="ai-msg-avatar">🤖</div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
+  msgsBox.appendChild(wrap);
+  msgsBox.scrollTop = msgsBox.scrollHeight;
+}
+function hideAITyping() {
+  const el = document.getElementById('ai-typing-indicator');
+  if (el) el.remove();
+}
+
+async function sendAIMessage(prefillText) {
+  if (aiIsSending) return;
+  const input = document.getElementById('ai-chat-input');
+  let text = (prefillText != null ? prefillText : (input ? input.value : '')).trim();
+  const attachment = aiPendingAttachment;
+  if (!text && !attachment) return;
+  if (!getAIKey()) {
+    openModal('apiKeyModal');
+    return;
+  }
+
+  // ── Foydalanuvchi xabarini API content-bloklariga aylantirish ──
+  const contentBlocks = [];
+  let displayExtra = '';
+  if (attachment) {
+    if (attachment.kind === 'image') {
+      contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: attachment.mediaType, data: attachment.base64 } });
+      displayExtra += `<img src="${attachment.dataUrl}" alt="${escapeHtml(attachment.name)}">`;
+    } else if (attachment.kind === 'pdf') {
+      contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachment.base64 } });
+      displayExtra += `<div class="ai-chip">📄 ${escapeHtml(attachment.name)}</div>`;
+    } else if (attachment.kind === 'text') {
+      text = (text ? text + '\n\n' : '') + `[Yuklangan fayl: ${attachment.name}]\n${attachment.textContent}`;
+      displayExtra += `<div class="ai-chip">📎 ${escapeHtml(attachment.name)}</div>`;
+    }
+  }
+  if (text) contentBlocks.push({ type: 'text', text: text });
+
+  // ── UI'da foydalanuvchi xabarini ko'rsatish ──
+  const displayText = prefillText != null ? prefillText : (input ? input.value.trim() : '');
+  appendAIBubble('user', displayText || (attachment ? '' : text), displayExtra);
+
+  aiChatMessages.push({ role: 'user', content: contentBlocks });
+  if (input) input.value = '';
+  removeAIAttachment();
+  aiIsSending = true;
+  const sendBtn = document.getElementById('ai-send-btn');
+  if (sendBtn) sendBtn.disabled = true;
+  showAITyping();
+
+  const systemPrompt = "Siz TraderPro platformasidagi professional trading va moliya bo'yicha AI yordamchisiz. Foydalanuvchi — treyder va makroiqtisodiyot talabasi. Har doim O'ZBEK TILIDA, aniq, qisqa va amaliy javob bering. Moliyaviy maslahat emas, balki ta'limiy/tahliliy nuqtai nazardan yordam bering. Markdown belgilaridan (masalan **, ##, ---) foydalanmang, oddiy matn bilan yozing.";
+
+  try {
+    const reply = await callClaudeAPI(aiChatMessages, systemPrompt);
+    hideAITyping();
+    appendAIBubble('assistant', reply);
+    aiChatMessages.push({ role: 'assistant', content: [{ type: 'text', text: reply }] });
+  } catch (err) {
+    hideAITyping();
+    aiChatMessages.pop(); // xato bo'lsa tarixni to'g'ri holatga qaytaramiz (role alternation buzilmasin)
+    appendAIBubble('assistant', aiErrorMessage(err));
+    if (err && err.code === 'no-key') openModal('apiKeyModal');
+  } finally {
+    aiIsSending = false;
+    if (sendBtn) sendBtn.disabled = false;
+  }
+}
+
+function clearAIChat() {
+  aiChatMessages = [];
+  const msgsBox = document.getElementById('ai-chat-messages');
+  if (msgsBox) msgsBox.innerHTML = '';
+  appendAIBubble('assistant', "Suhbat tozalandi. Yangi savolingizni yozing 👋");
+}
+
+function quickAskTradeAnalysis() {
+  if (!trades.length) { showToast('Hali bitim mavjud emas', 'warning'); return; }
+  const recent = trades.slice(0, 20);
+  const total = recent.reduce((s, t) => s + t.pnl, 0);
+  const wins = recent.filter(t => t.pnl > 0).length;
+  const wr = Math.round(wins / recent.length * 100);
+  const emotionLossMap = {};
+  recent.forEach(t => { if (t.pnl < 0) emotionLossMap[t.emotion] = (emotionLossMap[t.emotion] || 0) + 1; });
+  const worstEmotion = Object.keys(emotionLossMap).sort((a, b) => emotionLossMap[b] - emotionLossMap[a])[0];
+  const compact = recent.map(t => `${t.symbol} ${t.dir} pnl:${t.pnl} emotion:${t.emotion} session:${t.session || '-'} strategy:${t.strategy}`).join('\n');
+  const prompt = `Mening oxirgi ${recent.length} ta bitimimni tahlil qiling. Umumiy P&L: ${total.toFixed(2)}, win rate: ${wr}%, eng ko'p zarar bilan bog'liq hissiyot: ${worstEmotion || "ma'lum emas"}.\n\nBitimlar:\n${compact}\n\nEng katta zaiflik nuqtamni, kuchli tomonimni va 1 ta aniq tavsiyani ayting.`;
+  sendAIMessage(prompt);
+}
 </script>
 </body>
 </html>
