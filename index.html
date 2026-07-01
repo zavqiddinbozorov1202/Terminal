@@ -13,6 +13,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getDatabase, ref as dbRef, set as dbSet, get as dbGet, remove as dbRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAVVJRl0BpyLnB-kDYxloacvgQwMkLRv4E",
@@ -29,6 +30,31 @@
   const db = getFirestore(app);
   const cloudDocRef = doc(db, "traderpro", "main");
   const rtdb = getDatabase(app);
+
+  // ─── AUTH (login/parol) ───
+  const auth = getAuth(app);
+  setPersistence(auth, browserLocalPersistence).catch(()=>{});
+
+  let resolveAuthReady;
+  window.__authReady = new Promise(res => { resolveAuthReady = res; });
+
+  onAuthStateChanged(auth, (user) => {
+    const ls = document.getElementById('login-screen');
+    if (user) {
+      if (ls) ls.style.display = 'none';
+      resolveAuthReady(user);
+    } else {
+      if (ls) ls.style.display = 'flex';
+    }
+  });
+
+  window.__doLogin = function(email, password) {
+    return signInWithEmailAndPassword(auth, email, password);
+  };
+  window.__doLogout = async function() {
+    try { await signOut(auth); } catch(e) {}
+    location.reload();
+  };
 
   // Rasm/fayllarni Realtime Database'ga yozish, o'qish, o'chirish
   // (Firebase Storage to'lov rejimini talab qilgani uchun Realtime Database ishlatilmoqda — bepul)
@@ -65,9 +91,10 @@
     'tp-checklist','tp-checklist-history','tp-contract','tp-mode','tp-anim-style'
   ];
 
-  // Sahifa yuklanganda: bulutdan ma'lumotni tortib, localStorage'ga yozib qo'yamiz.
+  // Sahifa yuklanganda: avval login kutiladi, keyin bulutdan ma'lumotni tortib, localStorage'ga yozib qo'yamiz.
   // Asosiy skript (pastda) shu promise tugashini kutadi, keyingina o'z o'zgaruvchilarini o'qiydi.
   window.__cloudReady = (async () => {
+    await window.__authReady;
     try {
       const snap = await getDoc(cloudDocRef);
       if (snap.exists()) {
@@ -1075,6 +1102,23 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 </style>
 </head>
 <body>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen" style="position:fixed;inset:0;z-index:999999;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:380px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;box-shadow:var(--shadow);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);font-family:var(--font);">TraderPro</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">Kirish uchun login va parolni kiriting</div>
+    </div>
+    <form id="login-form" style="display:flex;flex-direction:column;gap:14px;" onsubmit="doLogin(); return false;">
+      <input id="login-email" type="email" placeholder="Email" autocomplete="username" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+      <input id="login-password" type="password" placeholder="Parol" autocomplete="current-password" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+      <button id="login-btn" type="submit" style="background:var(--green);color:#04140f;border:none;border-radius:var(--radius-sm);padding:12px;font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;font-family:var(--font);">Kirish</button>
+      <div id="login-error" style="color:var(--red);font-size:13px;text-align:center;min-height:16px;font-family:var(--font);"></div>
+    </form>
+  </div>
+</div>
 
 <!-- ── SLEEP MODE SCREEN ── -->
 <div id="sleep-screen" onclick="sleepModeOff()">
@@ -2155,13 +2199,13 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
     </div>
 
     <div class="sidebar-bottom">
-      <div class="user-card">
+      <div class="user-card" style="position:relative">
         <div class="avatar" id="user-avatar">T</div>
         <div>
           <div class="user-name" id="user-name-display">Trader</div>
           <div class="user-role">Pro Trader</div>
         </div>
-        <div class="pulse-dot" style="margin-left:auto"></div>
+        <button onclick="doLogout()" title="Chiqish" style="margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;">🚪</button>
       </div>
     </div>
   </nav>
@@ -3716,6 +3760,37 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 </div><!-- /layout -->
 
 <script>
+// ─── LOGIN ───
+async function doLogin() {
+  const emailEl = document.getElementById('login-email');
+  const passEl = document.getElementById('login-password');
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  const email = (emailEl.value||'').trim();
+  const password = passEl.value||'';
+  errEl.textContent = '';
+  if (!email || !password) {
+    errEl.textContent = 'Email va parolni kiriting';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Kirilmoqda...';
+  try {
+    await window.__doLogin(email, password);
+    // onAuthStateChanged o'zi login-screen'ni yashiradi
+  } catch (e) {
+    let msg = 'Login yoki parol xato';
+    if (e && e.code === 'auth/invalid-email') msg = 'Email formati noto\'g\'ri';
+    if (e && e.code === 'auth/too-many-requests') msg = 'Juda ko\'p urinish, birozdan keyin qayta urinib ko\'ring';
+    errEl.textContent = msg;
+    btn.disabled = false;
+    btn.textContent = 'Kirish';
+  }
+}
+function doLogout() {
+  if (window.__doLogout) window.__doLogout();
+}
+
 // ─── DATA ───
 // Darhol xavfsiz standart qiymatlar bilan boshlaymiz (bulut hali yuklanmagan bo'lsa ham
 // sahifadagi boshqa kodlar — masalan grafik chizuvchi setTimeout — xato bermasligi uchun)
