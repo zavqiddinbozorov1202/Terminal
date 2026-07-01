@@ -12,11 +12,12 @@
   // tp- prefiksli localStorage kalitlarini Firestore hujjati bilan sinxronlaydi.
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+  import { getDatabase, ref as dbRef, set as dbSet, get as dbGet, remove as dbRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAVVJRl0BpyLnB-kDYxloacvgQwMkLRv4E",
     authDomain: "zavqiddin-98795.firebaseapp.com",
+    databaseURL: "https://zavqiddin-98795-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "zavqiddin-98795",
     storageBucket: "zavqiddin-98795.firebasestorage.app",
     messagingSenderId: "38267287574",
@@ -27,38 +28,33 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const cloudDocRef = doc(db, "traderpro", "main");
-  const storage = getStorage(app);
+  const rtdb = getDatabase(app);
 
-  // Rasm/fayllarni Storage'ga yozish, o'qish, o'chirish
+  // Rasm/fayllarni Realtime Database'ga yozish, o'qish, o'chirish
+  // (Firebase Storage to'lov rejimini talab qilgani uchun Realtime Database ishlatilmoqda — bepul)
+  function safeId(id) {
+    // RTDB kalitlarida '.', '#', '$', '[', ']', '/' bo'lishi mumkin emas
+    return String(id).replace(/[.#$\[\]\/]/g, '_');
+  }
   window.__cloudFiles = {
     async upload(id, dataUrl) {
       try {
-        const r = storageRef(storage, `traderpro-files/${id}`);
-        await uploadString(r, dataUrl, 'data_url');
+        await dbSet(dbRef(rtdb, `traderpro-files/${safeId(id)}`), dataUrl);
       } catch (e) {
-        console.warn('Storage: yuklab bo\'lmadi', id, e);
+        console.warn('RTDB: yuklab bo\'lmadi', id, e);
       }
     },
     async download(id) {
       try {
-        const r = storageRef(storage, `traderpro-files/${id}`);
-        const url = await getDownloadURL(r);
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        return await new Promise((res, rej) => {
-          const fr = new FileReader();
-          fr.onload = () => res(fr.result);
-          fr.onerror = rej;
-          fr.readAsDataURL(blob);
-        });
+        const snap = await dbGet(dbRef(rtdb, `traderpro-files/${safeId(id)}`));
+        return snap.exists() ? snap.val() : null;
       } catch (e) {
         return null; // fayl bulutda yo'q yoki hali sinxronlanmagan
       }
     },
     async remove(id) {
       try {
-        const r = storageRef(storage, `traderpro-files/${id}`);
-        await deleteObject(r);
+        await dbRemove(dbRef(rtdb, `traderpro-files/${safeId(id)}`));
       } catch (e) { /* fayl allaqachon yo'q bo'lishi mumkin */ }
     }
   };
