@@ -2123,15 +2123,15 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 <div class="modal-overlay" id="apiKeyModal">
   <div class="modal" style="width:460px">
     <div class="modal-title">
-      🔑 Anthropic API Kalit
+      🔑 Google Gemini API Kalit
       <button class="modal-close" onclick="closeModal('apiKeyModal')">✕</button>
     </div>
     <div class="text-muted text-sm" style="margin-bottom:14px;line-height:1.6">
-      AI Yordamchi ishlashi uchun shaxsiy API kalitingiz kerak. Kalitni <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style="color:var(--green)">console.anthropic.com/settings/keys</a> sahifasidan olishingiz mumkin. Kalit faqat shu qurilma brauzerida (localStorage) saqlanadi va faqat to'g'ridan-to'g'ri Anthropic serveriga yuboriladi — boshqa hech qayerga jo'natilmaydi.
+      AI Yordamchi ishlashi uchun bepul Google Gemini API kalit kerak. Kalitni <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--green)">aistudio.google.com/apikey</a> sahifasidan bir necha soniyada, bepul va kredit kartasiz olishingiz mumkin (Google hisobingiz bilan kiring → "Create API key"). Kalit faqat shu qurilma brauzerida (localStorage) saqlanadi va faqat to'g'ridan-to'g'ri Google serveriga yuboriladi — boshqa hech qayerga jo'natilmaydi.
     </div>
     <div class="form-group">
       <label class="form-label">API kalit</label>
-      <input type="password" class="form-input" id="ai-key-input" placeholder="sk-ant-...">
+      <input type="password" class="form-input" id="ai-key-input" placeholder="AIzaSy...">
     </div>
     <div id="ai-key-error" style="color:var(--red);font-size:13px;min-height:16px;margin-top:4px"></div>
     <div class="flex-between" style="margin-top:16px;gap:10px">
@@ -3046,15 +3046,15 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         <div id="ai-key-banner" class="card" style="display:none;margin-bottom:14px;border:1px solid var(--yellow, #C9A84C);">
           <div class="flex-between" style="gap:12px;flex-wrap:wrap">
             <div>
-              <div class="fw-700">🔑 API kalit kerak</div>
-              <div class="text-muted text-sm mt-4">AI Yordamchi ishlashi uchun o'zingizning Anthropic API kalitingizni kiriting. Kalit faqat shu brauzerda saqlanadi va faqat Anthropic serveriga yuboriladi.</div>
+              <div class="fw-700">🔑 Bepul API kalit kerak</div>
+              <div class="text-muted text-sm mt-4">AI Yordamchi ishlashi uchun bepul Google Gemini API kalitingizni kiriting (kredit karta shart emas). Kalit faqat shu brauzerda saqlanadi va faqat Google serveriga yuboriladi.</div>
             </div>
             <button class="btn btn-primary" onclick="openModal('apiKeyModal')">Kalitni kiritish</button>
           </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:70vh;min-height:480px">
           <div class="flex-between" style="padding:14px 18px;border-bottom:1px solid var(--border)">
-            <div class="fw-700" style="display:flex;align-items:center;gap:8px">🤖 AI Yordamchi <span class="text-muted text-sm fw-400">(Claude)</span></div>
+            <div class="fw-700" style="display:flex;align-items:center;gap:8px">🤖 AI Yordamchi <span class="text-muted text-sm fw-400">(Gemini)</span></div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-outline btn-sm" onclick="openModal('apiKeyModal')" title="API kalit sozlamalari">🔑 Kalit</button>
               <button class="btn btn-outline btn-sm" onclick="clearAIChat()" title="Suhbatni tozalash">🗑️ Tozalash</button>
@@ -7053,9 +7053,9 @@ function renderEconCalendar() {
     </div>`).join('');
 }
 
-// ─── ANTHROPIC API HELPERS (shaxsiy API kalit bilan) ───
+// ─── GOOGLE GEMINI API HELPERS (bepul, shaxsiy API kalit bilan) ───
 function getAIKey() {
-  return localStorage.getItem('tp-anthropic-key') || '';
+  return localStorage.getItem('tp-gemini-key') || '';
 }
 function saveAIKey() {
   const input = document.getElementById('ai-key-input');
@@ -7063,15 +7063,15 @@ function saveAIKey() {
   const key = (input.value || '').trim();
   errEl.textContent = '';
   if (!key) { errEl.textContent = 'Kalitni kiriting'; return; }
-  if (!key.startsWith('sk-ant-')) { errEl.textContent = 'Kalit "sk-ant-" bilan boshlanishi kerak'; return; }
-  localStorage.setItem('tp-anthropic-key', key);
+  if (key.length < 20) { errEl.textContent = 'Kalit juda qisqa ko\'rinadi, qayta tekshiring'; return; }
+  localStorage.setItem('tp-gemini-key', key);
   input.value = '';
   closeModal('apiKeyModal');
   updateAIKeyBanner();
   showToast('✅ API kalit saqlandi', 'success');
 }
 function clearAIKeyStored() {
-  localStorage.removeItem('tp-anthropic-key');
+  localStorage.removeItem('tp-gemini-key');
   document.getElementById('ai-key-input').value = '';
   updateAIKeyBanner();
   closeModal('apiKeyModal');
@@ -7083,36 +7083,36 @@ function updateAIKeyBanner() {
   banner.style.display = getAIKey() ? 'none' : 'flex';
 }
 
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
 // Bitta matnli prompt yuborish uchun sodda wrapper (Trade Feedback, Weekly Coach shu funksiyadan foydalanadi)
 async function callClaude(prompt) {
-  const res = await callClaudeAPI([{ role: 'user', content: prompt }]);
+  const res = await callGeminiAPI([{ role: 'user', parts: [{ text: prompt }] }]);
   return res || "Javob olinmadi.";
 }
 
-// To'liq suhbat tarixi va content-bloklar (matn/rasm/fayl) bilan Anthropic API'ga murojaat
-async function callClaudeAPI(messages, systemPrompt) {
+// To'liq suhbat tarixi va content-bloklar (matn/rasm/fayl) bilan Gemini API'ga murojaat
+// contents formati: [{ role:'user'|'model', parts:[{text},{inline_data:{mime_type,data}}] }, ...]
+async function callGeminiAPI(contents, systemPrompt) {
   const key = getAIKey();
   if (!key) {
     const err = new Error('API kalit topilmadi');
     err.code = 'no-key';
     throw err;
   }
-  const body = {
-    model: "claude-sonnet-4-6",
-    max_tokens: 1536,
-    messages: messages
-  };
-  if (systemPrompt) body.system = systemPrompt;
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify(body)
-  });
+  const body = { contents: contents };
+  if (systemPrompt) body.system_instruction = { parts: [{ text: systemPrompt }] };
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": key
+      },
+      body: JSON.stringify(body)
+    }
+  );
   if (!response.ok) {
     let errBody = null;
     try { errBody = await response.json(); } catch(e) {}
@@ -7121,19 +7121,27 @@ async function callClaudeAPI(messages, systemPrompt) {
     throw err;
   }
   const data = await response.json();
-  const text = (data.content || []).map(c => c.text || '').join('\n').trim();
+  const candidate = (data.candidates || [])[0];
+  if (!candidate) {
+    // Xavfsizlik filtri yoki bo'sh javob
+    const reason = candidate && candidate.finishReason;
+    const err = new Error('Javob qaytmadi' + (reason ? ' (' + reason + ')' : ''));
+    err.status = 'empty';
+    throw err;
+  }
+  const text = ((candidate.content && candidate.content.parts) || []).map(p => p.text || '').join('\n').trim();
   return text || "Javob olinmadi.";
 }
 
 function aiErrorMessage(err) {
-  if (err && err.code === 'no-key') return '⚠️ AI ishlashi uchun API kalit kerak. "AI Yordamchi" bo\'limida 🔑 Kalit tugmasidan kiriting.';
-  if (err && err.status === 401) return '⚠️ API kalit noto\'g\'ri. "AI Yordamchi" bo\'limida kalitni tekshiring.';
-  if (err && err.status === 429) return '⚠️ So\'rovlar limiti tugadi, birozdan keyin qayta urinib ko\'ring.';
-  if (err && err.status === 400) return '⚠️ So\'rov noto\'g\'ri: ' + (err.message || '');
+  if (err && err.code === 'no-key') return '⚠️ AI ishlashi uchun bepul API kalit kerak. "AI Yordamchi" bo\'limida 🔑 Kalit tugmasidan kiriting.';
+  if (err && err.status === 400) return '⚠️ API kalit noto\'g\'ri yoki so\'rov xato. Kalitni qayta tekshiring.';
+  if (err && err.status === 403) return '⚠️ Kalit ushbu amal uchun ruxsatga ega emas (Gemini API yoqilganini tekshiring).';
+  if (err && err.status === 429) return '⚠️ Bepul limitga yetdingiz, birozdan keyin qayta urinib ko\'ring.';
   return '⚠️ AI javob berishda xatolik yuz berdi. Internet aloqasini tekshiring.';
 }
 
-// ─── AI TRADE FEEDBACK (Claude API) ───
+// ─── AI TRADE FEEDBACK (Gemini API) ───
 const sessionLabelsAI = {asia:'Asia',london:'London',ny:'New York',overlap:'London/NY Overlap'};
 
 
