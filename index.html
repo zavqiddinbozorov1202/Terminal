@@ -2562,6 +2562,13 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     </div>
 
     <div class="nav-section" style="margin-top:8px">
+      <div class="nav-label">Bozor</div>
+      <button class="nav-item" onclick="nav('livecharts',this)">
+        <span class="nav-icon">📡</span> Live Charts
+      </button>
+    </div>
+
+    <div class="nav-section" style="margin-top:8px">
       <div class="nav-label">Vositalar</div>
       <button class="nav-item" onclick="nav('calc',this)">
         <span class="nav-icon">🧮</span> Kalkulyator
@@ -2902,6 +2909,44 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
           <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
             📚 Kutubxona bo'sh. Material qo'shing!
           </div>
+        </div>
+      </div>
+
+      <!-- ════ LIVE CHARTS ════ -->
+      <div class="page" id="page-livecharts">
+        <div class="flex-between" style="margin-bottom:14px;gap:12px;flex-wrap:wrap">
+          <div class="tabs" id="lc-tabs" style="margin:0;border:none;flex-wrap:wrap">
+            <button class="tab active" data-symbol="OANDA:XAUUSD" onclick="switchChartSymbol('OANDA:XAUUSD',this)">🥇 Oltin (XAU/USD)</button>
+            <button class="tab" data-symbol="BINANCE:BTCUSDT" onclick="switchChartSymbol('BINANCE:BTCUSDT',this)">₿ Bitcoin</button>
+            <button class="tab" data-symbol="TVC:DXY" onclick="switchChartSymbol('TVC:DXY',this)">💵 Dollar Indeksi</button>
+            <button class="tab" data-symbol="OANDA:EURUSD" onclick="switchChartSymbol('OANDA:EURUSD',this)">EUR/USD</button>
+            <button class="tab" data-symbol="OANDA:GBPUSD" onclick="switchChartSymbol('OANDA:GBPUSD',this)">GBP/USD</button>
+            <button class="tab" data-symbol="OANDA:XAGUSD" onclick="switchChartSymbol('OANDA:XAGUSD',this)">🥈 Kumush</button>
+            <button class="tab" data-symbol="OANDA:NAS100USD" onclick="switchChartSymbol('OANDA:NAS100USD',this)">NAS100</button>
+            <button class="tab" data-symbol="OANDA:US30USD" onclick="switchChartSymbol('OANDA:US30USD',this)">US30</button>
+            <button class="tab" data-symbol="TVC:USOIL" onclick="switchChartSymbol('TVC:USOIL',this)">🛢️ Neft</button>
+            <button class="tab" data-symbol="BINANCE:ETHUSDT" onclick="switchChartSymbol('BINANCE:ETHUSDT',this)">Ethereum</button>
+          </div>
+        </div>
+        <div class="flex-between" style="margin-bottom:16px;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:220px">
+            <input class="form-input" id="lc-custom-symbol" placeholder="Boshqa juftlik: masalan NASDAQ:AAPL, OANDA:USDJPY..." style="max-width:320px" onkeydown="if(event.key==='Enter')loadCustomSymbol()">
+            <button class="btn btn-outline" onclick="loadCustomSymbol()">Yuklash</button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select class="form-select" id="lc-interval" style="width:130px" onchange="changeChartInterval()">
+              <option value="1">1 daqiqa</option>
+              <option value="5">5 daqiqa</option>
+              <option value="15">15 daqiqa</option>
+              <option value="60" selected>1 soat</option>
+              <option value="240">4 soat</option>
+              <option value="D">1 kun</option>
+              <option value="W">1 hafta</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="tv-live-chart" style="height:640px;width:100%"></div>
         </div>
       </div>
 
@@ -4390,13 +4435,13 @@ function buildTicker() {
 
 // ─── NAV ───
 const pages = {
-  'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona',
+  'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','livecharts':'Live Charts',
   'calc':'Kalkulyator','checklist':'Pre-Trade Tekshiruv','calendar':'P&L Kalendar',
   'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','animations':'Animatsiyalar','settings':'Sozlamalar'
 };
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
-  'library':'Bilim va materiallar','calc':'Trading vositalari',
+  'library':'Bilim va materiallar','livecharts':'Real vaqtli bozor grafiklari (TradingView)','calc':'Trading vositalari',
   'checklist':'Bitim ochishdan oldin tekshiring','calendar':'Kunlik foyda/zarar va yangiliklar',
   'strategies':'Savdo strategiyalari','goals':'Maqsad va risk nazorati','analytics':'Chuqur tahlil','animations':'Effektlar va animatsiya sozlamalari','settings':'Hisob sozlamalari'
 };
@@ -4414,9 +4459,92 @@ function nav(id, el) {
   if(id==='checklist') renderChecklist();
   if(id==='calendar') { renderCalendar(); renderEconCalendar(); }
   if(id==='animations') updateAnimStyleUI();
+  if(id==='livecharts') initLiveChart();
 }
 
-// ─── ANIMATSIYA REJIMI ───
+// ─── LIVE CHARTS (TradingView) ───
+let __tvScriptPromise = null;
+let __tvWidget = null;
+let __currentChartSymbol = 'OANDA:XAUUSD';
+let __currentChartInterval = '60';
+
+function loadTVScript() {
+  if (__tvScriptPromise) return __tvScriptPromise;
+  __tvScriptPromise = new Promise((resolve, reject) => {
+    if (window.TradingView) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://s3.tradingview.com/tv.js';
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('TradingView skripti yuklanmadi'));
+    document.head.appendChild(s);
+  });
+  return __tvScriptPromise;
+}
+
+function renderTVWidget(symbol, interval) {
+  const container = document.getElementById('tv-live-chart');
+  if (!container || !window.TradingView) return;
+  container.innerHTML = '';
+  const isLight = document.body.classList.contains('light-mode');
+  __tvWidget = new TradingView.widget({
+    autosize: true,
+    symbol: symbol,
+    interval: interval || '60',
+    timezone: 'Etc/UTC',
+    theme: isLight ? 'light' : 'dark',
+    style: '1',
+    locale: 'ru',
+    toolbar_bg: isLight ? '#F3F4F6' : '#111827',
+    enable_publishing: false,
+    hide_side_toolbar: false,
+    allow_symbol_change: true,
+    withdateranges: true,
+    details: true,
+    hotlist: false,
+    calendar: false,
+    studies: ['Volume@tv-basicstudies'],
+    container_id: 'tv-live-chart'
+  });
+}
+
+function initLiveChart() {
+  const container = document.getElementById('tv-live-chart');
+  if (!container) return;
+  if (window.TradingView && __tvWidget) return; // allaqachon yuklangan, qayta yaratmaymiz
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-family:var(--mono);font-size:13px">📡 Grafik yuklanmoqda...</div>';
+  loadTVScript().then(() => {
+    renderTVWidget(__currentChartSymbol, __currentChartInterval);
+  }).catch((e) => {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red);font-family:var(--mono);font-size:13px;text-align:center;padding:20px">⚠️ Grafik yuklanmadi — internet aloqasini tekshiring<br>(' + (e && e.message || '') + ')</div>';
+  });
+}
+
+function switchChartSymbol(symbol, el) {
+  __currentChartSymbol = symbol;
+  document.querySelectorAll('#lc-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const customInput = document.getElementById('lc-custom-symbol');
+  if (customInput) customInput.value = '';
+  loadTVScript().then(() => renderTVWidget(__currentChartSymbol, __currentChartInterval));
+}
+
+function loadCustomSymbol() {
+  const input = document.getElementById('lc-custom-symbol');
+  const val = (input.value || '').trim().toUpperCase();
+  if (!val) return;
+  __currentChartSymbol = val;
+  document.querySelectorAll('#lc-tabs .tab').forEach(t => t.classList.remove('active'));
+  loadTVScript().then(() => renderTVWidget(__currentChartSymbol, __currentChartInterval));
+}
+
+function changeChartInterval() {
+  const sel = document.getElementById('lc-interval');
+  __currentChartInterval = sel.value;
+  loadTVScript().then(() => renderTVWidget(__currentChartSymbol, __currentChartInterval));
+}
+
+
 function setAnimStyle(style) {
   document.body.classList.remove('anim-off','anim-calm','anim-normal','anim-lively');
   if(style !== 'normal') document.body.classList.add('anim-'+style);
