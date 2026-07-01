@@ -7734,7 +7734,7 @@ document.addEventListener('keydown', e=>{
 </script>
 <script>
 // ─── AI ASSISTANT CHAT ───
-let aiChatMessages = [];      // Anthropic API'ga yuboriladigan to'liq tarix (content-bloklar bilan)
+let aiChatMessages = [];      // Gemini API'ga yuboriladigan to'liq tarix: [{role:'user'|'model', parts:[...]}]
 let aiPendingAttachment = null; // {kind:'image'|'pdf'|'text', name, mediaType, base64, textContent}
 let aiChatInited = false;
 let aiIsSending = false;
@@ -7865,28 +7865,28 @@ async function sendAIMessage(prefillText) {
     return;
   }
 
-  // ── Foydalanuvchi xabarini API content-bloklariga aylantirish ──
-  const contentBlocks = [];
+  // ── Foydalanuvchi xabarini Gemini "parts" formatiga aylantirish ──
+  const parts = [];
   let displayExtra = '';
   if (attachment) {
     if (attachment.kind === 'image') {
-      contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: attachment.mediaType, data: attachment.base64 } });
+      parts.push({ inline_data: { mime_type: attachment.mediaType, data: attachment.base64 } });
       displayExtra += `<img src="${attachment.dataUrl}" alt="${escapeHtml(attachment.name)}">`;
     } else if (attachment.kind === 'pdf') {
-      contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachment.base64 } });
+      parts.push({ inline_data: { mime_type: 'application/pdf', data: attachment.base64 } });
       displayExtra += `<div class="ai-chip">📄 ${escapeHtml(attachment.name)}</div>`;
     } else if (attachment.kind === 'text') {
       text = (text ? text + '\n\n' : '') + `[Yuklangan fayl: ${attachment.name}]\n${attachment.textContent}`;
       displayExtra += `<div class="ai-chip">📎 ${escapeHtml(attachment.name)}</div>`;
     }
   }
-  if (text) contentBlocks.push({ type: 'text', text: text });
+  if (text) parts.push({ text: text });
 
   // ── UI'da foydalanuvchi xabarini ko'rsatish ──
   const displayText = prefillText != null ? prefillText : (input ? input.value.trim() : '');
   appendAIBubble('user', displayText || (attachment ? '' : text), displayExtra);
 
-  aiChatMessages.push({ role: 'user', content: contentBlocks });
+  aiChatMessages.push({ role: 'user', parts: parts });
   if (input) input.value = '';
   removeAIAttachment();
   aiIsSending = true;
@@ -7897,10 +7897,10 @@ async function sendAIMessage(prefillText) {
   const systemPrompt = "Siz TraderPro platformasidagi professional trading va moliya bo'yicha AI yordamchisiz. Foydalanuvchi — treyder va makroiqtisodiyot talabasi. Har doim O'ZBEK TILIDA, aniq, qisqa va amaliy javob bering. Moliyaviy maslahat emas, balki ta'limiy/tahliliy nuqtai nazardan yordam bering. Markdown belgilaridan (masalan **, ##, ---) foydalanmang, oddiy matn bilan yozing.";
 
   try {
-    const reply = await callClaudeAPI(aiChatMessages, systemPrompt);
+    const reply = await callGeminiAPI(aiChatMessages, systemPrompt);
     hideAITyping();
     appendAIBubble('assistant', reply);
-    aiChatMessages.push({ role: 'assistant', content: [{ type: 'text', text: reply }] });
+    aiChatMessages.push({ role: 'model', parts: [{ text: reply }] });
   } catch (err) {
     hideAITyping();
     aiChatMessages.pop(); // xato bo'lsa tarixni to'g'ri holatga qaytaramiz (role alternation buzilmasin)
