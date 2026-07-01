@@ -6665,7 +6665,7 @@ document.addEventListener('keydown', e=>{
   function slKeyHandler(e){
     if(e.key==='Escape' || e.key===' ' || e.key==='Enter') sleepModeOff();
   }
-
+  
   // Global S shortcut (when no input focused)
   document.addEventListener('keydown', e=>{
     if(e.key==='s' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
@@ -6673,7 +6673,16 @@ document.addEventListener('keydown', e=>{
       else sleepModeOn();
     }
   });
-
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCGxjEH2DPEahbnbXf-_5lRdOanZNIyoKk",
+  authDomain: "trading-c8f48.firebaseapp.com",
+  projectId: "trading-c8f48",
+  storageBucket: "trading-c8f48.firebasestorage.app",
+  messagingSenderId: "26437533957",
+  appId: "1:26437533957:web:001f077523714c7671f76c",
+  measurementId: "G-E4HNQ182XC"
+};
   // Auto idle: 5 minutes without action → sleep
   const IDLE_MS = 5 * 60 * 1000;
   function resetIdle(){ clearTimeout(slIdleTimer); slIdleTimer=setTimeout(sleepModeOn, IDLE_MS); }
@@ -6683,3 +6692,4 @@ document.addEventListener('keydown', e=>{
 </script>
 </body>
 </html>
+  
