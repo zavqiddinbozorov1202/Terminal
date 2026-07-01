@@ -4250,14 +4250,24 @@ async function doGoogleLogin() {
   const errEl = document.getElementById('login-error');
   const gbtn = document.getElementById('login-google-btn');
   errEl.textContent = '';
+  if (location.protocol === 'file:') {
+    errEl.textContent = 'Google kirish file:// orqali ishlamaydi — saytni http/https orqali (masalan Netlify) ochish kerak';
+    return;
+  }
   if (gbtn) { gbtn.disabled = true; gbtn.style.opacity = '.65'; }
   try {
     await window.__doGoogleLogin();
     // onAuthStateChanged o'zi login-screen'ni yashiradi
   } catch (e) {
+    console.error('Google login xatosi:', e);
     let msg = 'Google orqali kirishda xatolik yuz berdi';
     if (e && e.code === 'auth/popup-closed-by-user') msg = 'Google oynasi yopildi, qayta urinib ko\'ring';
-    if (e && e.code === 'auth/popup-blocked') msg = 'Brauzer popup oynani bloklandi, ruxsat bering';
+    else if (e && e.code === 'auth/popup-blocked') msg = 'Brauzer popup oynani bloklandi, ruxsat bering';
+    else if (e && e.code === 'auth/unauthorized-domain') msg = 'Bu domen Firebase\'da ruxsat etilmagan (Authentication → Settings → Authorized domains ga qo\'shing): ' + location.hostname;
+    else if (e && e.code === 'auth/operation-not-allowed') msg = 'Google provayder Firebase konsolida yoqilmagan (Authentication → Sign-in method → Google)';
+    else if (e && e.code === 'auth/configuration-not-found') msg = 'Firebase loyihasida Authentication yoqilmagan';
+    else if (e && e.code === 'auth/network-request-failed') msg = 'Internet aloqasi yo\'q yoki Firebase\'ga ulanib bo\'lmadi';
+    else if (e && e.code) msg = 'Xatolik: ' + e.code;
     errEl.textContent = msg;
   } finally {
     if (gbtn) { gbtn.disabled = false; gbtn.style.opacity = '1'; }
