@@ -136,7 +136,7 @@
 
   // Sinxronlanadigan localStorage kalitlari
   const SYNC_KEYS = [
-    'tp-trades','tp-library','tp-settings','tp-strategies','tp-goals',
+    'tp-trades','tp-library','tp-videos','tp-settings','tp-strategies','tp-goals',
     'tp-checklist','tp-checklist-history','tp-contract','tp-mode','tp-anim-style'
   ];
 
@@ -2590,6 +2590,74 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   </div>
 </div>
 
+<div class="modal-overlay" id="videoModal">
+  <div class="modal">
+    <div class="modal-title">
+      🎬 Video Dars Qo'shish
+      <button class="modal-close" onclick="closeModal('videoModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sarlavha</label>
+      <input class="form-input" id="video-title" placeholder="Video dars nomi...">
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Kategoriya</label>
+        <select class="form-select" id="video-cat">
+          <option value="📊">📊 Tahlil</option>
+          <option value="📈">📈 Strategiya</option>
+          <option value="🎓">🎓 Dars</option>
+          <option value="🧮">🧮 Kalkulyator</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Davomiyligi (ixtiyoriy)</label>
+        <input class="form-input" id="video-duration" placeholder="Masalan: 12:45">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tavsif</label>
+      <textarea class="form-textarea" id="video-desc" placeholder="Bu video dars haqida..." style="min-height:80px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Video fayl yuklash</label>
+      <div class="upload-zone" onclick="document.getElementById('video-file').click()">
+        <div id="video-file-preview" class="upload-icon">🎬</div>
+        <div class="upload-text">Video tanlash yoki shu yerga tashlang</div>
+        <div class="upload-sub">MP4, MOV, WEBM va h.k. — hajmi cheklanmagan</div>
+      </div>
+      <input type="file" id="video-file" style="display:none" accept="video/*" onchange="previewVideoFile(this)">
+      <div id="video-upload-progress" style="display:none;margin-top:10px">
+        <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden">
+          <div id="video-upload-bar" style="height:100%;width:0%;background:var(--green);transition:width .2s"></div>
+        </div>
+        <div id="video-upload-status" class="text-sm" style="color:var(--text-muted);margin-top:6px">Yuklanmoqda...</div>
+      </div>
+    </div>
+    <div class="flex-between mt-16">
+      <button class="btn btn-outline" onclick="closeModal('videoModal')">Bekor</button>
+      <button class="btn btn-primary" onclick="saveVideoLesson()">💾 Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="videoViewModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">
+      <span id="vv-title">Video</span>
+      <button class="modal-close" onclick="closeModal('videoViewModal')">✕</button>
+    </div>
+    <video id="vv-player" controls style="width:100%;border-radius:12px;background:#000;max-height:400px" playsinline></video>
+    <div id="vv-loading" class="text-sm" style="color:var(--text-muted);margin-top:8px">Video yuklanmoqda...</div>
+    <div class="text-sm mt-4" style="color:var(--gold)" id="vv-cat"></div>
+    <div class="text-sm mt-4" style="color:var(--text-dim)" id="vv-desc"></div>
+    <div class="flex-between mt-16">
+      <button class="btn btn-outline" style="color:var(--red)" onclick="deleteCurrentVideo()">🗑️ O'chirish</button>
+      <button class="btn btn-outline" onclick="closeModal('videoViewModal')">Yopish</button>
+    </div>
+  </div>
+</div>
+
 <!-- LAYOUT -->
 <div class="layout">
 
@@ -2617,6 +2685,10 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="nav-item" onclick="nav('library',this)">
         <span class="nav-icon">📚</span> Kutubxona
         <span class="nav-badge" id="lib-badge">0</span>
+      </button>
+      <button class="nav-item" onclick="nav('video-lessons',this)">
+        <span class="nav-icon">🎬</span> Video Darsliklar
+        <span class="nav-badge" id="video-badge">0</span>
       </button>
     </div>
 
@@ -2974,6 +3046,34 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         <div class="lib-grid" id="lib-grid">
           <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
             📚 Kutubxona bo'sh. Material qo'shing!
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ VIDEO DARSLIKLAR ════ -->
+      <div class="page" id="page-video-lessons">
+        <div class="flex-between" style="margin-bottom:14px">
+          <div class="tabs" style="margin:0;border:none">
+            <button class="tab active" onclick="filterVideo('all',this)">Barchasi</button>
+            <button class="tab" onclick="filterVideo('📊',this)">Tahlil</button>
+            <button class="tab" onclick="filterVideo('📈',this)">Strategiya</button>
+            <button class="tab" onclick="filterVideo('🎓',this)">Dars</button>
+            <button class="tab" onclick="filterVideo('🧮',this)">Kalkulyator</button>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('videoModal')">➕ Video Qo'shish</button>
+        </div>
+        <div class="flex-between" style="margin-bottom:20px;gap:10px;flex-wrap:wrap">
+          <input class="form-input" id="video-search" placeholder="🔍 Qidirish..." style="max-width:240px" oninput="renderVideoLessons()">
+          <select class="form-select" id="video-sort" style="max-width:200px" onchange="renderVideoLessons()">
+            <option value="new">🕓 Yangi birinchi</option>
+            <option value="old">🕓 Eski birinchi</option>
+            <option value="az">🔤 Nom (A-Z)</option>
+          </select>
+        </div>
+
+        <div class="lib-grid" id="video-grid">
+          <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
+            🎬 Hali video dars qo'shilmagan
           </div>
         </div>
       </div>
@@ -4452,6 +4552,7 @@ async function doGoogleLogin() {
 // sahifadagi boshqa kodlar — masalan grafik chizuvchi setTimeout — xato bermasligi uchun)
 let trades = [];
 let library = [];
+let videoLessons = [];
 let settings = {"name":"Trader","balance":10000};
 let strategies = [
   {id:1001,name:"Trend Following",type:"trend",desc:"EMA va MACD yordamida trend yo'nalishida savdo. Kirish: EMA20 EMA50 ni kesib o'tganda. Chiqish: qarshi signal yoki TP.",win:68,rr:"1:2.5",trades:42,tags:["trend","EMA","MACD"]},
@@ -4464,6 +4565,7 @@ let libFiles = {};
 function loadDataFromStorage() {
   trades = JSON.parse(localStorage.getItem('tp-trades') || '[]');
   library = JSON.parse(localStorage.getItem('tp-library') || '[]');
+  videoLessons = JSON.parse(localStorage.getItem('tp-videos') || '[]');
   settings = JSON.parse(localStorage.getItem('tp-settings') || '{"name":"Trader","balance":10000}');
   strategies = JSON.parse(localStorage.getItem('tp-strategies') || JSON.stringify([
     {id:1001,name:"Trend Following",type:"trend",desc:"EMA va MACD yordamida trend yo'nalishida savdo. Kirish: EMA20 EMA50 ni kesib o'tganda. Chiqish: qarshi signal yoki TP.",win:68,rr:"1:2.5",trades:42,tags:["trend","EMA","MACD"]},
@@ -4494,6 +4596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderDashboard();
   renderJournal();
   renderLibrary();
+  renderVideoLessons();
   renderStrategies();
   renderAnalytics();
   setupKeyboardShortcuts();
@@ -4507,7 +4610,7 @@ function setupKeyboardShortcuts() {
       if(e.key==='s') { e.preventDefault(); saveTrade(); } // Ctrl+S = Save
       if(e.key==='k') { e.preventDefault(); toggleDarkMode(); } // Ctrl+K = Dark/Light
     }
-    if(e.key==='Escape') { closeModal('tradeModal'); closeModal('libModal'); closeModal('stratModal'); closeModal('viewModal'); closeModal('stratViewModal'); closeModal('libStratViewModal'); }
+    if(e.key==='Escape') { closeModal('tradeModal'); closeModal('libModal'); closeModal('stratModal'); closeModal('viewModal'); closeModal('stratViewModal'); closeModal('libStratViewModal'); closeModal('videoModal'); closeModal('videoViewModal'); }
   });
 }
 
@@ -4563,14 +4666,14 @@ function buildTicker() {
 
 // ─── NAV ───
 const pages = {
-  'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','livecharts':'Live Charts',
+  'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','video-lessons':'Video Darsliklar','livecharts':'Live Charts',
   'ai-assistant':'AI Yordamchi',
   'calc':'Kalkulyator','checklist':'Pre-Trade Tekshiruv','calendar':'P&L Kalendar',
   'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','animations':'Animatsiyalar','settings':'Sozlamalar'
 };
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
-  'library':'Bilim va materiallar','livecharts':'Real vaqtli bozor grafiklari (TradingView)',
+  'library':'Bilim va materiallar','video-lessons':'Video darslar to\'plami — hajmi cheklanmagan yuklash','livecharts':'Real vaqtli bozor grafiklari (TradingView)',
   'ai-assistant':'Savol bering, rasm yoki fayl yuboring — AI yordam beradi',
   'calc':'Trading vositalari',
   'checklist':'Bitim ochishdan oldin tekshiring','calendar':'Kunlik foyda/zarar va yangiliklar',
@@ -4584,6 +4687,7 @@ function nav(id, el) {
   document.getElementById('top-title').textContent = pages[id];
   document.getElementById('top-sub').textContent = subs[id];
   if(id==='analytics') { renderAnalytics(); setTimeout(()=>{drawAnalyticsChart();drawWeekdayChart();},80); }
+  if(id==='video-lessons') renderVideoLessons();
   if(id==='strategies') renderStrategies();
   if(id==='goals') renderGoals();
   if(id==='dashboard') { renderDashboard(); setTimeout(drawMainChart, 80); }
@@ -5437,6 +5541,7 @@ async function prefetchMissingFiles() {
   const ids = [];
   library.forEach(i => { if (i.file && !idbCache[i.id]) ids.push(i.id); });
   trades.forEach(t => { if (t.hasShot && !idbCache['shot-'+t.id]) ids.push('shot-'+t.id); });
+  videoLessons.forEach(v => { if (v.file && !idbCache['vid-'+v.id]) ids.push('vid-'+v.id); });
   if (!ids.length) return;
   await Promise.all(ids.map(async id => {
     const data = await getFileIDB(id);
@@ -5597,6 +5702,160 @@ function deleteCurrentLib() {
   setEl('lib-count-dash', library.length);
   closeModal('viewModal');
   renderLibrary();
+}
+
+// ─── VIDEO DARSLIKLAR ───
+let videoFilter = 'all';
+let pendingVideo = null; // {data, name, mime, size}
+function filterVideo(f, el) {
+  videoFilter = f;
+  document.querySelectorAll('#page-video-lessons .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderVideoLessons();
+}
+function previewVideoFile(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const el = document.getElementById('video-file-preview');
+  const progWrap = document.getElementById('video-upload-progress');
+  const bar = document.getElementById('video-upload-bar');
+  const status = document.getElementById('video-upload-status');
+  progWrap.style.display = 'block';
+  bar.style.width = '0%';
+  status.textContent = `📦 O'qilmoqda: ${file.name} (${formatFileSize(file.size)})`;
+  // Hajmi cheklanmagan — hech qanday maksimal hajm tekshiruvi qilinmaydi
+  const reader = new FileReader();
+  reader.onprogress = e => {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      bar.style.width = pct + '%';
+      status.textContent = `📦 O'qilmoqda: ${pct}% (${formatFileSize(file.size)})`;
+    }
+  };
+  reader.onload = e => {
+    pendingVideo = { data: e.target.result, name: file.name, mime: file.type || 'video/mp4', size: file.size };
+    bar.style.width = '100%';
+    status.textContent = `✅ Tayyor: ${file.name} (${formatFileSize(file.size)})`;
+    el.innerHTML = `🎬<div style="font-size:12px;color:var(--green);margin-top:4px">✅ ${file.name}</div>`;
+  };
+  reader.onerror = () => {
+    status.textContent = '❌ Faylni o\'qib bo\'lmadi, qayta urinib ko\'ring.';
+  };
+  reader.readAsDataURL(file);
+}
+function formatFileSize(bytes) {
+  if (!bytes) return '0 B';
+  const units = ['B','KB','MB','GB'];
+  let i = 0; let n = bytes;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return `${n.toFixed(n >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+async function saveVideoLesson() {
+  const title = document.getElementById('video-title').value.trim();
+  if (!title) return alert('Sarlavha kiriting!');
+  if (!pendingVideo) return alert('Video fayl tanlang!');
+  const id = Date.now();
+  const item = {
+    id,
+    title,
+    cat: document.getElementById('video-cat').value,
+    desc: document.getElementById('video-desc').value,
+    duration: document.getElementById('video-duration').value.trim(),
+    date: new Date().toLocaleDateString('uz-UZ'),
+    file: { name: pendingVideo.name, mime: pendingVideo.mime, size: pendingVideo.size }
+  };
+  document.getElementById('video-upload-status').textContent = '☁️ Saqlanmoqda...';
+  idbCache['vid-'+id] = pendingVideo.data;
+  await saveFileIDB('vid-'+id, pendingVideo.data);
+  videoLessons.unshift(item);
+  localStorage.setItem('tp-videos', JSON.stringify(videoLessons));
+  pendingVideo = null;
+  closeModal('videoModal');
+  ['video-title','video-desc','video-duration'].forEach(id2=>document.getElementById(id2).value='');
+  document.getElementById('video-file-preview').innerHTML = '🎬';
+  document.getElementById('video-upload-progress').style.display = 'none';
+  document.getElementById('video-file').value = '';
+  document.getElementById('video-badge').textContent = videoLessons.length;
+  renderVideoLessons();
+}
+function renderVideoLessons() {
+  const grid = document.getElementById('video-grid');
+  if (!grid) return;
+  let data = [...videoLessons];
+  if (videoFilter !== 'all') data = data.filter(i=>i.cat===videoFilter);
+  const q = (document.getElementById('video-search')?.value||'').trim().toLowerCase();
+  if (q) data = data.filter(i=>(i.title||'').toLowerCase().includes(q) || (i.desc||'').toLowerCase().includes(q));
+  const sortVal = document.getElementById('video-sort')?.value || 'new';
+  if (sortVal==='az') data.sort((a,b)=>a.title.localeCompare(b.title));
+  else if (sortVal==='old') data.sort((a,b)=>a.id-b.id);
+  else data.sort((a,b)=>b.id-a.id);
+
+  document.getElementById('video-badge').textContent = videoLessons.length;
+
+  if (!data.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">🎬 Hali video dars qo\'shilmagan</div>';
+    return;
+  }
+  grid.innerHTML = data.map(i=>{
+    const sizeStr = i.file && i.file.size ? formatFileSize(i.file.size) : '';
+    return `<div class="lib-card" onclick="openVideoItem(${i.id})" style="cursor:pointer;position:relative">
+      <div class="lib-thumb" style="display:flex;align-items:center;justify-content:center">
+        <span style="z-index:1;font-size:36px">🎬</span>
+        <div class="lib-type">${i.duration || i.date}</div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-title">${i.title}</div>
+        <div class="lib-meta" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${i.desc||'—'}</div>
+        <div class="text-sm mt-4" style="color:var(--green)">▶️ ${i.file?.name||'video'}${sizeStr?` · ${sizeStr}`:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+let currentVideoId = null;
+let currentVideoObjectUrl = null;
+async function openVideoItem(id) {
+  const item = videoLessons.find(i=>i.id===id);
+  if (!item) return;
+  currentVideoId = id;
+  document.getElementById('vv-title').textContent = item.title;
+  document.getElementById('vv-cat').textContent = `${item.cat||''} ${item.duration||''}`.trim();
+  document.getElementById('vv-desc').textContent = item.desc || '—';
+  const player = document.getElementById('vv-player');
+  const loading = document.getElementById('vv-loading');
+  player.removeAttribute('src');
+  player.load();
+  loading.style.display = 'block';
+  loading.textContent = 'Video yuklanmoqda...';
+  openModal('videoViewModal');
+
+  if (currentVideoObjectUrl) { URL.revokeObjectURL(currentVideoObjectUrl); currentVideoObjectUrl = null; }
+  let dataUrl = idbCache['vid-'+id] || await getFileIDB('vid-'+id);
+  if (!dataUrl) {
+    loading.textContent = '❌ Video topilmadi (hali ushbu qurilmaga yuklanmagan bo\'lishi mumkin).';
+    return;
+  }
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    currentVideoObjectUrl = URL.createObjectURL(blob);
+    player.src = currentVideoObjectUrl;
+    loading.style.display = 'none';
+  } catch (e) {
+    // Zaxira: to'g'ridan-to'g'ri data URL bilan urinib ko'ramiz
+    player.src = dataUrl;
+    loading.style.display = 'none';
+  }
+}
+function deleteCurrentVideo() {
+  if (!currentVideoId) return;
+  if (!confirm('Bu video darsni o\'chirasizmi?')) return;
+  videoLessons = videoLessons.filter(i=>i.id!==currentVideoId);
+  localStorage.setItem('tp-videos', JSON.stringify(videoLessons));
+  deleteFileIDB('vid-'+currentVideoId);
+  delete idbCache['vid-'+currentVideoId];
+  if (currentVideoObjectUrl) { URL.revokeObjectURL(currentVideoObjectUrl); currentVideoObjectUrl = null; }
+  document.getElementById('video-badge').textContent = videoLessons.length;
+  closeModal('videoViewModal');
+  renderVideoLessons();
 }
 
 // ─── STRATEGIES KUTUBXONASI (Bilimlar bazasi) ───
