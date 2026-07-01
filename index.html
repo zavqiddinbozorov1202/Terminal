@@ -109,18 +109,53 @@
     // RTDB kalitlarida '.', '#', '$', '[', ']', '/' bo'lishi mumkin emas
     return String(id).replace(/[.#$\[\]\/]/g, '_');
   }
+  // RTDB'da bitta qiymat (string) 10MB dan katta bo'lsa yozib bo'lmaydi — shu sabab
+  // video fayllar (odatda o'nlab/yuzlab MB) katta bo'laklarga (chunk) bo'lib yoziladi.
+  const RTDB_CHUNK = 6000000; // ~6MB har bir bo'lak (xavfsiz zaxira bilan, 10MB limitidan past)
   window.__cloudFiles = {
-    async upload(id, dataUrl) {
-      if (!window.__isAdmin) return; // faqat admin fayl yuklay oladi
+    async upload(id, dataUrl, onProgress) {
+      if (!window.__isAdmin) return false; // faqat admin fayl yuklay oladi
+      const key = safeId(id);
       try {
-        await dbSet(dbRef(rtdb, `traderpro-files/${safeId(id)}`), dataUrl);
+        if (dataUrl.length <= RTDB_CHUNK) {
+          // Kichik fayl — bitta yozuv bilan yuboramiz, eski chunk qoldiqlarini tozalaymiz
+          await dbSet(dbRef(rtdb, `traderpro-files/${key}`), dataUrl);
+          dbRemove(dbRef(rtdb, `traderpro-files-meta/${key}`)).catch(()=>{});
+          dbRemove(dbRef(rtdb, `traderpro-files-chunks/${key}`)).catch(()=>{});
+        } else {
+          // Katta fayl (masalan video) — bo'laklarga bo'lib ketma-ket yozamiz
+          const total = Math.ceil(dataUrl.length / RTDB_CHUNK);
+          await dbRemove(dbRef(rtdb, `traderpro-files/${key}`)).catch(()=>{});
+          for (let i = 0; i < total; i++) {
+            const part = dataUrl.slice(i * RTDB_CHUNK, (i + 1) * RTDB_CHUNK);
+            await dbSet(dbRef(rtdb, `traderpro-files-chunks/${key}/${i}`), part);
+            if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
+          }
+          await dbSet(dbRef(rtdb, `traderpro-files-meta/${key}`), { chunks: total });
+        }
+        return true;
       } catch (e) {
         console.warn('RTDB: yuklab bo\'lmadi', id, e);
+        return false;
       }
     },
     async download(id) {
+      const key = safeId(id);
       try {
-        const snap = await dbGet(dbRef(rtdb, `traderpro-files/${safeId(id)}`));
+        const metaSnap = await dbGet(dbRef(rtdb, `traderpro-files-meta/${key}`));
+        if (metaSnap.exists()) {
+          const meta = metaSnap.val();
+          const total = meta && meta.chunks;
+          if (!total) return null;
+          let result = '';
+          for (let i = 0; i < total; i++) {
+            const snap = await dbGet(dbRef(rtdb, `traderpro-files-chunks/${key}/${i}`));
+            if (!snap.exists()) return null; // hali to'liq sinxronlanmagan
+            result += snap.val();
+          }
+          return result;
+        }
+        const snap = await dbGet(dbRef(rtdb, `traderpro-files/${key}`));
         return snap.exists() ? snap.val() : null;
       } catch (e) {
         return null; // fayl bulutda yo'q yoki hali sinxronlanmagan
@@ -128,8 +163,13 @@
     },
     async remove(id) {
       if (!window.__isAdmin) return; // faqat admin o'chira oladi
+      const key = safeId(id);
       try {
-        await dbRemove(dbRef(rtdb, `traderpro-files/${safeId(id)}`));
+        await Promise.all([
+          dbRemove(dbRef(rtdb, `traderpro-files/${key}`)),
+          dbRemove(dbRef(rtdb, `traderpro-files-chunks/${key}`)),
+          dbRemove(dbRef(rtdb, `traderpro-files-meta/${key}`))
+        ]);
       } catch (e) { /* fayl allaqachon yo'q bo'lishi mumkin */ }
     }
   };
@@ -5493,14 +5533,18 @@ function openDB() {
     req.onerror = rej;
   });
 }
-async function saveFileIDB(id, data) {
+async function saveFileIDB(id, data, onCloudProgress) {
   if(!db) await openDB();
   await new Promise((res,rej)=>{
     const tx = db.transaction('files','readwrite');
     tx.objectStore('files').put({id, data});
     tx.oncomplete = res; tx.onerror = rej;
   });
-  if (window.__cloudFiles) window.__cloudFiles.upload(id, data); // bulutga ham yozamiz
+  // Fayl mahalliy IDB'ga saqlandi (har doim ishlaydi). Bulutga yozish katta fayllarda
+  // (video) bir necha soniya davom etishi mumkin — shu uchun natijasini qaytaramiz,
+  // chaqiruvchi kod xohlasa foydalanuvchiga xabar bera oladi.
+  if (window.__cloudFiles) return await window.__cloudFiles.upload(id, data, onCloudProgress);
+  return true;
 }
 function saveFileIDBLocalOnly(id, data) {
   // Bulutdan tortib olingan faylni faqat mahalliy IDB'ga qayta yozish (qayta yuklamasdan)
@@ -5720,10 +5764,19 @@ function previewVideoFile(input) {
   const progWrap = document.getElementById('video-upload-progress');
   const bar = document.getElementById('video-upload-bar');
   const status = document.getElementById('video-upload-status');
+  pendingVideo = null;
   progWrap.style.display = 'block';
   bar.style.width = '0%';
-  status.textContent = `📦 O'qilmoqda: ${file.name} (${formatFileSize(file.size)})`;
-  // Hajmi cheklanmagan — hech qanday maksimal hajm tekshiruvi qilinmaydi
+
+  // Katta fayllarni butunlay xotiraga (base64) o'qish sekin/og'ir bo'lishi mumkin,
+  // ayniqsa mobil brauzerlarda. Hajm cheklanmagan, lekin foydalanuvchi ogohlantiriladi.
+  const LARGE_WARN = 300 * 1024 * 1024; // 300MB
+  if (file.size > LARGE_WARN) {
+    status.textContent = `⚠️ Fayl juda katta (${formatFileSize(file.size)}) — o'qish uzoq davom etishi yoki brauzerda xato berishi mumkin.`;
+  } else {
+    status.textContent = `📦 O'qilmoqda: ${file.name} (${formatFileSize(file.size)})`;
+  }
+
   const reader = new FileReader();
   reader.onprogress = e => {
     if (e.lengthComputable) {
@@ -5739,9 +5792,19 @@ function previewVideoFile(input) {
     el.innerHTML = `🎬<div style="font-size:12px;color:var(--green);margin-top:4px">✅ ${file.name}</div>`;
   };
   reader.onerror = () => {
-    status.textContent = '❌ Faylni o\'qib bo\'lmadi, qayta urinib ko\'ring.';
+    pendingVideo = null;
+    status.textContent = `❌ Faylni o'qib bo'lmadi (${reader.error?.name||'xatolik'}). Kichikroq video bilan urinib ko'ring.`;
   };
-  reader.readAsDataURL(file);
+  reader.onabort = () => {
+    pendingVideo = null;
+    status.textContent = '❌ Fayl o\'qish bekor qilindi.';
+  };
+  try {
+    reader.readAsDataURL(file);
+  } catch (e) {
+    pendingVideo = null;
+    status.textContent = '❌ Fayl juda katta, brauzer xotirasi yetmadi. Kichikroq video tanlang.';
+  }
 }
 function formatFileSize(bytes) {
   if (!bytes) return '0 B';
@@ -5750,10 +5813,17 @@ function formatFileSize(bytes) {
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
   return `${n.toFixed(n >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
+let videoSaveInProgress = false;
 async function saveVideoLesson() {
+  if (videoSaveInProgress) return; // ikki marta bosilishining oldini olamiz
   const title = document.getElementById('video-title').value.trim();
   if (!title) return alert('Sarlavha kiriting!');
   if (!pendingVideo) return alert('Video fayl tanlang!');
+
+  videoSaveInProgress = true;
+  const saveBtn = document.querySelector('#videoModal .btn-primary');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
+
   const id = Date.now();
   const item = {
     id,
@@ -5764,19 +5834,44 @@ async function saveVideoLesson() {
     date: new Date().toLocaleDateString('uz-UZ'),
     file: { name: pendingVideo.name, mime: pendingVideo.mime, size: pendingVideo.size }
   };
-  document.getElementById('video-upload-status').textContent = '☁️ Saqlanmoqda...';
-  idbCache['vid-'+id] = pendingVideo.data;
-  await saveFileIDB('vid-'+id, pendingVideo.data);
-  videoLessons.unshift(item);
-  localStorage.setItem('tp-videos', JSON.stringify(videoLessons));
-  pendingVideo = null;
-  closeModal('videoModal');
-  ['video-title','video-desc','video-duration'].forEach(id2=>document.getElementById(id2).value='');
-  document.getElementById('video-file-preview').innerHTML = '🎬';
-  document.getElementById('video-upload-progress').style.display = 'none';
-  document.getElementById('video-file').value = '';
-  document.getElementById('video-badge').textContent = videoLessons.length;
-  renderVideoLessons();
+  const bar = document.getElementById('video-upload-bar');
+  const status = document.getElementById('video-upload-status');
+  status.textContent = '💾 Qurilmaga saqlanmoqda...';
+
+  try {
+    idbCache['vid-'+id] = pendingVideo.data;
+    const cloudOk = await saveFileIDB('vid-'+id, pendingVideo.data, pct => {
+      status.textContent = `☁️ Bulutga yuklanmoqda... ${pct}%`;
+      if (bar) bar.style.width = pct + '%';
+    });
+
+    // Video har doim shu qurilmada saqlanadi (IndexedDB) — shuning uchun ro'yxatga
+    // muvaffaqiyatli saqlanmasa ham hech bo'lmaganda mahalliy holatda ko'rinadi.
+    videoLessons.unshift(item);
+    localStorage.setItem('tp-videos', JSON.stringify(videoLessons));
+
+    if (cloudOk) {
+      showToast('✅ Video saqlandi va bulutga sinxronlandi', 'success');
+    } else {
+      showToast('⚠️ Video shu qurilmaga saqlandi, lekin bulutga yuklanmadi (internet yoki hajm muammosi bo\'lishi mumkin)', 'info');
+    }
+
+    pendingVideo = null;
+    closeModal('videoModal');
+    ['video-title','video-desc','video-duration'].forEach(id2=>document.getElementById(id2).value='');
+    document.getElementById('video-file-preview').innerHTML = '🎬';
+    document.getElementById('video-upload-progress').style.display = 'none';
+    document.getElementById('video-file').value = '';
+    document.getElementById('video-badge').textContent = videoLessons.length;
+    renderVideoLessons();
+  } catch (e) {
+    console.error('Video saqlashda xatolik:', e);
+    status.textContent = '❌ Xatolik: video saqlanmadi. Qayta urinib ko\'ring.';
+    showToast('❌ Video saqlashda xatolik yuz berdi', 'error');
+  } finally {
+    videoSaveInProgress = false;
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+  }
 }
 function renderVideoLessons() {
   const grid = document.getElementById('video-grid');
