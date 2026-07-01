@@ -3717,7 +3717,17 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 
 <script>
 // ─── DATA ───
-let trades, library, settings, strategies, goals;
+// Darhol xavfsiz standart qiymatlar bilan boshlaymiz (bulut hali yuklanmagan bo'lsa ham
+// sahifadagi boshqa kodlar — masalan grafik chizuvchi setTimeout — xato bermasligi uchun)
+let trades = [];
+let library = [];
+let settings = {"name":"Trader","balance":10000};
+let strategies = [
+  {id:1001,name:"Trend Following",type:"trend",desc:"EMA va MACD yordamida trend yo'nalishida savdo. Kirish: EMA20 EMA50 ni kesib o'tganda. Chiqish: qarshi signal yoki TP.",win:68,rr:"1:2.5",trades:42,tags:["trend","EMA","MACD"]},
+  {id:1002,name:"Support & Resistance",type:"swing",desc:"Kuchli S/R darajalarida narx reaktsiyasidan foydalanish. Kirish: pin bar yoki engulfing mumkin'da.",win:62,rr:"1:2",trades:28,tags:["S/R","reversal","price action"]},
+  {id:1003,name:"Breakout",type:"breakout",desc:"Konsolidatsiya yoki kanal chegarasini yorib o'tganda kirish. Volume tasdiqlashi shart.",win:55,rr:"1:3",trades:19,tags:["breakout","volatility","volume"]}
+];
+let goals = {"daily":100,"weekly":500,"monthly":2000,"maxloss":200,"weeklymaxloss":600,"monthlymaxloss":2000,"maxtrades":5,"maxconsec":3,"targetwr":60,"accounttarget":20000};
 let libFiles = {};
 
 function loadDataFromStorage() {
