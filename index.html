@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TraderPro — Shaxsiy Trading Platforma</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script type="module">
   // ─── CLOUD SYNC (Firebase Firestore) ───
   // Bu qism barcha qurilmalar bir xil ma'lumotni ko'rishi uchun
@@ -235,47 +235,48 @@
   #viewer-banner {
     position: fixed; top: 0; left: 0; right: 0; z-index: 99998;
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    background: linear-gradient(90deg, rgba(201,168,76,0.16), rgba(201,168,76,0.10));
-    border-bottom: 1px solid rgba(201,168,76,0.3);
-    color: #E8D9A8; font-family: var(--font); font-size: 12.5px; font-weight: 600;
+    background: linear-gradient(90deg, rgba(255,176,0,0.16), rgba(255,176,0,0.10));
+    border-bottom: 1px solid rgba(255,176,0,0.3);
+    color: #FFDA8A; font-family: var(--font); font-size: 12.5px; font-weight: 600;
     letter-spacing: .3px; padding: 8px 14px; backdrop-filter: blur(8px);
   }
-  #viewer-banner svg { flex-shrink: 0; color: #C9A84C; }
+  #viewer-banner svg { flex-shrink: 0; color: #FFB000; }
   body.viewer-mode .layout { margin-top: 34px; }
   :root {
-    --bg-deep: #070B14;
-    --bg-main: #0A0E1A;
-    --bg-card: #111827;
-    --bg-card2: #162035;
-    --border: rgba(255,255,255,0.07);
-    --border-bright: rgba(0,212,170,0.3);
-    --green: #00D4AA;
-    --green-dim: rgba(0,212,170,0.12);
-    --red: #FF4757;
-    --red-dim: rgba(255,71,87,0.12);
-    --gold: #C9A84C;
-    --gold-dim: rgba(201,168,76,0.12);
-    --blue: #3B82F6;
-    --blue-dim: rgba(59,130,246,0.12);
-    --text: #E8EDF5;
-    --text-muted: #6B7A99;
-    --text-dim: #8899B8;
-    --font: 'Inter', sans-serif;
+    --bg-deep: #000000;
+    --bg-main: #070707;
+    --bg-card: #0D0D0D;
+    --bg-card2: #171717;
+    --border: rgba(255,176,0,0.14);
+    --border-bright: rgba(255,176,0,0.5);
+    --green: #00E676;
+    --green-dim: rgba(0,230,118,0.12);
+    --red: #FF3B30;
+    --red-dim: rgba(255,59,48,0.12);
+    --gold: #FFB000;
+    --gold-dim: rgba(255,176,0,0.14);
+    --blue: #29B6F6;
+    --blue-dim: rgba(41,182,246,0.12);
+    --text: #ECE8DD;
+    --text-muted: #7A7670;
+    --text-dim: #A8A29A;
+    --font: 'IBM Plex Sans', 'Inter', sans-serif;
+    --font-cond: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
-    --radius: 14px;
-    --radius-sm: 8px;
-    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --radius: 3px;
+    --radius-sm: 2px;
+    --shadow: 0 0 0 1px rgba(255,176,0,0.06), 0 12px 28px rgba(0,0,0,0.75);
   }
   body.light-mode {
-    --bg-deep: #F9FAFB;
+    --bg-deep: #FAF9F6;
     --bg-main: #FFFFFF;
-    --bg-card: #F3F4F6;
-    --bg-card2: #E5E7EB;
-    --border: rgba(0,0,0,0.08);
-    --border-bright: rgba(0,212,170,0.3);
-    --text: #111827;
-    --text-muted: #6B7280;
-    --text-dim: #374151;
+    --bg-card: #F2F0EA;
+    --bg-card2: #E8E4D9;
+    --border: rgba(120,80,0,0.14);
+    --border-bright: rgba(255,176,0,0.45);
+    --text: #14120D;
+    --text-muted: #6B6558;
+    --text-dim: #3A362E;
   }
 
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -323,7 +324,7 @@
 
   .sidebar {
     width: 240px; min-height:100vh;
-    background: linear-gradient(180deg, #0D1628 0%, #0A1020 100%);
+    background: linear-gradient(180deg, #0A0A0A 0%, #000000 100%);
     border-right: 1px solid var(--border);
     display:flex; flex-direction:column;
     position:fixed; left:0; top:36px; bottom:0;
@@ -339,13 +340,13 @@
     text-decoration:none;
   }
   .logo-icon {
-    width:36px; height:36px; border-radius:10px;
-    background: linear-gradient(135deg, var(--green), #00A882);
+    width:36px; height:36px; border-radius:2px;
+    background: linear-gradient(135deg, var(--gold), #B87A00);
     display:flex; align-items:center; justify-content:center;
     font-size:18px;
   }
-  .logo-text { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-.3px; }
-  .logo-sub { font-size:10px; color:var(--text-muted); font-weight:500; margin-top:1px; }
+  .logo-text { font-size:17px; font-weight:700; color:var(--text); letter-spacing:1.5px; font-family:var(--font-cond); text-transform:uppercase; }
+  .logo-sub { font-size:9.5px; color:var(--gold); font-weight:600; margin-top:1px; letter-spacing:1px; font-family:var(--mono); text-transform:uppercase; }
 
   .nav-section { padding:16px 12px 0; }
   .nav-label {
@@ -362,16 +363,16 @@
   }
   .nav-item:hover { background:rgba(255,255,255,0.05); color:var(--text); }
   .nav-item.active {
-    background: linear-gradient(90deg, var(--green-dim), transparent);
-    color:var(--green);
-    border-left: 2px solid var(--green);
+    background: linear-gradient(90deg, var(--gold-dim), transparent);
+    color:var(--gold);
+    border-left: 2px solid var(--gold);
     padding-left:10px;
   }
   .nav-icon { font-size:16px; width:20px; text-align:center; }
   .nav-badge {
-    margin-left:auto; background:var(--green); color:#000;
+    margin-left:auto; background:var(--gold); color:#000;
     font-size:10px; font-weight:700; padding:1px 6px;
-    border-radius:20px; font-family:var(--mono);
+    border-radius:3px; font-family:var(--mono);
   }
 
   .sidebar-bottom {
@@ -387,7 +388,7 @@
   .user-card:hover { background:rgba(255,255,255,0.07); }
   .avatar {
     width:34px; height:34px; border-radius:50%;
-    background: linear-gradient(135deg, var(--gold), #E8B84B);
+    background: linear-gradient(135deg, var(--gold), #FFC533);
     display:flex; align-items:center; justify-content:center;
     font-weight:700; font-size:14px; color:#000;
   }
@@ -404,12 +405,12 @@
     display:flex; align-items:center; justify-content:space-between;
     padding: 14px 28px;
     border-bottom: 1px solid var(--border);
-    background: rgba(10,14,26,0.9);
+    background: rgba(5,5,5,0.92);
     backdrop-filter: blur(20px);
     position:sticky; top:36px; z-index:90;
   }
-  .page-title { font-size:20px; font-weight:700; }
-  .page-sub { font-size:12px; color:var(--text-muted); margin-top:1px; }
+  .page-title { font-size:19px; font-weight:700; font-family:var(--font-cond); letter-spacing:.5px; text-transform:uppercase; }
+  .page-sub { font-size:11.5px; color:var(--text-muted); margin-top:1px; font-family:var(--mono); }
 
   .topbar-right { display:flex; align-items:center; gap:12px; }
   .topbar-btn {
@@ -421,7 +422,7 @@
   }
   .topbar-btn:hover { background:rgba(255,255,255,0.1); color:var(--text); }
   .topbar-btn.primary {
-    background: linear-gradient(135deg, var(--green), #00B894);
+    background: linear-gradient(135deg, var(--gold), #CC8E00);
     border-color:transparent; color:#000; font-weight:600;
   }
 
@@ -444,10 +445,15 @@
     content:''; position:absolute; top:0; left:0; right:0; height:1px;
     background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);
   }
+  /* terminal corner-tick signature */
+  .card::after {
+    content:''; position:absolute; top:0; left:0; width:9px; height:9px; pointer-events:none;
+    border-top:1.5px solid var(--gold); border-left:1.5px solid var(--gold); opacity:.55;
+  }
   .card-title {
-    font-size:12px; font-weight:700; color:var(--text-muted);
-    letter-spacing:.8px; text-transform:uppercase; margin-bottom:12px;
-    display:flex; align-items:center; gap:8px;
+    font-size:11.5px; font-weight:700; color:var(--text-muted);
+    letter-spacing:1.2px; text-transform:uppercase; margin-bottom:12px;
+    display:flex; align-items:center; gap:8px; font-family:var(--mono);
   }
 
   /* ─── JOURNAL CARDS ─── */
@@ -456,18 +462,18 @@
     border-radius:var(--radius); border:1px solid var(--border);
     background:var(--bg-card); overflow:hidden; transition:.25s; position:relative;
   }
-  .trade-card:hover { border-color:rgba(0,212,170,0.3); transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+  .trade-card:hover { border-color:rgba(255,176,0,0.3); transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
   .trade-card-strip { height:4px; width:100%; }
-  .trade-card-strip.profit { background:linear-gradient(90deg,var(--green),#00B894); }
-  .trade-card-strip.loss { background:linear-gradient(90deg,var(--red),#C0392B); }
+  .trade-card-strip.profit { background:linear-gradient(90deg,var(--green),#00B85A); }
+  .trade-card-strip.loss { background:linear-gradient(90deg,var(--red),#B8291F); }
   .trade-card-body { padding:16px; }
   .trade-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
   .trade-card-symbol { font-size:16px; font-weight:700; font-family:var(--mono); }
   .trade-card-pnl { font-family:var(--mono); font-size:19px; font-weight:700; }
   .trade-card-meta { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--text-muted); margin-bottom:10px; }
-  .trade-card-meta span { background:rgba(255,255,255,0.04); padding:3px 9px; border-radius:20px; }
+  .trade-card-meta span { background:rgba(255,255,255,0.04); padding:3px 9px; border-radius:3px; }
   .trade-card-prices { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
-  .trade-card-prices div { background:rgba(255,255,255,0.03); border-radius:8px; padding:6px 8px; text-align:center; }
+  .trade-card-prices div { background:rgba(255,255,255,0.03); border-radius:2px; padding:6px 8px; text-align:center; }
   .trade-card-prices .pv-label { font-size:9.5px; color:var(--text-muted); text-transform:uppercase; }
   .trade-card-prices .pv-val { font-family:var(--mono); font-size:12.5px; font-weight:600; margin-top:2px; }
   .trade-card-note { font-size:12px; color:var(--text-dim); line-height:1.5; margin-bottom:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:18px; }
@@ -496,7 +502,7 @@
   .stat-change {
     display:inline-flex; align-items:center; gap:4px;
     font-family:var(--mono); font-size:12px; font-weight:600;
-    padding: 3px 8px; border-radius:20px;
+    padding: 3px 8px; border-radius:3px;
   }
   .stat-change.up { background:var(--green-dim); color:var(--green); }
   .stat-change.dn { background:var(--red-dim); color:var(--red); }
@@ -522,7 +528,7 @@
   .data-table td:first-child { font-weight:600; }
   .badge {
     display:inline-flex; align-items:center; gap:4px;
-    padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600;
+    padding:3px 9px; border-radius:3px; font-size:11.5px; font-weight:600;
     font-family:var(--mono);
   }
   .badge.buy  { background:var(--green-dim); color:var(--green); }
@@ -541,8 +547,8 @@
     transition:.2s; outline:none;
   }
   .form-input:focus, .form-select:focus, .form-textarea:focus {
-    border-color:var(--green); background:rgba(0,212,170,0.04);
-    box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
+    border-color:var(--gold); background:rgba(255,176,0,0.04);
+    box-shadow: 0 0 0 3px rgba(255,176,0,0.1);
   }
   .form-textarea { resize:vertical; min-height:90px; }
   .form-select { appearance:none; cursor:pointer; }
@@ -555,11 +561,11 @@
     cursor:pointer; transition:.2s; border:none;
   }
   .btn-primary {
-    background:linear-gradient(135deg, var(--green), #00B894);
+    background:linear-gradient(135deg, var(--gold), #CC8E00);
     color:#000;
   }
   .btn-sm { padding:6px 12px; font-size:12px; }
-  .btn-primary:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,212,170,0.3); }
+  .btn-primary:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,176,0,0.3); }
   .btn-outline {
     background:transparent; color:var(--text);
     border:1px solid var(--border);
@@ -567,7 +573,7 @@
   .btn-outline:hover { background:rgba(255,255,255,0.05); }
   .btn-danger {
     background:var(--red-dim); color:var(--red);
-    border:1px solid rgba(255,71,87,0.3);
+    border:1px solid rgba(255,59,48,0.3);
   }
   /* ─── AI CHAT ─── */
   .ai-msg { display:flex; gap:10px; max-width:82%; }
@@ -578,17 +584,17 @@
     display:flex; align-items:center; justify-content:center; font-size:15px;
     background:var(--bg-card2); border:1px solid var(--border);
   }
-  .ai-msg.user .ai-msg-avatar { background:linear-gradient(135deg,var(--green),#00B894); }
+  .ai-msg.user .ai-msg-avatar { background:linear-gradient(135deg,var(--gold),#CC8E00); }
   .ai-msg-bubble {
-    padding:11px 14px; border-radius:14px; font-size:13.5px; line-height:1.6;
+    padding:11px 14px; border-radius:3px; font-size:13.5px; line-height:1.6;
     white-space:pre-wrap; word-break:break-word;
     background:var(--bg-card2); border:1px solid var(--border); color:var(--text);
   }
-  .ai-msg.user .ai-msg-bubble { background:rgba(0,212,170,0.1); border-color:rgba(0,212,170,0.25); }
-  .ai-msg-bubble img { max-width:220px; border-radius:8px; display:block; margin-top:6px; }
+  .ai-msg.user .ai-msg-bubble { background:rgba(255,176,0,0.1); border-color:rgba(255,176,0,0.25); }
+  .ai-msg-bubble img { max-width:220px; border-radius:2px; display:block; margin-top:6px; }
   .ai-msg-bubble .ai-chip {
     display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);
-    background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:4px 9px; margin-top:6px;
+    background:var(--bg-card); border:1px solid var(--border); border-radius:2px; padding:4px 9px; margin-top:6px;
   }
   .ai-typing { display:flex; gap:4px; padding:4px 0; }
   .ai-typing span {
@@ -601,9 +607,9 @@
   #ai-attach-preview.show { display:block !important; }
   .ai-attach-chip {
     display:inline-flex; align-items:center; gap:8px; background:var(--bg-card2); border:1px solid var(--border);
-    border-radius:10px; padding:6px 10px; font-size:12.5px; margin-bottom:8px;
+    border-radius:2px; padding:6px 10px; font-size:12.5px; margin-bottom:8px;
   }
-  .ai-attach-chip img { width:28px; height:28px; object-fit:cover; border-radius:6px; }
+  .ai-attach-chip img { width:28px; height:28px; object-fit:cover; border-radius:2px; }
   .ai-attach-chip button { background:none; border:none; color:var(--red); cursor:pointer; font-size:13px; }
 
   /* ─── TRADE LOG ─── */
@@ -618,7 +624,7 @@
     background:var(--bg-card); overflow:hidden; cursor:pointer;
     transition:.25s; group:1;
   }
-  .lib-card:hover { border-color:rgba(0,212,170,0.3); transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+  .lib-card:hover { border-color:rgba(255,176,0,0.3); transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
   .lib-thumb {
     height:160px; background:linear-gradient(135deg,#162035,#1e2d4a);
     display:flex; align-items:center; justify-content:center;
@@ -628,7 +634,7 @@
   .lib-thumb .lib-type {
     position:absolute; top:10px; right:10px;
     background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
-    padding:3px 8px; border-radius:20px; font-size:10px;
+    padding:3px 8px; border-radius:3px; font-size:10px;
     font-weight:700; color:var(--text-dim);
   }
   .lib-body { padding:14px; }
@@ -636,16 +642,16 @@
   .lib-meta { font-size:11.5px; color:var(--text-muted); }
   .lib-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
   .lib-tag {
-    font-size:10.5px; padding:2px 8px; border-radius:20px;
+    font-size:10.5px; padding:2px 8px; border-radius:3px;
     background:rgba(255,255,255,0.05); color:var(--text-muted);
   }
 
   .upload-zone {
-    border:2px dashed rgba(0,212,170,0.25); border-radius:var(--radius);
+    border:2px dashed rgba(255,176,0,0.25); border-radius:var(--radius);
     padding:40px; text-align:center; cursor:pointer;
-    transition:.2s; background:rgba(0,212,170,0.02);
+    transition:.2s; background:rgba(255,176,0,0.02);
   }
-  .upload-zone:hover { border-color:var(--green); background:rgba(0,212,170,0.05); }
+  .upload-zone:hover { border-color:var(--gold); background:rgba(255,176,0,0.05); }
   .upload-icon { font-size:36px; margin-bottom:10px; }
   .upload-text { font-size:14px; font-weight:600; margin-bottom:4px; }
   .upload-sub  { font-size:12px; color:var(--text-muted); }
@@ -667,7 +673,7 @@
     background:var(--bg-card); padding:20px; cursor:pointer;
     transition:.25s;
   }
-  .strategy-card:hover { border-color:rgba(0,212,170,0.3); }
+  .strategy-card:hover { border-color:rgba(255,176,0,0.3); }
   .strategy-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; }
   .strategy-name { font-size:16px; font-weight:700; }
   .strategy-rating { display:flex; gap:2px; }
@@ -681,8 +687,8 @@
   .sparkline { width:100%; height:40px; }
 
   /* ─── PROGRESS ─── */
-  .progress-bar { height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
-  .progress-fill { height:100%; border-radius:3px; transition:width 1s ease; }
+  .progress-bar { height:6px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:2px; transition:width 1s ease; }
 
   /* ─── TABS ─── */
   .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); }
@@ -693,7 +699,7 @@
     margin-bottom:-1px; transition:.15s; font-family:var(--font);
   }
   .tab:hover { color:var(--text); }
-  .tab.active { color:var(--green); border-bottom-color:var(--green); }
+  .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
 
   /* ─── CALC TAB GROUPS (wrapping pill tabs) ─── */
   .calc-tabgroup { margin-bottom:18px; }
@@ -705,18 +711,18 @@
     flex-wrap:wrap; row-gap:8px; border-bottom:none; margin-bottom:10px;
   }
   .tab.pill {
-    border:1px solid var(--border); border-radius:20px;
+    border:1px solid var(--border); border-radius:3px;
     padding:8px 15px; margin-bottom:0; background:var(--bg-card);
   }
   .tab.pill:hover { border-color:var(--border-bright); color:var(--text); }
   .tab.pill.active {
-    background:var(--green-dim); color:var(--green);
+    background:var(--gold-dim); color:var(--gold);
     border-color:var(--border-bright);
   }
   .calc-formula-box {
-    background:rgba(0,212,170,0.05); border-color:rgba(0,212,170,0.2);
+    background:rgba(255,176,0,0.05); border-color:rgba(255,176,0,0.2);
   }
-  .calc-formula-box.warn { background:rgba(255,71,87,0.05); border-color:rgba(255,71,87,0.2); }
+  .calc-formula-box.warn { background:rgba(255,59,48,0.05); border-color:rgba(255,59,48,0.2); }
   .calc-result.sm { font-size:19px; padding:12px; }
   .fib-table td.lvl-key { color:var(--gold); font-family:var(--mono); }
 
@@ -730,20 +736,20 @@
   .modal-overlay.open { opacity:1; pointer-events:all; }
   .modal {
     background:var(--bg-card); border:1px solid var(--border);
-    border-radius:18px; width:520px; max-width:90vw;
+    border-radius:3px; width:520px; max-width:90vw;
     padding:28px; transform:scale(.95); transition:.25s;
     box-shadow: 0 32px 80px rgba(0,0,0,0.6);
     max-height:88vh; overflow-y:auto;
   }
   .modal-overlay.open .modal { transform:scale(1); }
   .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; }
-  .modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; padding:4px 8px; border-radius:6px; }
+  .modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; padding:4px 8px; border-radius:2px; }
   .modal-close:hover { background:rgba(255,255,255,0.07); color:var(--text); }
 
   /* ─── SCROLLBAR ─── */
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
   ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.2); }
 
   /* ─── PULSE DOT ─── */
@@ -781,9 +787,9 @@
   .toast { position:fixed; bottom:20px; right:20px; background:var(--bg-card); border:1px solid var(--border);
     border-radius:var(--radius); padding:16px 20px; color:var(--text); z-index:2000;
     animation: slideInUp .3s ease; box-shadow: var(--shadow); max-width:400px; }
-  .toast.success { border-left:4px solid var(--green); background:rgba(0,212,170,0.08); }
-  .toast.error { border-left:4px solid var(--red); background:rgba(255,71,87,0.08); }
-  .toast.warning { border-left:4px solid var(--gold); background:rgba(201,168,76,0.08); }
+  .toast.success { border-left:4px solid var(--gold); background:rgba(255,176,0,0.08); }
+  .toast.error { border-left:4px solid var(--red); background:rgba(255,59,48,0.08); }
+  .toast.warning { border-left:4px solid var(--gold); background:rgba(255,176,0,0.08); }
   @keyframes slideInUp { from { transform:translateY(100px); opacity:0; } to { transform:none; opacity:1; } }
 
   /* ─── MODE TOGGLE ─── */
@@ -835,7 +841,7 @@
   }
   .nav-item::before {
     content:''; position:absolute; inset:0;
-    background: linear-gradient(90deg, rgba(0,212,170,0.18), transparent);
+    background: linear-gradient(90deg, rgba(255,176,0,0.18), transparent);
     transform: translateX(-100%);
     transition: transform .35s ease;
   }
@@ -845,8 +851,8 @@
     animation: navGlow 2.4s ease-in-out infinite;
   }
   @keyframes navGlow {
-    0%,100% { box-shadow: inset 0 0 0 0 rgba(0,212,170,0); }
-    50% { box-shadow: inset 0 0 14px 0 rgba(0,212,170,0.12); }
+    0%,100% { box-shadow: inset 0 0 0 0 rgba(255,176,0,0); }
+    50% { box-shadow: inset 0 0 14px 0 rgba(255,176,0,0.12); }
   }
   .logo-icon { transition: transform .4s cubic-bezier(.22,1.4,.36,1); }
   .logo:hover .logo-icon { transform: rotate(-8deg) scale(1.08); }
@@ -860,7 +866,7 @@
   .topbar-btn:hover { transform: translateY(-2px); }
   .topbar-btn:active { transform: translateY(0) scale(.96); }
   .topbar-btn.primary:hover {
-    box-shadow: 0 6px 20px rgba(0,212,170,0.35);
+    box-shadow: 0 6px 20px rgba(255,176,0,0.35);
   }
   .topbar-btn.primary {
     background-size: 200% 200%;
@@ -881,13 +887,13 @@
   }
   .user-card:hover .avatar {
     transform: scale(1.08) rotate(4deg);
-    box-shadow: 0 0 0 3px rgba(201,168,76,0.25);
+    box-shadow: 0 0 0 3px rgba(255,176,0,0.25);
   }
 
   .ticker-item .chg.up { animation: pulseGreen 2.2s ease-in-out infinite; }
   .ticker-item .chg.dn { animation: pulseRed 2.2s ease-in-out infinite; }
-  @keyframes pulseGreen { 0%,100%{opacity:1} 50%{opacity:.55; text-shadow:0 0 8px rgba(0,212,170,0.6);} }
-  @keyframes pulseRed   { 0%,100%{opacity:1} 50%{opacity:.55; text-shadow:0 0 8px rgba(255,71,87,0.6);} }
+  @keyframes pulseGreen { 0%,100%{opacity:1} 50%{opacity:.55; text-shadow:0 0 8px rgba(255,176,0,0.6);} }
+  @keyframes pulseRed   { 0%,100%{opacity:1} 50%{opacity:.55; text-shadow:0 0 8px rgba(255,59,48,0.6);} }
 
   @keyframes numberPop {
     0% { transform: scale(1); }
@@ -948,11 +954,11 @@
   }
   .anim-style-opt:hover { background:rgba(255,255,255,0.07); transform:translateY(-2px); }
   .anim-style-opt.active {
-    border-color:var(--border-bright); background:var(--green-dim); color:var(--green);
+    border-color:var(--border-bright); background:var(--gold-dim); color:var(--gold);
   }
   .anim-style-icon { font-size:22px; }
   .anim-style-name { font-size:13px; font-weight:700; color:var(--text); }
-  .anim-style-opt.active .anim-style-name { color:var(--green); }
+  .anim-style-opt.active .anim-style-name { color:var(--gold); }
   .anim-style-desc { font-size:11px; color:var(--text-muted); text-align:center; }
 
   .anim-demo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
@@ -963,8 +969,8 @@
     perspective:600px;
   }
   .anim-demo-box {
-    width:42px; height:42px; border-radius:10px;
-    background:linear-gradient(135deg,var(--green),#00A882);
+    width:42px; height:42px; border-radius:2px;
+    background:linear-gradient(135deg,var(--gold),#B87A00);
     cursor:pointer;
   }
   .anim-demo-label { font-size:13.5px; font-weight:600; }
@@ -985,10 +991,10 @@
   @keyframes ad-bounce { 0%,100%{transform:translateY(0)} 30%{transform:translateY(-22px)} 50%{transform:translateY(0)} 65%{transform:translateY(-9px)} 80%{transform:translateY(0)} }
 
   .demo-glow   { animation: ad-glow 1.8s ease-in-out infinite; }
-  @keyframes ad-glow { 0%,100%{box-shadow:0 0 4px 0 rgba(0,212,170,.4)} 50%{box-shadow:0 0 22px 6px rgba(0,212,170,.65)} }
+  @keyframes ad-glow { 0%,100%{box-shadow:0 0 4px 0 rgba(255,176,0,.4)} 50%{box-shadow:0 0 22px 6px rgba(255,176,0,.65)} }
 
   .demo-flip   { transition: transform .6s cubic-bezier(.22,1,.36,1); transform-style:preserve-3d; }
-  .demo-flip.flipped { transform: rotateY(180deg); background:linear-gradient(135deg,var(--gold),#E8B84B); }
+  .demo-flip.flipped { transform: rotateY(180deg); background:linear-gradient(135deg,var(--gold),#FFC533); }
 
   .demo-tilt   { transition: transform .25s ease; }
   .anim-demo-stage:hover .demo-tilt { transform: rotateX(18deg) rotateY(-18deg) scale(1.1); }
@@ -1027,37 +1033,37 @@
 }
 #ux-cursor-ring {
   width: 32px; height: 32px; border-radius: 50%;
-  border: 1.5px solid rgba(0,212,170,0.7);
+  border: 1.5px solid rgba(255,176,0,0.7);
   position: absolute; top: -16px; left: -16px;
   transition: transform .12s ease, border-color .2s ease, width .2s ease, height .2s ease;
-  box-shadow: 0 0 8px rgba(0,212,170,0.35);
+  box-shadow: 0 0 8px rgba(255,176,0,0.35);
 }
 #ux-cursor-dot {
   width: 5px; height: 5px; border-radius: 50%;
-  background: #00D4AA;
+  background: #FFB000;
   position: absolute; top: -2.5px; left: -2.5px;
-  box-shadow: 0 0 8px 2px rgba(0,212,170,0.8);
+  box-shadow: 0 0 8px 2px rgba(255,176,0,0.8);
   transition: transform .06s ease;
 }
 /* Crosshair lines */
 #ux-cursor::before, #ux-cursor::after {
   content: ''; position: absolute;
-  background: rgba(0,212,170,0.35); pointer-events: none;
+  background: rgba(255,176,0,0.35); pointer-events: none;
   transition: opacity .15s;
 }
 #ux-cursor::before { width: 1px; height: 14px; top: -7px; left: 0; }
 #ux-cursor::after  { width: 14px; height: 1px; top: 0; left: -7px; }
 body.ux-hovering #ux-cursor-ring {
   width: 46px; height: 46px; top: -23px; left: -23px;
-  border-color: rgba(0,212,170,1);
-  box-shadow: 0 0 16px rgba(0,212,170,0.5);
+  border-color: rgba(255,176,0,1);
+  box-shadow: 0 0 16px rgba(255,176,0,0.5);
 }
 body.ux-clicking #ux-cursor-ring {
   transform: scale(.65);
-  border-color: #3B82F6;
-  box-shadow: 0 0 18px rgba(59,130,246,0.7);
+  border-color: #29B6F6;
+  box-shadow: 0 0 18px rgba(41,182,246,0.7);
 }
-body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
+body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #29B6F6; }
 
 /* ── 2. SPOTLIGHT SEARCH ── */
 #ux-spotlight-backdrop {
@@ -1073,9 +1079,9 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 #ux-spotlight {
   width: min(620px, 94vw);
   background: rgba(14,20,38,0.92);
-  border: 1px solid rgba(0,212,170,0.25);
-  border-radius: 18px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,212,170,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,176,0,0.25);
+  border-radius:3px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,176,0,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
   overflow: hidden;
   animation: ux-spotIn .22s cubic-bezier(.22,1,.36,1);
 }
@@ -1087,20 +1093,20 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 #ux-spot-icon { font-size: 17px; opacity: .5; flex-shrink: 0; }
 #ux-spot-input {
   flex: 1; background: none; border: none; outline: none;
-  font-size: 17px; color: #E8EDF5; font-family: var(--font);
-  caret-color: #00D4AA; letter-spacing: .2px;
+  font-size: 17px; color: var(--text); font-family: var(--font);
+  caret-color: #FFB000; letter-spacing: .2px;
 }
 #ux-spot-input::placeholder { color: #3D4E6B; }
 #ux-spot-esc {
   font-family: var(--mono); font-size: 11px; color: #3D4E6B;
-  background: rgba(255,255,255,0.05); padding: 3px 7px; border-radius: 5px;
+  background: rgba(255,255,255,0.05); padding: 3px 7px; border-radius:2px;
   letter-spacing: .5px; flex-shrink: 0;
 }
 #ux-spot-results {
   max-height: 360px; overflow-y: auto; padding: 8px 0;
 }
 #ux-spot-results::-webkit-scrollbar { width: 4px; }
-#ux-spot-results::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.25); border-radius: 4px; }
+#ux-spot-results::-webkit-scrollbar-thumb { background: rgba(255,176,0,0.25); border-radius:2px; }
 .ux-spot-group { padding: 6px 20px 4px; font-size: 10.5px; letter-spacing: 1.5px; color: #3D4E6B; text-transform: uppercase; font-family: var(--mono); }
 .ux-spot-item {
   display: flex; align-items: center; gap: 12px; padding: 10px 20px;
@@ -1108,17 +1114,17 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
   border-left: 2px solid transparent;
 }
 .ux-spot-item:hover, .ux-spot-item.ux-active {
-  background: rgba(0,212,170,0.07);
-  border-left-color: #00D4AA;
+  background: rgba(255,176,0,0.07);
+  border-left-color: #FFB000;
 }
-.ux-spot-item.ux-active { background: rgba(0,212,170,0.11); }
-.ux-spot-icon2 { font-size: 16px; width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ux-spot-item.ux-active { background: rgba(255,176,0,0.11); }
+.ux-spot-icon2 { font-size: 16px; width: 28px; height: 28px; border-radius:2px; background: rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .ux-spot-text { flex: 1; }
 .ux-spot-name { font-size: 14px; color: #C8D3E8; font-weight: 500; }
 .ux-spot-desc { font-size: 11.5px; color: #4A5B7A; margin-top: 1px; }
-.ux-spot-badge { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 5px; background: rgba(0,212,170,0.1); color: #00D4AA; letter-spacing: .5px; }
+.ux-spot-badge { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius:2px; background: rgba(255,176,0,0.1); color: #FFB000; letter-spacing: .5px; }
 .ux-spot-empty { text-align:center; padding: 36px 20px; color: #3D4E6B; font-size: 14px; }
-.ux-spot-kbd { font-family: var(--mono); font-size:10px; background: rgba(255,255,255,0.05); color: #5A6B8A; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.07); }
+.ux-spot-kbd { font-family: var(--mono); font-size:10px; background: rgba(255,255,255,0.05); color: #5A6B8A; padding: 2px 6px; border-radius:2px; border: 1px solid rgba(255,255,255,0.07); }
 #ux-spot-footer { padding: 10px 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:16px; align-items:center; }
 .ux-spot-hint { display:flex; align-items:center; gap:5px; font-size:11px; color:#3D4E6B; }
 
@@ -1135,14 +1141,14 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 #ux-cmd {
   width: min(560px, 94vw);
   background: rgba(12,18,34,0.96);
-  border: 1px solid rgba(59,130,246,0.3);
-  border-radius: 18px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(59,130,246,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
+  border: 1px solid rgba(41,182,246,0.3);
+  border-radius:3px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(41,182,246,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
   overflow: hidden;
   animation: ux-spotIn .22s cubic-bezier(.22,1,.36,1);
 }
 #ux-cmd-header { padding: 14px 18px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-#ux-cmd-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #3B82F6; font-family: var(--mono); font-weight: 700; }
+#ux-cmd-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #29B6F6; font-family: var(--mono); font-weight: 700; }
 #ux-cmd-list { padding: 8px 0; max-height: 400px; overflow-y: auto; }
 .ux-cmd-section { padding: 8px 18px 3px; font-size: 10px; letter-spacing: 1.5px; color: #3D4E6B; text-transform: uppercase; font-family: var(--mono); }
 .ux-cmd-item {
@@ -1151,19 +1157,19 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
   border-left: 2px solid transparent;
 }
 .ux-cmd-item:hover, .ux-cmd-item.ux-active {
-  background: rgba(59,130,246,0.09);
-  border-left-color: #3B82F6;
+  background: rgba(41,182,246,0.09);
+  border-left-color: #29B6F6;
 }
-.ux-cmd-item.ux-active { background: rgba(59,130,246,0.13); }
+.ux-cmd-item.ux-active { background: rgba(41,182,246,0.13); }
 .ux-cmd-ico { font-size: 17px; width: 30px; text-align: center; flex-shrink: 0; }
 .ux-cmd-label { flex: 1; font-size: 14px; color: #C8D3E8; }
-.ux-cmd-shortcut { font-family: var(--mono); font-size: 10px; color: #3D4E6B; background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.07); white-space: nowrap; }
+.ux-cmd-shortcut { font-family: var(--mono); font-size: 10px; color: #3D4E6B; background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius:2px; border: 1px solid rgba(255,255,255,0.07); white-space: nowrap; }
 #ux-cmd-footer { padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; gap:14px; }
 
   /* ════ SLEEP MODE ════ */
   #sleep-screen {
     position: fixed; inset: 0; z-index: 99997;
-    background: radial-gradient(ellipse at 30% 40%, #091525 0%, #070B14 55%, #030608 100%);
+    background: radial-gradient(ellipse at 30% 40%, #0A0A0A 0%, #030303 55%, #000000 100%);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; visibility: hidden;
     transition: opacity .7s cubic-bezier(.4,0,.2,1), visibility .7s;
@@ -1174,7 +1180,7 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
   #sleep-canvas { position:absolute; inset:0; width:100%; height:100%; opacity:.22; pointer-events:none; }
   #sleep-grid {
     position:absolute; inset:0; pointer-events:none;
-    background-image: linear-gradient(rgba(0,212,170,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,0.05) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(255,176,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,176,0,0.05) 1px, transparent 1px);
     background-size:55px 55px;
     mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent 80%);
     -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent 80%);
@@ -1183,7 +1189,7 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
   @keyframes sl-gridPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
   #sleep-scan {
     position:absolute; left:0; right:0; height:2px; pointer-events:none;
-    background: linear-gradient(90deg, transparent, rgba(0,212,170,0.18) 30%, rgba(59,130,246,0.22) 50%, rgba(0,212,170,0.18) 70%, transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,176,0,0.18) 30%, rgba(41,182,246,0.22) 50%, rgba(255,176,0,0.18) 70%, transparent);
     animation: sl-scanLine 7s linear infinite; opacity:0;
   }
   @keyframes sl-scanLine { 0%{top:-2px;opacity:0} 4%{opacity:1} 96%{opacity:.7} 100%{top:100%;opacity:0} }
@@ -1200,31 +1206,31 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
   #sleep-clock {
     font-family:'JetBrains Mono',monospace; font-size:clamp(52px,10vw,96px);
     font-weight:800; letter-spacing:-2px; line-height:1;
-    background:linear-gradient(135deg,#00D4AA 0%,#3B82F6 50%,#C9A84C 100%);
+    background:linear-gradient(135deg,#FFB000 0%,#29B6F6 50%,#FFB000 100%);
     background-size:300% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
     animation:sl-clockShine 4s linear infinite;
-    filter:drop-shadow(0 0 30px rgba(0,212,170,0.4));
+    filter:drop-shadow(0 0 30px rgba(255,176,0,0.4));
   }
   @keyframes sl-clockShine { to{background-position:300% center} }
   #sleep-date { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:3px; color:#4A6080; text-transform:uppercase; margin-top:-12px; }
   #sleep-logo { display:flex; align-items:center; gap:12px; margin-top:4px; }
   #sleep-logo-icon {
-    width:50px; height:50px; border-radius:15px;
-    background:linear-gradient(135deg,#00D4AA,#009E7E);
+    width:50px; height:50px; border-radius:3px;
+    background:linear-gradient(135deg,#FFB000,#A66900);
     display:flex; align-items:center; justify-content:center; font-size:24px;
-    box-shadow:0 0 28px rgba(0,212,170,0.5);
+    box-shadow:0 0 28px rgba(255,176,0,0.5);
     animation:sl-logoGlow 3s ease-in-out infinite;
   }
-  @keyframes sl-logoGlow { 0%,100%{box-shadow:0 0 20px rgba(0,212,170,0.4);transform:scale(1)} 50%{box-shadow:0 0 42px rgba(0,212,170,0.75);transform:scale(1.05)} }
+  @keyframes sl-logoGlow { 0%,100%{box-shadow:0 0 20px rgba(255,176,0,0.4);transform:scale(1)} 50%{box-shadow:0 0 42px rgba(255,176,0,0.75);transform:scale(1.05)} }
   #sleep-logo-text { text-align:left; }
-  #sleep-brand { font-size:20px; font-weight:800; letter-spacing:3px; color:#E8EDF5; }
+  #sleep-brand { font-size:20px; font-weight:800; letter-spacing:3px; color:var(--text); }
   #sleep-sub { font-size:10px; letter-spacing:4px; color:#3A5070; font-family:var(--mono); margin-top:3px; }
   #sleep-stats { display:flex; gap:28px; margin-top:6px; }
   .sleep-stat { text-align:center; }
-  .sleep-stat-val { font-family:var(--mono); font-size:18px; font-weight:700; color:#00D4AA; text-shadow:0 0 12px rgba(0,212,170,0.6); }
-  .sleep-stat-val.red { color:#FF4757; text-shadow:0 0 12px rgba(255,71,87,0.6); }
+  .sleep-stat-val { font-family:var(--mono); font-size:18px; font-weight:700; color:#FFB000; text-shadow:0 0 12px rgba(255,176,0,0.6); }
+  .sleep-stat-val.red { color:#FF3B30; text-shadow:0 0 12px rgba(255,59,48,0.6); }
   .sleep-stat-lbl { font-size:9.5px; letter-spacing:2px; color:#3A5070; font-family:var(--mono); margin-top:3px; text-transform:uppercase; }
-  #sleep-divider { width:200px; height:1px; margin:0 auto; background:linear-gradient(90deg,transparent,rgba(0,212,170,0.3),transparent); }
+  #sleep-divider { width:200px; height:1px; margin:0 auto; background:linear-gradient(90deg,transparent,rgba(255,176,0,0.3),transparent); }
   #sleep-hint { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#2A3D55; animation:sl-hintBlink 3.5s ease-in-out infinite; }
   @keyframes sl-hintBlink { 0%,100%{opacity:.4} 50%{opacity:.9} }
   #sleep-ring-svg {
@@ -1244,14 +1250,14 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 <style>
 #login-screen {
   overflow: hidden;
-  background: radial-gradient(ellipse at 30% 25%, #0C1B2E 0%, #081120 45%, #030608 100%);
+  background: radial-gradient(ellipse at 30% 25%, #0A0800 0%, #050400 45%, #000000 100%);
 }
 #ls-aurora {
   position:absolute; inset:-15%; z-index:0; pointer-events:none; filter:blur(70px) saturate(130%);
   background:
-    radial-gradient(ellipse 36% 28% at 22% 26%, rgba(0,212,170,0.20), transparent 62%),
-    radial-gradient(ellipse 32% 26% at 80% 20%, rgba(59,130,246,0.17), transparent 62%),
-    radial-gradient(ellipse 38% 30% at 65% 82%, rgba(201,168,76,0.13), transparent 62%);
+    radial-gradient(ellipse 36% 28% at 22% 26%, rgba(255,176,0,0.20), transparent 62%),
+    radial-gradient(ellipse 32% 26% at 80% 20%, rgba(41,182,246,0.17), transparent 62%),
+    radial-gradient(ellipse 38% 30% at 65% 82%, rgba(255,176,0,0.13), transparent 62%);
   animation: ls-auroraDrift 34s ease-in-out infinite;
 }
 @keyframes ls-auroraDrift {
@@ -1269,14 +1275,14 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 #ls-canvas { position:absolute; inset:0; width:100%; height:100%; opacity:.24; pointer-events:none; z-index:0; }
 #ls-grid {
   position:absolute; inset:0; pointer-events:none; z-index:0; opacity:.6;
-  background-image: linear-gradient(rgba(0,212,170,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,0.045) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(255,176,0,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,176,0,0.045) 1px, transparent 1px);
   background-size:48px 48px;
   mask-image: radial-gradient(ellipse 75% 60% at 50% 50%, black, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 50%, black, transparent 80%);
 }
 #ls-beam {
   position:absolute; top:-40%; left:-20%; width:55%; height:180%; z-index:0; pointer-events:none;
-  background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.035) 48%, rgba(0,212,170,0.06) 50%, rgba(255,255,255,0.035) 52%, transparent 58%);
+  background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.035) 48%, rgba(255,176,0,0.06) 50%, rgba(255,255,255,0.035) 52%, transparent 58%);
   animation: ls-beamSweep 16s ease-in-out infinite;
 }
 @keyframes ls-beamSweep { 0%,8%{ transform:translateX(0) rotate(8deg);} 50%{ transform:translateX(160%) rotate(8deg);} 100%{ transform:translateX(160%) rotate(8deg);} }
@@ -1295,59 +1301,59 @@ body.ux-clicking #ux-cursor-dot { transform: scale(1.8); background: #3B82F6; }
 @keyframes ls-particleRise { 0%{transform:translateY(0) translateX(0);opacity:0} 10%{opacity:.7} 90%{opacity:.35} 100%{transform:translateY(-108vh) translateX(var(--pd,0px));opacity:0} }
 
 .ls-card-wrap {
-  position:relative; z-index:2; width:100%; max-width:400px; border-radius:22px; padding:1px;
+  position:relative; z-index:2; width:100%; max-width:400px; border-radius:3px; padding:1px;
   animation: ls-cardIn 1s cubic-bezier(.22,1,.36,1);
   box-shadow: 0 30px 80px -20px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.02);
 }
 .ls-card-wrap::before {
   content:''; position:absolute; inset:0; border-radius:inherit; z-index:0;
-  background: linear-gradient(155deg, rgba(0,212,170,0.5), rgba(255,255,255,0.06) 30%, rgba(59,130,246,0.35) 65%, rgba(201,168,76,0.4));
+  background: linear-gradient(155deg, rgba(255,176,0,0.5), rgba(255,255,255,0.06) 30%, rgba(41,182,246,0.35) 65%, rgba(255,176,0,0.4));
   animation: ls-borderGlow 7s ease-in-out infinite;
 }
 @keyframes ls-borderGlow { 0%,100%{ opacity:.4; } 50%{ opacity:.75; } }
 @keyframes ls-cardIn { from{opacity:0; transform:translateY(24px) scale(.96);} to{opacity:1; transform:none;} }
 .ls-card {
-  position: relative; z-index: 1; border-radius:20.5px; padding:38px 34px;
-  background: rgba(11,17,29,0.82);
+  position: relative; z-index: 1; border-radius:3px; padding:38px 34px;
+  background: rgba(8,8,8,0.84);
   backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 .ls-eyebrow {
   display:flex; align-items:center; justify-content:center; gap:6px;
-  font-family:var(--mono); font-size:10.5px; letter-spacing:3px; color:#4FE3C1;
+  font-family:var(--mono); font-size:10.5px; letter-spacing:3px; color:#FFCB4D;
   text-transform:uppercase; margin-bottom:16px; opacity:0; animation: ls-fadeUp .7s ease-out .15s forwards;
 }
 .ls-logo-icon {
-  width:56px; height:56px; border-radius:16px; margin:0 auto 16px;
-  background:linear-gradient(135deg,#00D4AA,#009E7E);
+  width:56px; height:56px; border-radius:3px; margin:0 auto 16px;
+  background:linear-gradient(135deg,#FFB000,#A66900);
   display:flex; align-items:center; justify-content:center; font-size:25px;
-  box-shadow:0 0 26px rgba(0,212,170,0.5);
+  box-shadow:0 0 26px rgba(255,176,0,0.5);
   animation: ls-logoGlow 3s ease-in-out infinite, ls-fadeUp .7s ease-out .25s backwards;
 }
-@keyframes ls-logoGlow { 0%,100%{box-shadow:0 0 18px rgba(0,212,170,0.4);} 50%{box-shadow:0 0 40px rgba(0,212,170,0.8);} }
+@keyframes ls-logoGlow { 0%,100%{box-shadow:0 0 18px rgba(255,176,0,0.4);} 50%{box-shadow:0 0 40px rgba(255,176,0,0.8);} }
 .ls-title {
   font-size:23px; font-weight:800; letter-spacing:.3px; font-family:var(--font);
-  background:linear-gradient(135deg,#00D4AA 0%,#3B82F6 55%,#C9A84C 100%);
+  background:linear-gradient(135deg,#FFB000 0%,#29B6F6 55%,#FFB000 100%);
   background-size:250% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
   animation: ls-fadeUp .7s ease-out .35s backwards;
 }
 .ls-sub { font-size:13px; color:var(--text-muted); margin-top:7px; opacity:0; animation: ls-fadeUp .7s ease-out .42s forwards; }
 @keyframes ls-fadeUp { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 .ls-tabs {
-  display:flex; gap:4px; background:var(--bg-card2); border:1px solid var(--border); border-radius:12px;
+  display:flex; gap:4px; background:var(--bg-card2); border:1px solid var(--border); border-radius:3px;
   padding:4px; margin-bottom:18px; opacity:0; animation: ls-fadeUp .6s ease-out .4s forwards;
 }
 .ls-tab {
   flex:1; border:none; background:transparent; color:var(--text-muted); font-family:var(--font);
-  font-size:13px; font-weight:600; padding:9px 8px; border-radius:9px; cursor:pointer;
+  font-size:13px; font-weight:600; padding:9px 8px; border-radius:2px; cursor:pointer;
   transition: background .2s, color .2s;
 }
-.ls-tab.active { background:linear-gradient(135deg,#00D4AA,#00B894); color:#04140f; }
+.ls-tab.active { background:linear-gradient(135deg,#FFB000,#CC8E00); color:#04140f; }
 .ls-tab:not(.active):hover { color:var(--text); background:rgba(255,255,255,0.04); }
 .ls-google-btn {
   width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:10px;
-  background:#fff; color:#3c4043; border:1px solid rgba(0,0,0,0.08); border-radius:12px;
+  background:#fff; color:#3c4043; border:1px solid rgba(0,0,0,0.08); border-radius:3px;
   padding:12px; font-weight:600; font-size:14px; cursor:pointer; font-family:var(--font);
   transition: box-shadow .22s, transform .18s, background .22s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
@@ -1370,16 +1376,16 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 }
 .ls-input {
   width:100%; box-sizing:border-box;
-  background:var(--bg-card2); border:1px solid var(--border); border-radius:12px;
+  background:var(--bg-card2); border:1px solid var(--border); border-radius:3px;
   padding:13px 14px 13px 40px; color:var(--text); font-family:var(--font); font-size:14px; outline:none;
   transition: border-color .25s, box-shadow .25s, background .25s;
 }
-.ls-input:focus { border-color: var(--green); box-shadow:0 0 0 3px rgba(0,212,170,0.14); background:var(--bg-card); }
+.ls-input:focus { border-color: var(--gold); box-shadow:0 0 0 3px rgba(255,176,0,0.14); background:var(--bg-card); }
 .ls-btn {
   position:relative; overflow:hidden;
-  background:linear-gradient(135deg,#00D4AA,#00B894); color:#04140f; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#FFB000,#CC8E00); color:#04140f; border:none; border-radius:3px;
   padding:13px; font-weight:700; font-size:14px; cursor:pointer; margin-top:6px; font-family:var(--font);
-  transition: transform .18s, box-shadow .25s; box-shadow:0 4px 18px rgba(0,212,170,0.22);
+  transition: transform .18s, box-shadow .25s; box-shadow:0 4px 18px rgba(255,176,0,0.22);
   opacity:0; animation: ls-fadeUp .6s ease-out .74s forwards;
 }
 .ls-btn::after {
@@ -1388,7 +1394,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   transform:skewX(-20deg); animation: ls-shimmer 3.2s ease-in-out infinite;
 }
 @keyframes ls-shimmer { 0%,60%{left:-60%;} 100%{left:130%;} }
-.ls-btn:hover { transform:translateY(-1px); box-shadow:0 10px 28px rgba(0,212,170,0.38); }
+.ls-btn:hover { transform:translateY(-1px); box-shadow:0 10px 28px rgba(255,176,0,0.38); }
 .ls-btn:active { transform:translateY(0); }
 .ls-ticker {
   margin-top:22px; padding-top:16px; border-top:1px solid var(--border);
@@ -1400,7 +1406,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 @keyframes ls-tickerScroll { from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 .ls-tick { font-family:var(--mono); font-size:11px; letter-spacing:.5px; color:var(--text-muted); display:inline-flex; align-items:center; gap:5px; }
 .ls-tick b { color:var(--text); font-weight:600; }
-.ls-tick.up { color:#00D4AA; } .ls-tick.down { color:#FF4757; }
+.ls-tick.up { color:#FFB000; } .ls-tick.down { color:#FF3B30; }
 @media(prefers-reduced-motion:reduce){ #login-screen *,#login-screen *::before,#login-screen *::after{animation-duration:.001ms!important;} }
 </style>
 <div id="login-screen" style="position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;">
@@ -1413,14 +1419,14 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   <svg id="ls-ring-svg" viewBox="0 0 500 500">
     <defs>
       <linearGradient id="ls-rgrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%"   stop-color="#00D4AA" stop-opacity="1"/>
-        <stop offset="50%"  stop-color="#3B82F6" stop-opacity="1"/>
-        <stop offset="100%" stop-color="#C9A84C" stop-opacity="1"/>
+        <stop offset="0%"   stop-color="#FFB000" stop-opacity="1"/>
+        <stop offset="50%"  stop-color="#29B6F6" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#FFB000" stop-opacity="1"/>
       </linearGradient>
     </defs>
     <circle cx="250" cy="250" r="245" fill="none" stroke="url(#ls-rgrad)" stroke-width="1" stroke-dasharray="8 14" opacity=".6"/>
-    <circle cx="250" cy="250" r="220" fill="none" stroke="rgba(0,212,170,0.2)" stroke-width=".5"/>
-    <circle cx="250" cy="250" r="205" fill="none" stroke="rgba(0,212,170,0.14)" stroke-width=".5" stroke-dasharray="1 7"/>
+    <circle cx="250" cy="250" r="220" fill="none" stroke="rgba(255,176,0,0.2)" stroke-width=".5"/>
+    <circle cx="250" cy="250" r="205" fill="none" stroke="rgba(255,176,0,0.14)" stroke-width=".5" stroke-dasharray="1 7"/>
   </svg>
   <div id="ls-orbs"></div>
   <div id="ls-particles"></div>
@@ -1521,7 +1527,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         const bob=Math.sin(t/1300+c.ph)*5*dpr;
         const x=i*cw+cw*.5;
         const toY=v=>H-((v-mn)/rng)*H*.65-H*.12+bob;
-        const up=c.c>=c.o, col=up?'rgba(0,212,170,0.6)':'rgba(255,71,87,0.55)';
+        const up=c.c>=c.o, col=up?'rgba(255,176,0,0.6)':'rgba(255,59,48,0.55)';
         ctx.strokeStyle=col; ctx.lineWidth=1.5*dpr;
         ctx.beginPath(); ctx.moveTo(x,toY(c.h)); ctx.lineTo(x,toY(c.l)); ctx.stroke();
         ctx.fillStyle=col;
@@ -1539,9 +1545,9 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     const host = document.getElementById('ls-orbs');
     if(!host) return;
     const orbs=[
-      {s:300,x:'14%',y:'20%',c:'rgba(0,212,170,0.12)',d:'22s',ox:'30px',oy:'-34px'},
-      {s:260,x:'82%',y:'70%',c:'rgba(59,130,246,0.11)', d:'26s',ox:'-26px',oy:'28px'},
-      {s:210,x:'66%',y:'14%',c:'rgba(201,168,76,0.09)', d:'24s',ox:'20px',oy:'22px'},
+      {s:300,x:'14%',y:'20%',c:'rgba(255,176,0,0.12)',d:'22s',ox:'30px',oy:'-34px'},
+      {s:260,x:'82%',y:'70%',c:'rgba(41,182,246,0.11)', d:'26s',ox:'-26px',oy:'28px'},
+      {s:210,x:'66%',y:'14%',c:'rgba(255,176,0,0.09)', d:'24s',ox:'20px',oy:'22px'},
     ];
     orbs.forEach(o=>{
       const el=document.createElement('div');
@@ -1556,7 +1562,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     const host = document.getElementById('ls-particles');
     if(!host) return;
     const n = window.innerWidth < 600 ? 10 : 18;
-    const cols = ['#00D4AA','#3B82F6','#C9A84C'];
+    const cols = ['#FFB000','#29B6F6','#FFB000'];
     for(let i=0;i<n;i++){
       const el=document.createElement('div');
       el.className='ls-particle';
@@ -1598,13 +1604,13 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   <svg id="sleep-ring-svg" viewBox="0 0 500 500">
     <defs>
       <linearGradient id="sl-rgrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%"   stop-color="#00D4AA" stop-opacity="1"/>
-        <stop offset="50%"  stop-color="#3B82F6" stop-opacity="1"/>
-        <stop offset="100%" stop-color="#C9A84C" stop-opacity="1"/>
+        <stop offset="0%"   stop-color="#FFB000" stop-opacity="1"/>
+        <stop offset="50%"  stop-color="#29B6F6" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#FFB000" stop-opacity="1"/>
       </linearGradient>
     </defs>
     <circle cx="250" cy="250" r="245" fill="none" stroke="url(#sl-rgrad)" stroke-width="1" stroke-dasharray="8 14" opacity=".6"/>
-    <circle cx="250" cy="250" r="220" fill="none" stroke="rgba(0,212,170,0.2)" stroke-width=".5"/>
+    <circle cx="250" cy="250" r="220" fill="none" stroke="rgba(255,176,0,0.2)" stroke-width=".5"/>
   </svg>
 
   <div id="sleep-core">
@@ -1696,7 +1702,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   .ld-particle {
     position: absolute; bottom: -10px; border-radius: 50%;
     background: rgba(0, 212, 170, 0.55);
-    box-shadow: 0 0 6px 1px rgba(0,212,170,0.5);
+    box-shadow: 0 0 6px 1px rgba(255,176,0,0.5);
     animation: ld-rise linear infinite;
   }
   @keyframes ld-rise {
@@ -1712,10 +1718,10 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     padding: 40px 50px;
     background: rgba(17, 24, 39, 0.35);
     border: 1px solid rgba(0, 212, 170, 0.18);
-    border-radius: 24px;
+    border-radius:3px;
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
-    box-shadow: 0 0 60px rgba(0,212,170,0.08), inset 0 0 40px rgba(255,255,255,0.02);
+    box-shadow: 0 0 60px rgba(255,176,0,0.08), inset 0 0 40px rgba(255,255,255,0.02);
     animation: ld-coreIn .9s cubic-bezier(.22,1,.36,1);
   }
   @keyframes ld-coreIn {
@@ -1729,7 +1735,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   #ld-ring-fg {
     fill: none; stroke: url(#ld-grad); stroke-width: 4; stroke-linecap: round;
     stroke-dasharray: 440; stroke-dashoffset: 440;
-    filter: drop-shadow(0 0 6px rgba(0,212,170,0.85));
+    filter: drop-shadow(0 0 6px rgba(255,176,0,0.85));
     transition: stroke-dashoffset .15s linear;
   }
   #ld-logo-center {
@@ -1737,67 +1743,67 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     align-items: center; justify-content: center; gap: 2px;
   }
   #ld-logo-icon {
-    width: 46px; height: 46px; border-radius: 14px;
-    background: linear-gradient(135deg, #00D4AA, #00A882);
+    width: 46px; height: 46px; border-radius:3px;
+    background: linear-gradient(135deg, #FFB000, #B87A00);
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px; box-shadow: 0 0 22px rgba(0,212,170,0.65);
+    font-size: 22px; box-shadow: 0 0 22px rgba(255,176,0,0.65);
     animation: ld-pulseIcon 2.2s ease-in-out infinite;
   }
   @keyframes ld-pulseIcon {
-    0%,100% { box-shadow: 0 0 18px rgba(0,212,170,0.5); transform: scale(1); }
-    50%     { box-shadow: 0 0 32px rgba(0,212,170,0.9); transform: scale(1.06); }
+    0%,100% { box-shadow: 0 0 18px rgba(255,176,0,0.5); transform: scale(1); }
+    50%     { box-shadow: 0 0 32px rgba(255,176,0,0.9); transform: scale(1.06); }
   }
   #ld-percent {
     font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700;
-    color: #00D4AA; margin-top: 6px; letter-spacing: .5px;
-    text-shadow: 0 0 12px rgba(0,212,170,0.7);
+    color: #FFB000; margin-top: 6px; letter-spacing: .5px;
+    text-shadow: 0 0 12px rgba(255,176,0,0.7);
   }
 
   #ld-brand {
     text-align: center;
   }
   #ld-brand-name {
-    font-family: 'Inter', sans-serif; font-weight: 800; font-size: 26px;
-    letter-spacing: 3px; color: #E8EDF5;
-    background: linear-gradient(90deg, #00D4AA, #3B82F6, #C9A84C, #00D4AA);
+    font-family: var(--font-cond); font-weight: 700; font-size: 26px;
+    letter-spacing: 3px; color: var(--text);
+    background: linear-gradient(90deg, #FFB000, #29B6F6, #FFB000, #FFB000);
     background-size: 300% auto;
     -webkit-background-clip: text; background-clip: text; color: transparent;
     animation: ld-shine 3.5s linear infinite;
-    text-shadow: 0 0 30px rgba(0,212,170,0.25);
+    text-shadow: 0 0 30px rgba(255,176,0,0.25);
   }
   @keyframes ld-shine { to { background-position: 300% center; } }
   #ld-brand-sub {
     font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 4px;
-    color: #6B7A99; margin-top: 4px; text-transform: uppercase;
+    color: var(--text-muted); margin-top: 4px; text-transform: uppercase;
   }
 
   #ld-typing {
-    font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8899B8;
+    font-family: var(--mono); font-size: 13px; color: var(--text-dim);
     min-height: 18px; letter-spacing: .5px; display: flex; align-items: center; gap: 2px;
   }
   #ld-typing .ld-cursor {
-    display: inline-block; width: 7px; height: 14px; background: #00D4AA;
+    display: inline-block; width: 7px; height: 14px; background: #FFB000;
     margin-left: 2px; animation: ld-blink 1s step-end infinite;
-    box-shadow: 0 0 8px rgba(0,212,170,0.8);
+    box-shadow: 0 0 8px rgba(255,176,0,0.8);
   }
   @keyframes ld-blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
 
   #ld-bar-wrap {
-    width: 220px; height: 3px; border-radius: 4px; background: rgba(255,255,255,0.06);
+    width: 220px; height: 3px; border-radius:2px; background: rgba(255,255,255,0.06);
     overflow: hidden; position: relative;
   }
   #ld-bar-fill {
-    height: 100%; width: 0%; border-radius: 4px;
-    background: linear-gradient(90deg, #00D4AA, #3B82F6);
-    box-shadow: 0 0 10px rgba(0,212,170,0.8);
+    height: 100%; width: 0%; border-radius:2px;
+    background: linear-gradient(90deg, #FFB000, #29B6F6);
+    box-shadow: 0 0 10px rgba(255,176,0,0.8);
     transition: width .15s linear;
   }
 
   #ld-grid-glow {
     position: absolute; inset: 0;
     background-image:
-      linear-gradient(rgba(0,212,170,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,170,0.04) 1px, transparent 1px);
+      linear-gradient(rgba(255,176,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,176,0,0.04) 1px, transparent 1px);
     background-size: 42px 42px;
     mask-image: radial-gradient(circle at 50% 50%, black, transparent 75%);
     -webkit-mask-image: radial-gradient(circle at 50% 50%, black, transparent 75%);
@@ -1834,9 +1840,9 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <svg viewBox="0 0 150 150">
         <defs>
           <linearGradient id="ld-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#00D4AA"/>
-            <stop offset="50%" stop-color="#3B82F6"/>
-            <stop offset="100%" stop-color="#C9A84C"/>
+            <stop offset="0%" stop-color="#FFB000"/>
+            <stop offset="50%" stop-color="#29B6F6"/>
+            <stop offset="100%" stop-color="#FFB000"/>
           </linearGradient>
         </defs>
         <circle id="ld-ring-bg" cx="75" cy="75" r="70"></circle>
@@ -1898,7 +1904,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       const yHigh = H - ((c.high-min)/range)*H*0.7 - H*0.12 + bob;
       const yLow = H - ((c.low-min)/range)*H*0.7 - H*0.12 + bob;
       const up = c.close >= c.open;
-      const color = up ? 'rgba(0,212,170,0.5)' : 'rgba(255,71,87,0.45)';
+      const color = up ? 'rgba(255,176,0,0.5)' : 'rgba(255,59,48,0.45)';
       ctx.strokeStyle = color; ctx.lineWidth = 1.4*devicePixelRatio;
       ctx.beginPath(); ctx.moveTo(x,yHigh); ctx.lineTo(x,yLow); ctx.stroke();
       ctx.fillStyle = color;
@@ -1990,8 +1996,8 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   #bg-grid {
     position: absolute; inset: 0;
     background-image:
-      linear-gradient(rgba(0,212,170,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,170,0.04) 1px, transparent 1px);
+      linear-gradient(rgba(255,176,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,176,0,0.04) 1px, transparent 1px);
     background-size: 52px 52px;
     mask-image: radial-gradient(ellipse 85% 70% at 50% 50%, black 30%, transparent 100%);
     -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 50%, black 30%, transparent 100%);
@@ -2027,7 +2033,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   /* Scanning horizontal beam */
   #bg-scan {
     position: absolute; left: 0; right: 0; height: 1.5px;
-    background: linear-gradient(90deg, transparent, rgba(0,212,170,0.18), rgba(59,130,246,0.15), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,176,0,0.18), rgba(41,182,246,0.15), transparent);
     animation: bg-scan 9s linear infinite;
     opacity: 0;
     pointer-events: none;
@@ -2093,8 +2099,8 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       const x      = i*cw + cw*.5;
       const toY    = v => BH - ((v-min)/rng)*BH*.65 - BH*.12 + bob;
       const up     = c.close >= c.open;
-      const green  = 'rgba(0,212,170,0.55)';
-      const red    = 'rgba(255,71,87,0.50)';
+      const green  = 'rgba(255,176,0,0.55)';
+      const red    = 'rgba(255,59,48,0.50)';
       const color  = up ? green : red;
       // wick
       ctx.strokeStyle = color; ctx.lineWidth = 1.5*dpr;
@@ -2113,11 +2119,11 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 
   // ── Glow orbs ──
   const orbConfig = [
-    { size:480, x:'12%',  y:'18%',  color:'rgba(0,212,170,0.045)',  dur:'14s', delay:'0s'  },
-    { size:520, x:'78%',  y:'65%',  color:'rgba(59,130,246,0.045)', dur:'17s', delay:'3s'  },
-    { size:360, x:'55%',  y:'10%',  color:'rgba(201,168,76,0.035)', dur:'11s', delay:'5.5s'},
-    { size:400, x:'30%',  y:'80%',  color:'rgba(0,212,170,0.03)',   dur:'19s', delay:'2s'  },
-    { size:280, x:'88%',  y:'22%',  color:'rgba(255,71,87,0.025)',  dur:'13s', delay:'7s'  },
+    { size:480, x:'12%',  y:'18%',  color:'rgba(255,176,0,0.045)',  dur:'14s', delay:'0s'  },
+    { size:520, x:'78%',  y:'65%',  color:'rgba(41,182,246,0.045)', dur:'17s', delay:'3s'  },
+    { size:360, x:'55%',  y:'10%',  color:'rgba(255,176,0,0.035)', dur:'11s', delay:'5.5s'},
+    { size:400, x:'30%',  y:'80%',  color:'rgba(255,176,0,0.03)',   dur:'19s', delay:'2s'  },
+    { size:280, x:'88%',  y:'22%',  color:'rgba(255,59,48,0.025)',  dur:'13s', delay:'7s'  },
   ];
   const bgLayer = document.getElementById('bg-layer');
   orbConfig.forEach(o=>{
@@ -2138,7 +2144,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     const p = document.createElement('div');
     p.className = 'bg-particle';
     const size = 1.5 + Math.random()*3;
-    const hue  = Math.random() < .7 ? '0,212,170' : Math.random() < .5 ? '59,130,246' : '201,168,76';
+    const hue  = Math.random() < .7 ? '255,176,0' : Math.random() < .5 ? '41,182,246' : '255,176,0';
     p.style.cssText = `
       width:${size}px; height:${size}px;
       left:${Math.random()*100}%;
@@ -2292,10 +2298,10 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="modal-close" onclick="closeModal('viewModal')">✕</button>
     </div>
     <div id="vm-img-wrap" style="display:none;margin-bottom:16px;text-align:center">
-      <img id="vm-img" src="" style="max-width:100%;max-height:420px;border-radius:10px;border:1px solid var(--border)">
+      <img id="vm-img" src="" style="max-width:100%;max-height:420px;border-radius:2px;border:1px solid var(--border)">
     </div>
     <div id="vm-file-wrap" style="display:none;margin-bottom:16px">
-      <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px">
+      <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:2px;padding:16px;display:flex;align-items:center;gap:12px">
         <span style="font-size:32px">📎</span>
         <div>
           <div id="vm-fname" style="font-weight:600"></div>
@@ -2305,21 +2311,21 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       </div>
     </div>
     <div class="grid-2" style="margin-bottom:14px;gap:10px">
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px">
         <div class="text-muted text-sm">Kategoriya</div>
         <div id="vm-cat" class="fw-700 mt-4" style="font-size:18px"></div>
       </div>
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px">
         <div class="text-muted text-sm">Sana</div>
         <div id="vm-date" class="fw-700 mt-4"></div>
       </div>
     </div>
     <div class="grid-2" style="margin-bottom:14px;gap:10px" id="vm-meta2-wrap">
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px">
         <div class="text-muted text-sm">Papka</div>
         <div id="vm-folder" class="fw-700 mt-4" style="font-size:14px">—</div>
       </div>
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px">
         <div class="text-muted text-sm">Bog'langan strategiya</div>
         <div id="vm-strat" class="fw-700 mt-4" style="font-size:14px">—</div>
       </div>
@@ -2329,20 +2335,20 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     </div>
     <div id="vm-desc-wrap" style="margin-bottom:14px">
       <div class="form-label">Tavsif</div>
-      <div id="vm-desc" style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;line-height:1.6;font-size:13.5px"></div>
+      <div id="vm-desc" style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;line-height:1.6;font-size:13.5px"></div>
     </div>
     <div id="vm-tags-wrap">
       <div class="lib-tags" id="vm-tags"></div>
     </div>
     <div class="divider"></div>
-    <div class="card" style="background:rgba(0,212,170,0.05);border-color:rgba(0,212,170,0.2);margin-bottom:14px">
+    <div class="card" style="background:rgba(255,176,0,0.05);border-color:rgba(255,176,0,0.2);margin-bottom:14px">
       <div class="flex-between" style="margin-bottom:8px">
         <div class="card-title" style="margin:0">🤖 AI Tahlili</div>
         <button class="btn btn-outline" style="padding:5px 12px;font-size:11.5px" onclick="aiSummarizeLib()">✨ Tahlil qilish</button>
       </div>
       <div id="vm-ai-summary" style="font-size:13px;line-height:1.6;color:var(--text-dim);white-space:pre-wrap">Material haqida AI xulosa va tavsiya etilgan teglar olish uchun tugmani bosing.</div>
     </div>
-    <div class="card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.2);margin-bottom:14px">
+    <div class="card" style="background:rgba(41,182,246,0.05);border-color:rgba(41,182,246,0.2);margin-bottom:14px">
       <div class="card-title">💬 Bu material haqida so'rang</div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <input class="form-input" id="vm-ask-input" placeholder="Masalan: bu konsepsiyani sodda tilda tushuntir...">
@@ -2369,24 +2375,24 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="modal-close" onclick="closeModal('tradeViewModal')">✕</button>
     </div>
     <div id="tv-shot-wrap" style="display:none;margin-bottom:14px;text-align:center">
-      <img id="tv-shot" src="" style="max-width:100%;max-height:320px;border-radius:10px;border:1px solid var(--border)">
+      <img id="tv-shot" src="" style="max-width:100%;max-height:320px;border-radius:2px;border:1px solid var(--border)">
     </div>
     <div class="grid-3" style="margin-bottom:14px;gap:10px">
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">P&L</div>
         <div id="tv-pnl" class="fw-700 mt-4" style="font-size:18px"></div>
       </div>
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">Sessiya</div>
         <div id="tv-session" class="fw-700 mt-4" style="font-size:14px"></div>
       </div>
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">Sana</div>
         <div id="tv-date" class="fw-700 mt-4" style="font-size:14px"></div>
       </div>
     </div>
     <div class="lib-tags" id="tv-tags" style="margin-bottom:14px"></div>
-    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;line-height:1.6;font-size:13.5px;margin-bottom:14px" id="tv-note"></div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;line-height:1.6;font-size:13.5px;margin-bottom:14px" id="tv-note"></div>
     <div class="flex-between">
       <button class="btn btn-danger" onclick="deleteCurrentTradeView()">🗑️ O'chirish</button>
       <button class="btn btn-outline" onclick="closeModal('tradeViewModal')">Yopish</button>
@@ -2402,15 +2408,15 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="modal-close" onclick="closeModal('dayTradesModal')">✕</button>
     </div>
     <div class="grid-3" style="margin-bottom:14px;gap:10px">
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">Kunlik P&L</div>
         <div id="dt-pnl" class="fw-700 mt-4" style="font-size:18px"></div>
       </div>
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">Bitimlar</div>
         <div id="dt-count" class="fw-700 mt-4" style="font-size:18px"></div>
       </div>
-      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center">
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">Win Rate</div>
         <div id="dt-wr" class="fw-700 mt-4" style="font-size:18px"></div>
       </div>
@@ -2477,22 +2483,22 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="modal-close" onclick="closeModal('stratViewModal')">✕</button>
     </div>
     <div class="grid-3" style="margin-bottom:16px;gap:10px">
-      <div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:14px;text-align:center">
+      <div style="background:rgba(255,176,0,0.07);border:1px solid rgba(255,176,0,0.2);border-radius:2px;padding:14px;text-align:center">
         <div class="stat-value text-green" id="sv-win" style="font-size:22px">0%</div>
         <div class="text-muted text-sm">Win Rate</div>
       </div>
-      <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:14px;text-align:center">
+      <div style="background:rgba(255,176,0,0.07);border:1px solid rgba(255,176,0,0.2);border-radius:2px;padding:14px;text-align:center">
         <div class="stat-value text-gold" id="sv-rr" style="font-size:22px">1:2</div>
         <div class="text-muted text-sm">Risk/Reward</div>
       </div>
-      <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:14px;text-align:center">
+      <div style="background:rgba(41,182,246,0.07);border:1px solid rgba(41,182,246,0.2);border-radius:2px;padding:14px;text-align:center">
         <div class="stat-value" id="sv-trades" style="font-size:22px">0</div>
         <div class="text-muted text-sm">Bitimlar</div>
       </div>
     </div>
-    <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;margin-bottom:14px;line-height:1.7;font-size:13.5px" id="sv-desc"></div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:14px;margin-bottom:14px;line-height:1.7;font-size:13.5px" id="sv-desc"></div>
     <div class="lib-tags" id="sv-tags" style="margin-bottom:16px"></div>
-    <div style="background:rgba(0,212,170,0.05);border:1px solid rgba(0,212,170,0.15);border-radius:10px;padding:14px;margin-bottom:16px">
+    <div style="background:rgba(255,176,0,0.05);border:1px solid rgba(255,176,0,0.15);border-radius:2px;padding:14px;margin-bottom:16px">
       <div class="card-title" style="margin-bottom:10px">📊 Bu Strategiya Bilan Bitimlar</div>
       <div id="sv-trades-list" class="text-muted text-sm">—</div>
     </div>
@@ -2515,36 +2521,36 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="modal-close" onclick="closeModal('libStratViewModal')">✕</button>
     </div>
     <div class="grid-3" style="margin-bottom:16px;gap:10px">
-      <div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:14px;text-align:center">
+      <div style="background:rgba(255,176,0,0.07);border:1px solid rgba(255,176,0,0.2);border-radius:2px;padding:14px;text-align:center">
         <div class="stat-value text-green" id="ls-win" style="font-size:20px">—</div>
         <div class="text-muted text-sm">Odatiy Win Rate</div>
       </div>
-      <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:14px;text-align:center">
+      <div style="background:rgba(255,176,0,0.07);border:1px solid rgba(255,176,0,0.2);border-radius:2px;padding:14px;text-align:center">
         <div class="stat-value text-gold" id="ls-rr" style="font-size:20px">—</div>
         <div class="text-muted text-sm">Risk/Reward</div>
       </div>
-      <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:14px;text-align:center">
+      <div style="background:rgba(41,182,246,0.07);border:1px solid rgba(41,182,246,0.2);border-radius:2px;padding:14px;text-align:center">
         <div class="stat-value" id="ls-tf" style="font-size:15px;line-height:1.3">—</div>
         <div class="text-muted text-sm">Taymfreym</div>
       </div>
     </div>
-    <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;margin-bottom:14px;line-height:1.7;font-size:13.5px" id="ls-desc"></div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:14px;margin-bottom:14px;line-height:1.7;font-size:13.5px" id="ls-desc"></div>
     <div class="grid-2" style="gap:12px;margin-bottom:14px">
-      <div style="background:rgba(0,212,170,0.05);border:1px solid rgba(0,212,170,0.15);border-radius:10px;padding:14px">
+      <div style="background:rgba(255,176,0,0.05);border:1px solid rgba(255,176,0,0.15);border-radius:2px;padding:14px">
         <div class="card-title" style="margin-bottom:8px;font-size:13px">🎯 Kirish Qoidalari</div>
         <ul id="ls-entry" style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:var(--text-dim)"></ul>
       </div>
-      <div style="background:rgba(255,71,87,0.05);border:1px solid rgba(255,71,87,0.15);border-radius:10px;padding:14px">
+      <div style="background:rgba(255,59,48,0.05);border:1px solid rgba(255,59,48,0.15);border-radius:2px;padding:14px">
         <div class="card-title" style="margin-bottom:8px;font-size:13px">🚪 Chiqish / Risk Qoidalari</div>
         <ul id="ls-exit" style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:var(--text-dim)"></ul>
       </div>
     </div>
     <div class="grid-2" style="gap:12px;margin-bottom:16px">
-      <div style="background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:14px">
+      <div style="background:rgba(41,182,246,0.05);border:1px solid rgba(41,182,246,0.15);border-radius:2px;padding:14px">
         <div class="card-title" style="margin-bottom:8px;font-size:13px">✅ Afzalliklari</div>
         <ul id="ls-pros" style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:var(--text-dim)"></ul>
       </div>
-      <div style="background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:10px;padding:14px">
+      <div style="background:rgba(255,176,0,0.05);border:1px solid rgba(255,176,0,0.15);border-radius:2px;padding:14px">
         <div class="card-title" style="margin-bottom:8px;font-size:13px">⚠️ Kamchiliklari</div>
         <ul id="ls-cons" style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:var(--text-dim)"></ul>
       </div>
@@ -2668,7 +2674,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       </div>
       <input type="file" id="video-file" style="display:none" accept="video/*" onchange="previewVideoFile(this)">
       <div id="video-upload-progress" style="display:none;margin-top:10px">
-        <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden">
+        <div style="height:6px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden">
           <div id="video-upload-bar" style="height:100%;width:0%;background:var(--green);transition:width .2s"></div>
         </div>
         <div id="video-upload-status" class="text-sm" style="color:var(--text-muted);margin-top:6px">Yuklanmoqda...</div>
@@ -2687,7 +2693,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <span id="vv-title">Video</span>
       <button class="modal-close" onclick="closeModal('videoViewModal')">✕</button>
     </div>
-    <video id="vv-player" controls style="width:100%;border-radius:12px;background:#000;max-height:400px" playsinline></video>
+    <video id="vv-player" controls style="width:100%;border-radius:3px;background:#000;max-height:400px" playsinline></video>
     <div id="vv-loading" class="text-sm" style="color:var(--text-muted);margin-top:8px">Video yuklanmoqda...</div>
     <div class="text-sm mt-4" style="color:var(--gold)" id="vv-cat"></div>
     <div class="text-sm mt-4" style="color:var(--text-dim)" id="vv-desc"></div>
@@ -2967,9 +2973,9 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
               <div id="dash-heatmap" style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px"></div>
               <div class="flex-center gap-8 text-sm text-muted" style="margin-top:12px;justify-content:flex-end">
                 <span>Kam</span>
-                <span style="width:12px;height:12px;border-radius:3px;background:rgba(255,71,87,0.55);display:inline-block"></span>
-                <span style="width:12px;height:12px;border-radius:3px;background:rgba(255,255,255,0.06);display:inline-block"></span>
-                <span style="width:12px;height:12px;border-radius:3px;background:rgba(0,212,170,0.55);display:inline-block"></span>
+                <span style="width:12px;height:12px;border-radius:2px;background:rgba(255,59,48,0.55);display:inline-block"></span>
+                <span style="width:12px;height:12px;border-radius:2px;background:rgba(255,255,255,0.06);display:inline-block"></span>
+                <span style="width:12px;height:12px;border-radius:2px;background:rgba(255,176,0,0.55);display:inline-block"></span>
                 <span>Ko'p</span>
               </div>
             </div>
@@ -3183,7 +3189,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 
       <!-- ════ AI ASSISTANT ════ -->
       <div class="page" id="page-ai-assistant">
-        <div id="ai-key-banner" class="card" style="display:none;margin-bottom:14px;border:1px solid var(--yellow, #C9A84C);">
+        <div id="ai-key-banner" class="card" style="display:none;margin-bottom:14px;border:1px solid var(--yellow, #FFB000);">
           <div class="flex-between" style="gap:12px;flex-wrap:wrap">
             <div>
               <div class="fw-700">🔑 Bepul API kalit kerak</div>
@@ -3287,7 +3293,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
                   <div class="calc-result pos" id="r-lot">0.00</div>
                 </div>
                 <div class="divider"></div>
-                <div class="card" style="background:rgba(0,212,170,0.05);border-color:rgba(0,212,170,0.2)">
+                <div class="card" style="background:rgba(255,176,0,0.05);border-color:rgba(255,176,0,0.2)">
                   <div class="text-sm text-muted" style="line-height:1.6">
                     💡 <strong>Formula:</strong><br>
                     Risk = Balans × Risk%<br>
@@ -3419,7 +3425,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
                   <div class="calc-result pos" id="kelly-result">0.00%</div>
                 </div>
                 <div class="divider"></div>
-                <div class="card" style="background:rgba(0,212,170,0.05);border-color:rgba(0,212,170,0.2)">
+                <div class="card" style="background:rgba(255,176,0,0.05);border-color:rgba(255,176,0,0.2)">
                   <div class="text-sm text-muted" style="line-height:1.6">
                     💡 Kelly Formula: <br>
                     f* = (bp - q) / b<br>
@@ -3502,7 +3508,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
                   <div class="calc-result neu" id="ruin-streak">0 ta</div>
                 </div>
                 <div class="divider"></div>
-                <div class="card" style="background:rgba(255,71,87,0.05);border-color:rgba(255,71,87,0.2)">
+                <div class="card" style="background:rgba(255,59,48,0.05);border-color:rgba(255,59,48,0.2)">
                   <div class="text-sm text-muted" style="line-height:1.6">
                     💡 Risk of Ruin — ketma-ket zararlar tufayli hisobning belgilangan foizgacha kamayish ehtimoli. Har bir bitimda 1-2% dan ko'p risk qilish RoR'ni keskin oshiradi.
                   </div>
@@ -3843,7 +3849,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
             <div class="flex-between" style="flex-wrap:wrap;gap:10px">
               <div class="card-title" style="margin:0">✅ ICT / SMC / Price Action Pre-Trade Tekshiruv Ro'yxati</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap" id="checklist-template-tabs">
-                <button class="tab active" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px;background:rgba(0,212,170,0.12);color:var(--green)" onclick="setChecklistTemplate('all',this)">Barchasi</button>
+                <button class="tab active" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:3px;background:rgba(255,176,0,0.12);color:var(--gold)" onclick="setChecklistTemplate('all',this)">Barchasi</button>
                 <button class="tab" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px" onclick="setChecklistTemplate('scalping',this)">⚡ Scalping</button>
                 <button class="tab" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px" onclick="setChecklistTemplate('swing',this)">🔄 Swing</button>
                 <button class="tab" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px" onclick="setChecklistTemplate('position',this)">📆 Position</button>
@@ -3925,9 +3931,9 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
             </div>
             <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
             <div class="flex-between mt-16" style="gap:12px;flex-wrap:wrap">
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(0,212,170,0.35);display:inline-block"></span> Foydali kun</div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(255,71,87,0.35);display:inline-block"></span> Zararli kun</div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid var(--gold);display:inline-block"></span> Bugun</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,176,0,0.35);display:inline-block"></span> Foydali kun</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,59,48,0.35);display:inline-block"></span> Zararli kun</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:2px;border:1.5px solid var(--gold);display:inline-block"></span> Bugun</div>
             </div>
           </div>
           <div class="card">
@@ -4080,7 +4086,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
               <div class="progress-bar mt-8"><div class="progress-fill" id="g-mloss-bar" style="width:0%;background:var(--red)"></div></div>
             </div>
           </div>
-          <div id="g-loss-status" class="mt-16" style="background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:12px">
+          <div id="g-loss-status" class="mt-16" style="background:rgba(255,176,0,0.06);border:1px solid rgba(255,176,0,0.2);border-radius:2px;padding:12px">
             <div class="text-sm" id="g-loss-msg" style="color:var(--green)">✅ Limit ichida — savdoni davom ettirsa bo'ladi</div>
           </div>
         </div>
@@ -4180,7 +4186,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
             <div style="display:flex;gap:8px">
               <button class="topbar-btn" onclick="setChartRange('week',this)" style="padding:5px 12px;font-size:11px">Hafta</button>
               <button class="topbar-btn" onclick="setChartRange('month',this)" style="padding:5px 12px;font-size:11px">Oy</button>
-              <button class="topbar-btn" onclick="setChartRange('all',this)" style="padding:5px 12px;font-size:11px;background:rgba(0,212,170,0.15);color:var(--green);border-color:rgba(0,212,170,0.3)">Hammasi</button>
+              <button class="topbar-btn" onclick="setChartRange('all',this)" style="padding:5px 12px;font-size:11px;background:rgba(255,176,0,0.15);color:var(--gold);border-color:rgba(255,176,0,0.3)">Hammasi</button>
             </div>
           </div>
           <canvas id="analyticsChart" height="200"></canvas>
@@ -4771,7 +4777,7 @@ function renderTVWidget(symbol, interval) {
     theme: isLight ? 'light' : 'dark',
     style: '1',
     locale: 'ru',
-    toolbar_bg: isLight ? '#F3F4F6' : '#111827',
+    toolbar_bg: isLight ? '#F2F0EA' : '#0D0D0D',
     enable_publishing: false,
     hide_side_toolbar: false,
     allow_symbol_change: true,
@@ -4859,7 +4865,7 @@ function previewTradeShot(input) {
   const reader = new FileReader();
   reader.onload = e => {
     pendingTradeShot = e.target.result;
-    document.getElementById('m-shot-preview').innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:8px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${file.name}</span>`;
+    document.getElementById('m-shot-preview').innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:2px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${file.name}</span>`;
   };
   reader.readAsDataURL(file);
 }
@@ -5078,7 +5084,7 @@ function drawMonthlyChart() {
     const bw = bW*0.7;
     const barH = Math.abs(mo.pnl)*scale;
     const y = mo.pnl>=0 ? midY-barH : midY;
-    ctx.fillStyle = mo.pnl>=0 ? 'rgba(0,212,170,0.7)' : 'rgba(255,71,87,0.7)';
+    ctx.fillStyle = mo.pnl>=0 ? 'rgba(255,176,0,0.7)' : 'rgba(255,59,48,0.7)';
     if(ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x,y,bw,barH,4); ctx.fill(); }
     else ctx.fillRect(x,y,bw,barH);
     ctx.fillStyle = 'var(--text-muted)';
@@ -5140,11 +5146,11 @@ function renderDashHeatmap() {
     let bg = 'rgba(255,255,255,0.06)';
     if(d.count) {
       const intensity = Math.min(Math.abs(d.pnl)/maxAbs,1);
-      bg = d.pnl>=0 ? `rgba(0,212,170,${0.18+intensity*0.6})` : `rgba(255,71,87,${0.18+intensity*0.6})`;
+      bg = d.pnl>=0 ? `rgba(255,176,0,${0.18+intensity*0.6})` : `rgba(255,59,48,${0.18+intensity*0.6})`;
     }
     const dateLabel = d.date.toLocaleDateString('uz-UZ');
     const title = d.count ? `${dateLabel}: ${fmt(d.pnl)} (${d.count} bitim)` : `${dateLabel}: bitim yo'q`;
-    return `<div title="${title}" style="aspect-ratio:1;border-radius:4px;background:${bg};border:1px solid var(--border)"></div>`;
+    return `<div title="${title}" style="aspect-ratio:1;border-radius:2px;background:${bg};border:1px solid var(--border)"></div>`;
   }).join('');
 }
 
@@ -5414,7 +5420,7 @@ function previewFile(input) {
   reader.onload = e => {
     libFiles['pending'] = {data: e.target.result, name, type: isImg?'image':'file', mime};
     if(isImg) {
-      el.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:8px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${name}</span>`;
+      el.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:2px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${name}</span>`;
     } else {
       el.innerHTML = `<div style="font-size:28px">📎</div><div style="font-size:12px;color:var(--green);margin-top:4px">✅ ${name}</div>`;
     }
@@ -5509,7 +5515,7 @@ function renderLibrary() {
     const hasFile = i.file && i.file.name;
     return `<div class="lib-card" onclick="openLibItem(${i.id})" style="cursor:pointer;position:relative">
       ${i.pinned?'<div style="position:absolute;top:8px;left:8px;z-index:2;font-size:16px">📌</div>':''}
-      ${i.read?'<div style="position:absolute;top:8px;right:8px;z-index:2;background:rgba(0,212,170,0.8);color:#000;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px">O\'QILDI</div>':''}
+      ${i.read?'<div style="position:absolute;top:8px;right:8px;z-index:2;background:rgba(255,176,0,0.8);color:#000;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px">O\'QILDI</div>':''}
       ${thumb}
       <div class="lib-body">
         <div class="lib-title">${i.title}</div>
@@ -6079,7 +6085,7 @@ function renderLibStrategies() {
   let data = STRATEGY_LIBRARY;
   if(libStratFilter !== 'all') data = data.filter(s => s.cat === libStratFilter);
   if(search) data = data.filter(s => s.name.toLowerCase().includes(search) || s.tags.some(t=>t.toLowerCase().includes(search)));
-  const catColors = {ict:'#A78BFA',trend:'var(--green)',reversal:'var(--gold)',breakout:'#3B82F6',other:'var(--text-muted)'};
+  const catColors = {ict:'#29B6F6',trend:'var(--green)',reversal:'var(--gold)',breakout:'#29B6F6',other:'var(--text-muted)'};
   const catLabels = {ict:'ICT / SMC',trend:'Trend',reversal:'Reversal',breakout:'Breakout',other:'Boshqa'};
   if(!data.length) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">🔍 Hech narsa topilmadi.</div>`;
@@ -6214,7 +6220,7 @@ function renderStrategies() {
   }
   grid.innerHTML = withMetrics.map(({s, relTrades, netPnl, realWR}) => {
     const stars = [1,2,3,4,5].map(i=>`<span style="color:${i<=Math.round(s.win/20)?'var(--gold)':'rgba(255,255,255,0.15)'}">${i<=Math.round(s.win/20)?'★':'☆'}</span>`).join('');
-    const typeColors = {trend:'var(--green)',scalping:'var(--red)',swing:'var(--blue)',reversal:'var(--gold)',breakout:'#A78BFA'};
+    const typeColors = {trend:'var(--green)',scalping:'var(--red)',swing:'var(--blue)',reversal:'var(--gold)',breakout:'#29B6F6'};
     const typeColor = typeColors[s.type] || 'var(--text-muted)';
     const edgeColor = relTrades.length ? (netPnl>=0?'var(--green)':'var(--red)') : 'transparent';
     return `<div class="strategy-card" onclick="openStratView(${s.id})" style="cursor:pointer;border-left:3px solid ${edgeColor}">
@@ -6451,13 +6457,13 @@ function renderGoals() {
   const msgEl = document.getElementById('g-loss-msg');
   if(statusBox && msgEl) {
     if((maxloss && todayLoss>=maxloss) || (weeklyMaxLoss && weekLoss>=weeklyMaxLoss) || (monthlyMaxLoss && monthLoss>=monthlyMaxLoss)) {
-      statusBox.style.background='rgba(255,71,87,0.08)'; statusBox.style.borderColor='rgba(255,71,87,0.3)';
+      statusBox.style.background='rgba(255,59,48,0.08)'; statusBox.style.borderColor='rgba(255,59,48,0.3)';
       msgEl.style.color='var(--red)'; msgEl.textContent="⛔ Zarar limitiga yetdingiz — savdoni to'xtatish tavsiya etiladi";
     } else if((maxloss && todayLoss>=maxloss*0.7) || (weeklyMaxLoss && weekLoss>=weeklyMaxLoss*0.7) || (monthlyMaxLoss && monthLoss>=monthlyMaxLoss*0.7)) {
-      statusBox.style.background='rgba(201,168,76,0.08)'; statusBox.style.borderColor='rgba(201,168,76,0.3)';
+      statusBox.style.background='rgba(255,176,0,0.08)'; statusBox.style.borderColor='rgba(255,176,0,0.3)';
       msgEl.style.color='var(--gold)'; msgEl.textContent="⚠️ Limitga yaqinlashyapsiz — ehtiyot bo'ling";
     } else {
-      statusBox.style.background='rgba(0,212,170,0.06)'; statusBox.style.borderColor='rgba(0,212,170,0.2)';
+      statusBox.style.background='rgba(255,176,0,0.06)'; statusBox.style.borderColor='rgba(255,176,0,0.2)';
       msgEl.style.color='var(--green)'; msgEl.textContent="✅ Barcha limitlar ichida — savdoni davom ettirsa bo'ladi";
     }
   }
@@ -6579,7 +6585,7 @@ function setChartRange(r, el) {
   document.querySelectorAll('#page-analytics .topbar-btn').forEach(b=>{
     b.style.background='rgba(255,255,255,0.06)'; b.style.color='var(--text-dim)'; b.style.borderColor='var(--border)';
   });
-  el.style.background='rgba(0,212,170,0.15)'; el.style.color='var(--green)'; el.style.borderColor='rgba(0,212,170,0.3)';
+  el.style.background='rgba(255,176,0,0.15)'; el.style.color='var(--gold)'; el.style.borderColor='rgba(255,176,0,0.3)';
   drawAnalyticsChart();
 }
 
@@ -6764,8 +6770,8 @@ function drawMainChart() {
   // Area
   const last = pts[pts.length-1];
   const grad = ctx.createLinearGradient(0,0,0,H);
-  if(last>=0) { grad.addColorStop(0,'rgba(0,212,170,0.25)'); grad.addColorStop(1,'rgba(0,212,170,0)'); }
-  else        { grad.addColorStop(0,'rgba(255,71,87,0.2)');  grad.addColorStop(1,'rgba(255,71,87,0)'); }
+  if(last>=0) { grad.addColorStop(0,'rgba(255,176,0,0.25)'); grad.addColorStop(1,'rgba(255,176,0,0)'); }
+  else        { grad.addColorStop(0,'rgba(255,59,48,0.2)');  grad.addColorStop(1,'rgba(255,59,48,0)'); }
   ctx.beginPath();
   ctx.moveTo(px(0),py(pts[0]));
   pts.forEach((v,i)=>{ if(i>0) ctx.lineTo(px(i),py(v)); });
@@ -6775,7 +6781,7 @@ function drawMainChart() {
   // Line
   ctx.beginPath(); ctx.moveTo(px(0),py(pts[0]));
   pts.forEach((v,i)=>{ if(i>0) ctx.lineTo(px(i),py(v)); });
-  ctx.strokeStyle = last>=0?'#00D4AA':'#FF4757';
+  ctx.strokeStyle = last>=0?'#FFB000':'#FF3B30';
   ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
 }
 
@@ -6823,8 +6829,8 @@ function drawAnalyticsChart() {
 
   const last = cum[cum.length-1];
   const grad = ctx.createLinearGradient(0,0,0,H);
-  if(last>=0){grad.addColorStop(0,'rgba(0,212,170,0.25)');grad.addColorStop(1,'rgba(0,212,170,0)');}
-  else{grad.addColorStop(0,'rgba(255,71,87,0.2)');grad.addColorStop(1,'rgba(255,71,87,0)');}
+  if(last>=0){grad.addColorStop(0,'rgba(255,176,0,0.25)');grad.addColorStop(1,'rgba(255,176,0,0)');}
+  else{grad.addColorStop(0,'rgba(255,59,48,0.2)');grad.addColorStop(1,'rgba(255,59,48,0)');}
 
   ctx.beginPath(); ctx.moveTo(px(0),py(cum[0]));
   cum.forEach((v,i)=>{if(i>0)ctx.lineTo(px(i),py(v));});
@@ -6833,12 +6839,12 @@ function drawAnalyticsChart() {
 
   ctx.beginPath();ctx.moveTo(px(0),py(cum[0]));
   cum.forEach((v,i)=>{if(i>0)ctx.lineTo(px(i),py(v));});
-  ctx.strokeStyle=last>=0?'#00D4AA':'#FF4757';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+  ctx.strokeStyle=last>=0?'#FFB000':'#FF3B30';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
 
   // Last point dot
   const lx=px(cum.length-1), ly=py(last);
   ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);
-  ctx.fillStyle=last>=0?'#00D4AA':'#FF4757';ctx.fill();
+  ctx.fillStyle=last>=0?'#FFB000':'#FF3B30';ctx.fill();
 }
 
 function drawWeekdayChart() {
@@ -6872,12 +6878,12 @@ function drawWeekdayChart() {
     const v = dayPnl[i];
     const barH = Math.abs(v) * scale;
     const y = v >= 0 ? midY - barH : midY;
-    const color = v >= 0 ? 'rgba(0,212,170,0.7)' : 'rgba(255,71,87,0.7)';
+    const color = v >= 0 ? 'rgba(255,176,0,0.7)' : 'rgba(255,59,48,0.7)';
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.roundRect ? ctx.roundRect(x, v>=0?y:midY, bw, barH, 3) : ctx.rect(x, v>=0?y:midY, bw, barH);
     ctx.fill();
-    ctx.fillStyle = v >= 0 ? '#00D4AA' : '#FF4757';
+    ctx.fillStyle = v >= 0 ? '#FFB000' : '#FF3B30';
     ctx.font = `${10*2}px Inter`; ctx.textAlign = 'center'; ctx.scale(0.5,0.5);
     ctx.fillText(label, (x + bw/2)*2, (H-4)*2);
     ctx.scale(2,1);
@@ -7171,7 +7177,7 @@ function setChecklistTemplate(t, el) {
     b.classList.remove('active'); b.style.background=''; b.style.color='';
   });
   el.classList.add('active');
-  el.style.background = 'rgba(0,212,170,0.12)';
+  el.style.background = 'rgba(255,176,0,0.12)';
   el.style.color = 'var(--green)';
   renderChecklist();
 }
@@ -7186,7 +7192,7 @@ function renderChecklist() {
       <div class="text-muted text-sm fw-700" style="margin-bottom:8px;letter-spacing:.3px">${group.cat}</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${visibleItems.map(item=>`
-          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;cursor:pointer">
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:2px;cursor:pointer">
             <input type="checkbox" id="chk-${item.id}" ${saved[item.id]?'checked':''} onchange="updateChecklist()" style="width:16px;height:16px;flex-shrink:0">
             <span style="font-size:13.5px">${item.label}</span>
           </label>`).join('')}
@@ -7328,15 +7334,15 @@ function renderCalendar() {
     const pnl = dayPnl[d];
     const count = dayCount[d]||0;
     let bg = 'rgba(255,255,255,0.03)', color = 'var(--text-muted)';
-    if(pnl>0) { bg='rgba(0,212,170,0.15)'; color='var(--green)'; }
-    else if(pnl<0) { bg='rgba(255,71,87,0.15)'; color='var(--red)'; }
+    if(pnl>0) { bg='rgba(0,230,118,0.15)'; color='var(--green)'; }
+    else if(pnl<0) { bg='rgba(255,59,48,0.15)'; color='var(--red)'; }
     const isToday = isCurMonth && d===todayD;
     const border = isToday ? 'border:1.5px solid var(--gold);' : '';
     const clickable = count>0;
-    html += `<div style="background:${bg};${border}border-radius:8px;padding:8px 4px;text-align:center;min-height:50px;position:relative;${clickable?'cursor:pointer':''}" ${clickable?`onclick="openDayTrades(${d})"`:''} title="${clickable?count+' ta bitim — tafsilotlar uchun bosing':''}">
+    html += `<div style="background:${bg};${border}border-radius:2px;padding:8px 4px;text-align:center;min-height:50px;position:relative;${clickable?'cursor:pointer':''}" ${clickable?`onclick="openDayTrades(${d})"`:''} title="${clickable?count+' ta bitim — tafsilotlar uchun bosing':''}">
       <div style="font-size:11px;color:var(--text-muted)">${d}</div>
       <div style="font-size:11px;font-weight:700;color:${color};margin-top:4px">${pnl!==undefined?fmt(pnl):''}</div>
-      ${count>0?`<div style="position:absolute;top:3px;right:3px;font-size:8.5px;color:var(--text-muted);background:rgba(255,255,255,0.06);border-radius:20px;padding:1px 4px">${count}</div>`:''}
+      ${count>0?`<div style="position:absolute;top:3px;right:3px;font-size:8.5px;color:var(--text-muted);background:rgba(255,255,255,0.06);border-radius:3px;padding:1px 4px">${count}</div>`:''}
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
@@ -7356,7 +7362,7 @@ function openDayTrades(d) {
   document.getElementById('dt-count').textContent = dayTrades.length;
   document.getElementById('dt-wr').textContent = Math.round(wins/dayTrades.length*100)+'%';
   document.getElementById('dt-list').innerHTML = dayTrades.map(t=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;cursor:pointer" onclick="closeModal('dayTradesModal');openTradeView(${t.id})">
+    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.03);border-radius:2px;padding:10px 12px;cursor:pointer" onclick="closeModal('dayTradesModal');openTradeView(${t.id})">
       <div>
         <span style="font-weight:600">${t.symbol}</span>
         <span class="badge ${t.dir==='BUY'?'buy':'sell'}" style="font-size:10px;margin-left:6px">${t.dir}</span>
@@ -7398,7 +7404,7 @@ function renderEconCalendar() {
     return;
   }
   document.getElementById('econ-cal-list').innerHTML = data.map(ev=>`
-    <div style="background:rgba(255,255,255,0.03);border-left:3px solid ${impactColor[ev.impact]};border-radius:8px;padding:10px 12px">
+    <div style="background:rgba(255,255,255,0.03);border-left:3px solid ${impactColor[ev.impact]};border-radius:2px;padding:10px 12px">
       <div class="flex-between">
         <div style="font-size:13px;font-weight:600">${ev.title}</div>
         <span class="lib-tag" style="font-size:9.5px">${ev.cur||''}</span>
@@ -7991,7 +7997,7 @@ document.addEventListener('keydown', e=>{
         const bob=Math.sin(t/1300+c.ph)*5*dpr;
         const x=i*cw+cw*.5;
         const toY=v=>H-((v-mn)/rng)*H*.65-H*.12+bob;
-        const up=c.c>=c.o, col=up?'rgba(0,212,170,0.6)':'rgba(255,71,87,0.55)';
+        const up=c.c>=c.o, col=up?'rgba(255,176,0,0.6)':'rgba(255,59,48,0.55)';
         ctx.strokeStyle=col; ctx.lineWidth=1.5*dpr;
         ctx.beginPath(); ctx.moveTo(x,toY(c.h)); ctx.lineTo(x,toY(c.l)); ctx.stroke();
         ctx.fillStyle=col;
@@ -8007,11 +8013,11 @@ document.addEventListener('keydown', e=>{
   // ── Glow orbs ──
   function slBuildOrbs(){
     const orbs=[
-      {s:500,x:'15%',y:'20%',c:'rgba(0,212,170,0.055)',d:'16s',ox:'40px',oy:'-30px'},
-      {s:480,x:'80%',y:'70%',c:'rgba(59,130,246,0.05)', d:'19s',ox:'-35px',oy:'25px'},
-      {s:340,x:'60%',y:'12%',c:'rgba(201,168,76,0.04)', d:'12s',ox:'20px',oy:'30px'},
-      {s:360,x:'25%',y:'82%',c:'rgba(0,212,170,0.035)',d:'21s',ox:'-25px',oy:'-20px'},
-      {s:260,x:'90%',y:'25%',c:'rgba(255,71,87,0.03)', d:'14s',ox:'-20px',oy:'15px'},
+      {s:500,x:'15%',y:'20%',c:'rgba(255,176,0,0.055)',d:'16s',ox:'40px',oy:'-30px'},
+      {s:480,x:'80%',y:'70%',c:'rgba(41,182,246,0.05)', d:'19s',ox:'-35px',oy:'25px'},
+      {s:340,x:'60%',y:'12%',c:'rgba(255,176,0,0.04)', d:'12s',ox:'20px',oy:'30px'},
+      {s:360,x:'25%',y:'82%',c:'rgba(255,176,0,0.035)',d:'21s',ox:'-25px',oy:'-20px'},
+      {s:260,x:'90%',y:'25%',c:'rgba(255,59,48,0.03)', d:'14s',ox:'-20px',oy:'15px'},
     ];
     orbs.forEach(o=>{
       const el=document.createElement('div');
@@ -8028,7 +8034,7 @@ document.addEventListener('keydown', e=>{
       const p=document.createElement('div');
       p.className='sleep-particle';
       const sz=1.5+Math.random()*3;
-      const hue=Math.random()<.65?'0,212,170':Math.random()<.5?'59,130,246':'201,168,76';
+      const hue=Math.random()<.65?'255,176,0':Math.random()<.5?'41,182,246':'255,176,0';
       p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;bottom:${Math.random()*15}%;background:rgba(${hue},.65);box-shadow:0 0 5px rgba(${hue},.5);--pd:${(Math.random()*80-40)}px;animation-duration:${7+Math.random()*9}s;animation-delay:${Math.random()*10}s`;
       screen.appendChild(p);
     }
