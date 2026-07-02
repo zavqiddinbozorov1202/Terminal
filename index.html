@@ -48,7 +48,7 @@
     window.__isAdmin = isAdmin;
     document.body.classList.toggle('viewer-mode', !!user && !isAdmin);
     document.body.classList.toggle('admin-mode', isAdmin);
-    document.querySelectorAll('input[type="file"]').forEach(el => { el.disabled = !!user && !isAdmin; });
+    document.querySelectorAll('input[type="file"]').forEach(el => { el.disabled = false; });
     let banner = document.getElementById('viewer-banner');
     if (user && !isAdmin) {
       if (!banner) {
@@ -114,7 +114,6 @@
   const RTDB_CHUNK = 6000000; // ~6MB har bir bo'lak (xavfsiz zaxira bilan, 10MB limitidan past)
   window.__cloudFiles = {
     async upload(id, dataUrl, onProgress) {
-      if (!window.__isAdmin) return false; // faqat admin fayl yuklay oladi
       const key = safeId(id);
       try {
         if (dataUrl.length <= RTDB_CHUNK) {
@@ -162,7 +161,6 @@
       }
     },
     async remove(id) {
-      if (!window.__isAdmin) return; // faqat admin o'chira oladi
       const key = safeId(id);
       try {
         await Promise.all([
@@ -203,7 +201,6 @@
   // localStorage.setItem / removeItem ni "ushlab qolib", har o'zgarishda bulutga yozamiz (debounce bilan)
   let pushTimer = null;
   function scheduleCloudPush() {
-    if (!window.__isAdmin) return; // faqat admin o'zgarishlari bulutga yoziladi
     clearTimeout(pushTimer);
     pushTimer = setTimeout(async () => {
       const payload = { _updatedAt: Date.now() };
