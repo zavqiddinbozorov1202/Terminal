@@ -2749,12 +2749,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       <button class="nav-item" onclick="nav('calc',this)">
         <span class="nav-icon">🧮</span> Kalkulyator
       </button>
-      <button class="nav-item" onclick="nav('checklist',this)">
-        <span class="nav-icon">✅</span> Pre-Trade Tekshiruv
-      </button>
-      <button class="nav-item" onclick="nav('calendar',this)">
-        <span class="nav-icon">📅</span> P&L Kalendar
-      </button>
       <button class="nav-item" onclick="nav('strategies',this)">
         <span class="nav-icon">⚡</span> Strategiyalar
       </button>
@@ -2763,9 +2757,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
       </button>
       <button class="nav-item" onclick="nav('analytics',this)">
         <span class="nav-icon">📊</span> Tahlil
-      </button>
-      <button class="nav-item" onclick="nav('animations',this)">
-        <span class="nav-icon">✨</span> Animatsiyalar
       </button>
       <button class="nav-item" onclick="nav('settings',this)">
         <span class="nav-icon">⚙️</span> Sozlamalar
@@ -2808,7 +2799,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
           <div class="card-title" style="margin-bottom:2px">⚡ Tezkor Amallar</div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
             <button class="btn btn-primary" style="padding:9px 16px;font-size:12.5px" onclick="openModal('tradeModal')">➕ Bitim Qo'shish</button>
-            <button class="btn btn-outline" style="padding:9px 16px;font-size:12.5px" onclick="nav('checklist',document.querySelector('[onclick*=checklist]'))">✅ Pre-Trade Tekshiruv</button>
             <button class="btn btn-outline" style="padding:9px 16px;font-size:12.5px" onclick="nav('calc',document.querySelector('[onclick*=calc]'))">🧮 Kalkulyator</button>
             <button class="btn btn-outline" style="padding:9px 16px;font-size:12.5px" onclick="nav('strategies',document.querySelector('[onclick*=strategies]'))">⚡ Strategiyalar</button>
             <button class="btn btn-outline" style="padding:9px 16px;font-size:12.5px" onclick="nav('goals',document.querySelector('[onclick*=goals]'))">🎯 Maqsadlar</button>
@@ -2960,7 +2950,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
             <div class="card">
               <div class="flex-between" style="margin-bottom:10px">
                 <div class="card-title" style="margin:0">🔥 30 Kunlik Faollik Xaritasi</div>
-                <button class="btn btn-outline text-sm" style="padding:6px 12px" onclick="nav('calendar',document.querySelector('[onclick*=calendar]'))">Kalendar →</button>
               </div>
               <div id="dash-heatmap" style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px"></div>
               <div class="flex-center gap-8 text-sm text-muted" style="margin-top:12px;justify-content:flex-end">
@@ -3834,113 +3823,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         </div>
       </div>
 
-      <!-- ════ PRE-TRADE CHECKLIST ════ -->
-      <div class="page" id="page-checklist">
-        <div class="grid-21">
-          <div class="card">
-            <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-              <div class="card-title" style="margin:0">✅ ICT / SMC / Price Action Pre-Trade Tekshiruv Ro'yxati</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap" id="checklist-template-tabs">
-                <button class="tab active" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px;background:rgba(0,212,170,0.12);color:var(--green)" onclick="setChecklistTemplate('all',this)">Barchasi</button>
-                <button class="tab" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px" onclick="setChecklistTemplate('scalping',this)">⚡ Scalping</button>
-                <button class="tab" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px" onclick="setChecklistTemplate('swing',this)">🔄 Swing</button>
-                <button class="tab" style="padding:6px 12px;font-size:11px;border-bottom:none;border-radius:20px" onclick="setChecklistTemplate('position',this)">📆 Position</button>
-              </div>
-            </div>
-            <div id="checklist-items" style="display:flex;flex-direction:column;gap:18px;margin-top:16px"></div>
-            <div class="flex-between mt-16">
-              <button class="btn btn-outline" onclick="resetChecklist()">↺ Tozalash</button>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-outline" onclick="saveChecklistToHistory()">📝 Natijani Saqlash</button>
-                <button class="btn btn-primary" onclick="openModal('tradeModal')">➕ Bitim Qo'shish</button>
-              </div>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:16px">
-            <div class="card">
-              <div class="card-title">📈 Tayyorlik Darajasi</div>
-              <div style="text-align:center;margin-top:10px">
-                <div class="calc-result pos" id="checklist-score" style="font-size:34px">0%</div>
-                <div class="text-muted text-sm mt-8" id="checklist-msg">Shartlarni belgilang</div>
-              </div>
-              <div class="divider"></div>
-              <div class="text-sm text-muted" style="line-height:1.7">
-                💡 Tavsiya: kamida 70% shartlar bajarilmaguncha bitim ochmang. Bu hissiyotga asoslangan (FOMO/revenge) savdolarni kamaytiradi.
-              </div>
-              <div class="divider"></div>
-              <div class="text-muted text-sm" style="margin-bottom:8px">🕓 So'nggi tekshiruvlar</div>
-              <div id="checklist-history" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto"></div>
-            </div>
-            <div class="card">
-              <div class="card-title">📚 Savdo Bilimlari — Tezkor Ma'lumotnoma</div>
-              <div style="display:flex;flex-direction:column;gap:14px;margin-top:10px;font-size:12.5px;line-height:1.6">
-                <div>
-                  <div class="fw-700 text-gold" style="margin-bottom:4px">⚖️ Pozitsiya Hajmi Formulasi</div>
-                  <div class="text-dim">Lot = (Balans × Risk%) / (SL pips × Pip qiymati)<br><span class="text-muted">Masalan: $1000 × 1% = $10 risk. SL=20 pips, pip=$1 → 0.5 lot.</span></div>
-                </div>
-                <div>
-                  <div class="fw-700 text-gold" style="margin-bottom:4px">🕐 Savdo Sessiyalari (UTC)</div>
-                  <div class="text-dim">
-                    Sidney: 21:00–06:00 &nbsp;|&nbsp; Tokio: 23:00–08:00<br>
-                    London: 07:00–16:00 &nbsp;|&nbsp; Nyu-York: 12:00–21:00<br>
-                    <span class="text-green">London–NY overlap (12:00–16:00)</span> — eng yuqori likvidlik
-                  </div>
-                </div>
-                <div>
-                  <div class="fw-700 text-gold" style="margin-bottom:4px">🕯️ Asosiy Sham Patternlari</div>
-                  <div class="text-dim">Pin Bar / Hammer, Engulfing (Bullish/Bearish), Doji (ikkilanish), Morning/Evening Star, Inside Bar (siqilish)</div>
-                </div>
-                <div>
-                  <div class="fw-700 text-gold" style="margin-bottom:4px">📐 ICT/SMC Asosiy Tushunchalar</div>
-                  <div class="text-dim">BOS (Break of Structure), CHoCH (Change of Character), FVG (Fair Value Gap), Order Block, Liquidity Sweep, Judas Swing, OTE (62–79% Fibonacci)</div>
-                </div>
-                <div>
-                  <div class="fw-700 text-gold" style="margin-bottom:4px">🧮 R-multiple qoidasi</div>
-                  <div class="text-dim">Har bir bitimni R (risk birligi)da o'lchang: +2R foyda = riskning 2 barobari. Statistikani R asosida yuritish hissiyotni kamaytiradi.</div>
-                </div>
-                <div>
-                  <div class="fw-700 text-red" style="margin-bottom:4px">🚫 Eng Ko'p Uchraydigan Xatolar</div>
-                  <div class="text-dim">Stop Loss qo'ymaslik, oshiqcha lot, revenge trading, planga rioya qilmaslik, muhim newsda savdo, overtrading</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ════ P&L KALENDAR ════ -->
-      <div class="page" id="page-calendar">
-        <div class="grid-4" id="cal-summary" style="margin-bottom:16px"></div>
-        <div class="grid-12">
-          <div class="card">
-            <div class="flex-between" style="margin-bottom:14px">
-              <button class="btn btn-outline" style="padding:6px 12px" onclick="changeCalMonth(-1)">←</button>
-              <div style="text-align:center">
-                <div class="card-title" style="margin:0" id="cal-title">—</div>
-                <button class="btn btn-outline text-sm" style="padding:2px 10px;margin-top:4px;font-size:11px" onclick="goCalToday()">Bugun</button>
-              </div>
-              <button class="btn btn-outline" style="padding:6px 12px" onclick="changeCalMonth(1)">→</button>
-            </div>
-            <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
-            <div class="flex-between mt-16" style="gap:12px;flex-wrap:wrap">
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(0,212,170,0.35);display:inline-block"></span> Foydali kun</div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(255,71,87,0.35);display:inline-block"></span> Zararli kun</div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid var(--gold);display:inline-block"></span> Bugun</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">📰 Iqtisodiy Kalendar (Muhim Yangiliklar)</div>
-            <div class="tabs" style="margin:12px 0 0;border:none;gap:6px" id="econ-filter-tabs">
-              <button class="tab active" style="padding:6px 12px;font-size:12px" onclick="filterEcon('all',this)">Barchasi</button>
-              <button class="tab" style="padding:6px 12px;font-size:12px" onclick="filterEcon('high',this)">🔴 Yuqori</button>
-              <button class="tab" style="padding:6px 12px;font-size:12px" onclick="filterEcon('medium',this)">🟡 O'rta</button>
-              <button class="tab" style="padding:6px 12px;font-size:12px" onclick="filterEcon('low',this)">⚪ Past</button>
-            </div>
-            <div id="econ-cal-list" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"></div>
-            <div class="text-muted text-sm mt-16">⚠️ Bu ro'yxat namunaviy/statik. Real vaqtdagi yangiliklar uchun ForexFactory yoki Investing.com kalendaridan foydalaning.</div>
-          </div>
-        </div>
-      </div>
       <div class="page" id="page-strategies">
         <div class="tabs" style="margin-bottom:18px" id="strat-maintabs">
           <button class="tab active" onclick="switchStratTab('mine',this)">📁 Mening Strategiyalarim</button>
@@ -4259,113 +4141,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
               <div class="flex-between text-sm"><span class="text-muted">G'alaba / Zarar</span><span class="fw-700"><span class="text-green" id="an-wins">0</span> / <span class="text-red" id="an-losses">0</span></span></div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- ════ ANIMATSIYALAR ════ -->
-      <div class="page" id="page-animations">
-        <div class="card mb-20">
-          <div class="card-title">🎛️ Animatsiya Rejimi</div>
-          <div class="text-sm text-muted mt-8">Butun sayt bo'ylab animatsiyalar intensivligini tanlang. Tanlov avtomatik saqlanadi.</div>
-          <div class="anim-style-grid mt-16">
-            <button class="anim-style-opt" data-style="off" onclick="setAnimStyle('off')">
-              <span class="anim-style-icon">🚫</span>
-              <span class="anim-style-name">O'chiq</span>
-              <span class="anim-style-desc">Animatsiyasiz, tezkor</span>
-            </button>
-            <button class="anim-style-opt" data-style="calm" onclick="setAnimStyle('calm')">
-              <span class="anim-style-icon">🌙</span>
-              <span class="anim-style-name">Sokin</span>
-              <span class="anim-style-desc">Yengil, minimal harakat</span>
-            </button>
-            <button class="anim-style-opt" data-style="normal" onclick="setAnimStyle('normal')">
-              <span class="anim-style-icon">⚖️</span>
-              <span class="anim-style-name">O'rtacha</span>
-              <span class="anim-style-desc">Standart, muvozanatli</span>
-            </button>
-            <button class="anim-style-opt" data-style="lively" onclick="setAnimStyle('lively')">
-              <span class="anim-style-icon">🔥</span>
-              <span class="anim-style-name">Jonli</span>
-              <span class="anim-style-desc">Ko'proq harakat va effekt</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="card-title mb-16" style="font-size:16px">🎬 Effektlar Galereyasi</div>
-        <div class="grid-3 anim-demo-grid">
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-pulse"></div>
-            </div>
-            <div class="anim-demo-label">Pulse</div>
-            <div class="anim-demo-sub text-muted text-sm">Diqqat tortish uchun nafas olish effekti</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-float"></div>
-            </div>
-            <div class="anim-demo-label">Float</div>
-            <div class="anim-demo-sub text-muted text-sm">Yengil suzuvchi harakat</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-shake" onclick="this.classList.remove('demo-shake');void this.offsetWidth;this.classList.add('demo-shake')"></div>
-            </div>
-            <div class="anim-demo-label">Shake <span class="text-muted text-sm">(bosing)</span></div>
-            <div class="anim-demo-sub text-muted text-sm">Xato/ogohlantirish uchun</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-spin"></div>
-            </div>
-            <div class="anim-demo-label">Spin</div>
-            <div class="anim-demo-sub text-muted text-sm">Yuklanish indikatorlari uchun</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-bounce"></div>
-            </div>
-            <div class="anim-demo-label">Bounce</div>
-            <div class="anim-demo-sub text-muted text-sm">Quvnoq, o'yinqaroq urg'u</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-glow"></div>
-            </div>
-            <div class="anim-demo-label">Glow</div>
-            <div class="anim-demo-sub text-muted text-sm">Muvaffaqiyat/ajratish uchun porlash</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-flip" onclick="this.classList.toggle('flipped')"></div>
-            </div>
-            <div class="anim-demo-label">Flip <span class="text-muted text-sm">(bosing)</span></div>
-            <div class="anim-demo-sub text-muted text-sm">Kartani aylantirish effekti</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-tilt"></div>
-            </div>
-            <div class="anim-demo-label">Tilt (hover)</div>
-            <div class="anim-demo-sub text-muted text-sm">3D engashish, sichqonchani olib boring</div>
-          </div>
-
-          <div class="card anim-demo-card">
-            <div class="anim-demo-stage">
-              <div class="anim-demo-box demo-gradient"></div>
-            </div>
-            <div class="anim-demo-label">Gradient Flow</div>
-            <div class="anim-demo-sub text-muted text-sm">Oqayotgan rang gradienti</div>
-          </div>
-
         </div>
       </div>
 
@@ -4706,16 +4481,15 @@ function buildTicker() {
 const pages = {
   'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','video-lessons':'Video Darsliklar','livecharts':'Live Charts',
   'ai-assistant':'AI Yordamchi',
-  'calc':'Kalkulyator','checklist':'Pre-Trade Tekshiruv','calendar':'P&L Kalendar',
-  'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','animations':'Animatsiyalar','settings':'Sozlamalar'
+  'calc':'Kalkulyator',
+  'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','settings':'Sozlamalar'
 };
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
   'library':'Bilim va materiallar','video-lessons':'Video darslar to\'plami — hajmi cheklanmagan yuklash','livecharts':'Real vaqtli bozor grafiklari (TradingView)',
   'ai-assistant':'Savol bering, rasm yoki fayl yuboring — AI yordam beradi',
   'calc':'Trading vositalari',
-  'checklist':'Bitim ochishdan oldin tekshiring','calendar':'Kunlik foyda/zarar va yangiliklar',
-  'strategies':'Savdo strategiyalari','goals':'Maqsad va risk nazorati','analytics':'Chuqur tahlil','animations':'Effektlar va animatsiya sozlamalari','settings':'Hisob sozlamalari'
+  'strategies':'Savdo strategiyalari','goals':'Maqsad va risk nazorati','analytics':'Chuqur tahlil','settings':'Hisob sozlamalari'
 };
 function nav(id, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -4729,9 +4503,6 @@ function nav(id, el) {
   if(id==='strategies') renderStrategies();
   if(id==='goals') renderGoals();
   if(id==='dashboard') { renderDashboard(); setTimeout(drawMainChart, 80); }
-  if(id==='checklist') renderChecklist();
-  if(id==='calendar') { renderCalendar(); renderEconCalendar(); }
-  if(id==='animations') updateAnimStyleUI();
   if(id==='livecharts') initLiveChart();
   if(id==='ai-assistant') initAIAssistant();
 }
@@ -5199,9 +4970,6 @@ function renderTodayFocus() {
   for(let i=sortedAll.length-1;i>=0;i--){ if(sortedAll[i].pnl<0) consecLoss++; else break; }
   const maxConsec = goals.maxconsec||0;
 
-  const checklistHistory = JSON.parse(localStorage.getItem('tp-checklist-history')||'[]');
-  const lastChecklist = checklistHistory.length ? checklistHistory[0].pct : null;
-
   let lossStatus = { label:'✅ Xavfsiz', color:'var(--green)' };
   if(maxLoss && todayLoss>=maxLoss) lossStatus = { label:'⛔ Limitga yetdi', color:'var(--red)' };
   else if(maxLoss && todayLoss>=maxLoss*0.7) lossStatus = { label:"⚠️ Ehtiyot bo'ling", color:'var(--gold)' };
@@ -5214,7 +4982,6 @@ function renderTodayFocus() {
     { label:'Bugungi P&L', value: fmt(dailyPnl), color: dailyPnl>=0?'var(--green)':'var(--red)' },
     { label:'Bugungi Bitimlar', value: todayTrades.length + (maxTrades?' / '+maxTrades:''), color: maxTrades && todayTrades.length>=maxTrades ? 'var(--red)' : 'var(--blue)' },
     { label:'Ketma-ket Zarar', value: consecLoss + (maxConsec?' / '+maxConsec:''), color: consecStatus.color },
-    { label:'Oxirgi Tayyorlik', value: lastChecklist!==null ? lastChecklist+'%' : '—', color: lastChecklist!==null ? (lastChecklist>=70?'var(--green)':lastChecklist>=40?'var(--gold)':'var(--red)') : 'var(--text-muted)' },
     { label:'Zarar Limiti', value: lossStatus.label, color: lossStatus.color }
   ];
 
@@ -7770,12 +7537,9 @@ const UX_PAGES = [
   {icon:'📓', name:'Kunlik Jurnal',         desc:'Barcha bitimlar va yozuvlar', action:()=>nav('journal',   document.querySelector('[onclick*=journal]'))},
   {icon:'📚', name:'Kutubxona',             desc:'Bilim va materiallar',        action:()=>nav('library',   document.querySelector('[onclick*=library]'))},
   {icon:'🔢', name:'Kalkulyator',           desc:'Trading hisob vositalari',    action:()=>nav('calc',      document.querySelector('[onclick*=calc]'))},
-  {icon:'✅', name:'Pre-Trade Tekshiruv',   desc:'Bitim ochishdan oldin',       action:()=>nav('checklist', document.querySelector('[onclick*=checklist]'))},
-  {icon:'📅', name:'P&L Kalendar',          desc:'Kunlik foyda/zarar',          action:()=>nav('calendar',  document.querySelector('[onclick*=calendar]'))},
   {icon:'📈', name:'Strategiyalar',         desc:'Savdo strategiyalari',        action:()=>nav('strategies',document.querySelector('[onclick*=strategies]'))},
   {icon:'🎯', name:'Maqsadlar',             desc:'Risk va maqsad nazorati',     action:()=>nav('goals',     document.querySelector('[onclick*=goals]'))},
   {icon:'📊', name:'Tahlil',                desc:'Chuqur statistika',           action:()=>nav('analytics', document.querySelector('[onclick*=analytics]'))},
-  {icon:'✨', name:'Animatsiyalar',          desc:'Effektlar va sozlamalar',     action:()=>nav('animations',document.querySelector('[onclick*=animations]'))},
   {icon:'⚙️', name:'Sozlamalar',            desc:'Hisob sozlamalari',           action:()=>nav('settings',  document.querySelector('[onclick*=settings]'))},
   {icon:'➕', name:'Yangi bitim qo\'shish', desc:'Savdo yozuvini yaratish',     action:()=>{ openModal('tradeModal'); }},
   {icon:'🔊', name:'Ovoz: Yoqish',          desc:'Sound effektlarni yoqish',    action:()=>{ localStorage.removeItem('ux-sound'); UXSnd.play('success'); showToast('🔊 Ovoz yoqildi','success'); }},
