@@ -329,7 +329,11 @@
     display:flex; flex-direction:column;
     position:fixed; left:0; top:36px; bottom:0;
     z-index:100;
+    transition: width .22s cubic-bezier(.4,0,.2,1);
+    overflow-x:hidden;
   }
+
+  .sidebar.collapsed { width: 68px; }
 
   .logo-area {
     padding: 18px 18px 16px;
@@ -343,6 +347,19 @@
     display:flex; align-items:center; gap:10px;
     text-decoration:none;
   }
+  .sidebar.collapsed .logo { gap:0; }
+  .sidebar.collapsed .logo-text-wrap { display:none; }
+
+  .sidebar-toggle {
+    position:absolute; top:20px; right:-11px;
+    width:22px; height:22px; border-radius:50%;
+    background: var(--bg-deep, #050505); border:1px solid var(--border);
+    color:var(--text-dim); font-size:9px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    z-index:101; transition:.15s;
+  }
+  .sidebar-toggle:hover { color:var(--gold); border-color:var(--gold); }
+  .sidebar.collapsed .sidebar-toggle { transform:rotate(180deg); }
   .logo-icon {
     width:32px; height:32px; border-radius:2px;
     background: linear-gradient(135deg, var(--gold), #B87A00);
@@ -373,12 +390,33 @@
     color:var(--gold);
     border-left: 2px solid var(--gold);
   }
-  .nav-icon { font-size:14px; width:18px; text-align:center; }
+  .nav-icon { font-size:14px; width:18px; text-align:center; flex-shrink:0; }
   .nav-badge {
     margin-left:auto; background:var(--gold); color:#000;
     font-size:9.5px; font-weight:700; padding:1px 6px;
     border-radius:3px; font-family:var(--mono);
   }
+  .nav-text { white-space:nowrap; }
+
+  /* Collapsed nav state */
+  .sidebar.collapsed .nav-label { display:none; }
+  .sidebar.collapsed .nav-section { padding-left:0; padding-right:0; }
+  .sidebar.collapsed .nav-item {
+    justify-content:center; padding:10px 0; border-left:none;
+    position:relative;
+  }
+  .sidebar.collapsed .nav-item.active { border-left:none; border-radius:var(--radius-sm); }
+  .sidebar.collapsed .nav-text,
+  .sidebar.collapsed .nav-badge { display:none; }
+  .sidebar.collapsed .nav-item::after {
+    content: attr(data-label);
+    position:absolute; left:calc(100% + 10px); top:50%; transform:translateY(-50%);
+    background:#0a0a0a; border:1px solid var(--border); color:var(--text);
+    padding:5px 10px; border-radius:3px; font-size:11.5px; white-space:nowrap;
+    opacity:0; pointer-events:none; transition:opacity .15s; z-index:200;
+    font-family:var(--font); letter-spacing:.2px;
+  }
+  .sidebar.collapsed .nav-item:hover::after { opacity:1; }
 
   .sidebar-bottom {
     margin-top:auto; padding:14px;
@@ -391,11 +429,14 @@
     transition:.2s; border: 1px solid var(--border);
   }
   .user-card:hover { background:rgba(255,255,255,0.06); border-color:var(--border-bright); }
+  .sidebar.collapsed .user-card { padding:9px; justify-content:center; }
+  .sidebar.collapsed .user-card > div:not(.avatar),
+  .sidebar.collapsed .user-card button { display:none; }
   .avatar {
     width:30px; height:30px; border-radius:2px;
     background: linear-gradient(135deg, var(--gold), #FFC533);
     display:flex; align-items:center; justify-content:center;
-    font-weight:700; font-size:13px; color:#000;
+    font-weight:700; font-size:13px; color:#000; flex-shrink:0;
   }
   .user-name { font-size:12.5px; font-weight:600; }
   .user-role { font-size:10px; color:var(--text-muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:.5px; }
@@ -404,7 +445,9 @@
   .main {
     margin-left:228px;
     flex:1; display:flex; flex-direction:column;
+    transition: margin-left .22s cubic-bezier(.4,0,.2,1);
   }
+  .main.sidebar-collapsed { margin-left:68px; }
 
   .topbar {
     display:flex; align-items:center; justify-content:space-between;
@@ -2713,75 +2756,90 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 <div class="layout">
 
   <!-- SIDEBAR -->
-  <nav class="sidebar">
+  <nav class="sidebar" id="app-sidebar">
     <div class="logo-area">
       <a class="logo" href="#">
         <div class="logo-icon">📈</div>
-        <div>
+        <div class="logo-text-wrap">
           <div class="logo-text">TraderPro</div>
           <div class="logo-sub">Professional Platform</div>
         </div>
       </a>
+      <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Menyuni yig'ish">◀</button>
     </div>
 
     <div class="nav-section">
       <div class="nav-label">Asosiy</div>
-      <button class="nav-item active" onclick="nav('dashboard',this)">
-        <span class="nav-icon">🏠</span> Dashboard
+      <button data-label="Dashboard" class="nav-item active" onclick="nav('dashboard',this)">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Dashboard</span>
       </button>
-      <button class="nav-item" onclick="nav('journal',this)">
-        <span class="nav-icon">📓</span> Kunlik Jurnal
+      <button data-label="Kunlik Jurnal" class="nav-item" onclick="nav('journal',this)">
+        <span class="nav-icon">📓</span>
+        <span class="nav-text">Kunlik Jurnal</span>
         <span class="nav-badge" id="trade-badge">0</span>
       </button>
-      <button class="nav-item" onclick="nav('library',this)">
-        <span class="nav-icon">📚</span> Kutubxona
+      <button data-label="Kutubxona" class="nav-item" onclick="nav('library',this)">
+        <span class="nav-icon">📚</span>
+        <span class="nav-text">Kutubxona</span>
         <span class="nav-badge" id="lib-badge">0</span>
       </button>
-      <button class="nav-item" onclick="nav('video-lessons',this)">
-        <span class="nav-icon">🎬</span> Video Darsliklar
+      <button data-label="Video Darsliklar" class="nav-item" onclick="nav('video-lessons',this)">
+        <span class="nav-icon">🎬</span>
+        <span class="nav-text">Video Darsliklar</span>
         <span class="nav-badge" id="video-badge">0</span>
       </button>
     </div>
 
     <div class="nav-section" style="margin-top:8px">
       <div class="nav-label">Bozor</div>
-      <button class="nav-item" onclick="nav('livecharts',this)">
-        <span class="nav-icon">📡</span> Live Charts
+      <button data-label="Live Charts" class="nav-item" onclick="nav('livecharts',this)">
+        <span class="nav-icon">📡</span>
+        <span class="nav-text">Live Charts</span>
       </button>
     </div>
 
     <div class="nav-section" style="margin-top:8px">
       <div class="nav-label">AI</div>
-      <button class="nav-item" onclick="nav('ai-assistant',this)">
-        <span class="nav-icon">🤖</span> AI Yordamchi
+      <button data-label="AI Yordamchi" class="nav-item" onclick="nav('ai-assistant',this)">
+        <span class="nav-icon">🤖</span>
+        <span class="nav-text">AI Yordamchi</span>
       </button>
     </div>
 
     <div class="nav-section" style="margin-top:8px">
       <div class="nav-label">Vositalar</div>
-      <button class="nav-item" onclick="nav('calc',this)">
-        <span class="nav-icon">🧮</span> Kalkulyator
+      <button data-label="Kalkulyator" class="nav-item" onclick="nav('calc',this)">
+        <span class="nav-icon">🧮</span>
+        <span class="nav-text">Kalkulyator</span>
       </button>
-      <button class="nav-item" onclick="nav('checklist',this)">
-        <span class="nav-icon">✅</span> Pre-Trade Tekshiruv
+      <button data-label="Pre-Trade Tekshiruv" class="nav-item" onclick="nav('checklist',this)">
+        <span class="nav-icon">✅</span>
+        <span class="nav-text">Pre-Trade Tekshiruv</span>
       </button>
-      <button class="nav-item" onclick="nav('calendar',this)">
-        <span class="nav-icon">📅</span> P&L Kalendar
+      <button data-label="P&L Kalendar" class="nav-item" onclick="nav('calendar',this)">
+        <span class="nav-icon">📅</span>
+        <span class="nav-text">P&L Kalendar</span>
       </button>
-      <button class="nav-item" onclick="nav('strategies',this)">
-        <span class="nav-icon">⚡</span> Strategiyalar
+      <button data-label="Strategiyalar" class="nav-item" onclick="nav('strategies',this)">
+        <span class="nav-icon">⚡</span>
+        <span class="nav-text">Strategiyalar</span>
       </button>
-      <button class="nav-item" onclick="nav('goals',this)">
-        <span class="nav-icon">🎯</span> Maqsadlar
+      <button data-label="Maqsadlar" class="nav-item" onclick="nav('goals',this)">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-text">Maqsadlar</span>
       </button>
-      <button class="nav-item" onclick="nav('analytics',this)">
-        <span class="nav-icon">📊</span> Tahlil
+      <button data-label="Tahlil" class="nav-item" onclick="nav('analytics',this)">
+        <span class="nav-icon">📊</span>
+        <span class="nav-text">Tahlil</span>
       </button>
-      <button class="nav-item" onclick="nav('animations',this)">
-        <span class="nav-icon">✨</span> Animatsiyalar
+      <button data-label="Animatsiyalar" class="nav-item" onclick="nav('animations',this)">
+        <span class="nav-icon">✨</span>
+        <span class="nav-text">Animatsiyalar</span>
       </button>
-      <button class="nav-item" onclick="nav('settings',this)">
-        <span class="nav-icon">⚙️</span> Sozlamalar
+      <button data-label="Sozlamalar" class="nav-item" onclick="nav('settings',this)">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-text">Sozlamalar</span>
       </button>
     </div>
 
@@ -2798,7 +2856,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   </nav>
 
   <!-- MAIN -->
-  <div class="main">
+  <div class="main" id="app-main">
     <div class="topbar">
       <div>
         <div class="page-title" id="top-title">Dashboard</div>
@@ -4748,6 +4806,28 @@ function nav(id, el) {
   if(id==='livecharts') initLiveChart();
   if(id==='ai-assistant') initAIAssistant();
 }
+
+// ─── SIDEBAR COLLAPSE ───
+function toggleSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  const main = document.getElementById('app-main');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  main.classList.toggle('sidebar-collapsed', collapsed);
+  btn.title = collapsed ? "Menyuni ochish" : "Menyuni yig'ish";
+  try { localStorage.setItem('tp-sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+(function initSidebarState(){
+  try {
+    if (localStorage.getItem('tp-sidebar-collapsed') === '1') {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('app-sidebar').classList.add('collapsed');
+        document.getElementById('app-main').classList.add('sidebar-collapsed');
+        document.getElementById('sidebar-toggle-btn').title = "Menyuni ochish";
+      });
+    }
+  } catch(e) {}
+})();
 
 // ─── LIVE CHARTS (TradingView) ───
 let __tvScriptPromise = null;
