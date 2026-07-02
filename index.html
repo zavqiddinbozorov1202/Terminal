@@ -694,6 +694,71 @@
     background:rgba(255,255,255,0.05); color:var(--text-muted);
   }
 
+  /* ─── VIEW TOGGLE ─── */
+  .view-toggle { display:flex; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
+  .view-btn {
+    width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+    background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:14px;
+    transition:.15s; border-left:1px solid var(--border);
+  }
+  .view-btn:first-child { border-left:none; }
+  .view-btn:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+  .view-btn.active { background:var(--gold-dim); color:var(--gold); }
+
+  /* ─── JOURNAL TABLE ROW ─── */
+  .jt-symbol { font-family:var(--mono); font-weight:700; }
+  .jt-pnl { font-family:var(--mono); font-weight:700; }
+
+  /* ─── LIBRARY LAYOUT (folder tree + main) ─── */
+  .lib-layout { display:flex; gap:18px; align-items:flex-start; }
+  .folder-tree {
+    width:210px; flex-shrink:0; border:1px solid var(--border);
+    border-radius:var(--radius); background:var(--bg-card);
+    padding:10px; position:sticky; top:70px;
+  }
+  .folder-tree-title {
+    font-size:10.5px; font-weight:700; color:var(--text-muted);
+    letter-spacing:1.2px; text-transform:uppercase; padding:4px 8px 8px;
+  }
+  .folder-tree-item {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:7px 9px; border-radius:var(--radius-sm); cursor:pointer;
+    font-size:12.5px; color:var(--text-dim); transition:.15s; margin-bottom:2px;
+    border-left:2px solid transparent;
+  }
+  .folder-tree-item:hover { background:rgba(255,255,255,0.04); color:var(--text); }
+  .folder-tree-item.active { background:linear-gradient(90deg,var(--gold-dim),transparent); color:var(--gold); border-left:2px solid var(--gold); }
+  .folder-tree-item .ft-name { display:flex; align-items:center; gap:7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .folder-tree-item .ft-count {
+    font-family:var(--mono); font-size:10px; color:var(--text-muted);
+    background:rgba(255,255,255,0.05); padding:1px 6px; border-radius:10px; flex-shrink:0;
+  }
+  .folder-tree-item.active .ft-count { color:var(--gold); }
+  .lib-main { flex:1; min-width:0; }
+
+  /* ─── LIBRARY LIST VIEW ─── */
+  .lib-list { display:flex; flex-direction:column; gap:8px; }
+  .lib-row {
+    display:flex; align-items:center; gap:14px;
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--bg-card); padding:10px 14px; cursor:pointer; transition:.2s;
+    position:relative;
+  }
+  .lib-row:hover { border-color:rgba(255,176,0,0.3); background:rgba(255,255,255,0.02); }
+  .lib-row-thumb {
+    width:44px; height:44px; border-radius:var(--radius-sm); flex-shrink:0;
+    background:linear-gradient(135deg,#162035,#1e2d4a);
+    display:flex; align-items:center; justify-content:center; font-size:19px;
+    overflow:hidden; position:relative;
+  }
+  .lib-row-thumb img { width:100%; height:100%; object-fit:cover; }
+  .lib-row-body { flex:1; min-width:0; }
+  .lib-row-title { font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .lib-row-meta { font-size:11px; color:var(--text-muted); margin-top:2px; display:flex; gap:10px; flex-wrap:wrap; }
+  .lib-row-tags { display:flex; gap:5px; flex-shrink:0; }
+  .lib-row-actions { display:flex; gap:6px; flex-shrink:0; }
+  .lib-file-size { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+
   .upload-zone {
     border:2px dashed rgba(255,176,0,0.25); border-radius:var(--radius);
     padding:40px; text-align:center; cursor:pointer;
@@ -3106,6 +3171,8 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
 
       <!-- ════ JOURNAL ════ -->
       <div class="page" id="page-journal">
+        <div class="grid-5" id="journal-stats" style="margin-bottom:16px"></div>
+
         <div class="flex-between" style="margin-bottom:20px;gap:12px;flex-wrap:wrap">
           <div class="tabs" style="margin:0;border:none">
             <button class="tab active" onclick="switchTab('all',this)">Barchasi</button>
@@ -3114,8 +3181,18 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
             <button class="tab" onclick="switchTab('win',this)">G'alaba</button>
             <button class="tab" onclick="switchTab('loss',this)">Zarar</button>
           </div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <input class="form-input" id="journal-search" placeholder="🔍 Juftlik bo'yicha qidirish..." style="width:220px" oninput="renderJournal()">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input class="form-input" id="journal-search" placeholder="🔍 Juftlik bo'yicha qidirish..." style="width:200px" oninput="renderJournal()">
+            <select class="form-select" id="journal-sort" style="max-width:170px" onchange="renderJournal()">
+              <option value="new">🕓 Yangi birinchi</option>
+              <option value="old">🕓 Eski birinchi</option>
+              <option value="high">📈 Eng katta foyda</option>
+              <option value="low">📉 Eng katta zarar</option>
+            </select>
+            <div class="view-toggle" id="journal-view-toggle">
+              <button class="view-btn active" data-view="grid" onclick="setJournalView('grid')" title="Kartalar">▦</button>
+              <button class="view-btn" data-view="table" onclick="setJournalView('table')" title="Jadval">☰</button>
+            </div>
             <button class="btn btn-primary" onclick="openModal('tradeModal')">➕ Yangi Bitim</button>
           </div>
         </div>
@@ -3123,11 +3200,25 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         <div id="journal-cards" class="journal-grid">
           <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">📭 Hali bitim qo'shilmagan</div>
         </div>
+
+        <div id="journal-table-wrap" style="display:none">
+          <div class="card" style="padding:0;overflow-x:auto">
+            <table class="data-table" id="journal-table">
+              <thead>
+                <tr>
+                  <th>Sana</th><th>Juftlik</th><th>Yo'nalish</th><th>Kirish</th><th>Chiqish</th>
+                  <th>Lot</th><th>P&L</th><th>Strategiya</th><th>Sessiya</th><th>Kayfiyat</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="journal-table-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- ════ LIBRARY ════ -->
       <div class="page" id="page-library">
-        <div class="flex-between" style="margin-bottom:14px">
+        <div class="flex-between" style="margin-bottom:14px;gap:10px;flex-wrap:wrap">
           <div class="tabs" style="margin:0;border:none">
             <button class="tab active" onclick="filterLib('all',this)">Barchasi</button>
             <button class="tab" onclick="filterLib('📊',this)">Tahlil</button>
@@ -3139,9 +3230,6 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         </div>
         <div class="flex-between" style="margin-bottom:20px;gap:10px;flex-wrap:wrap">
           <input class="form-input" id="lib-search" placeholder="🔍 Qidirish..." style="max-width:240px" oninput="renderLibrary()">
-          <select class="form-select" id="lib-folder-filter" style="max-width:200px" onchange="renderLibrary()">
-            <option value="all">📁 Barcha papkalar</option>
-          </select>
           <select class="form-select" id="lib-sort" style="max-width:200px" onchange="renderLibrary()">
             <option value="new">🕓 Yangi birinchi</option>
             <option value="old">🕓 Eski birinchi</option>
@@ -3150,11 +3238,22 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-dim)">
             <input type="checkbox" id="lib-only-pinned" style="width:15px;height:15px" onchange="renderLibrary()"> Faqat pin qilinganlar
           </label>
+          <div class="view-toggle" id="lib-view-toggle" style="margin-left:auto">
+            <button class="view-btn active" data-view="grid" onclick="setLibView('grid')" title="Kartalar">▦</button>
+            <button class="view-btn" data-view="list" onclick="setLibView('list')" title="Ro'yxat">☰</button>
+          </div>
         </div>
 
-        <div class="lib-grid" id="lib-grid">
-          <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
-            📚 Kutubxona bo'sh. Material qo'shing!
+        <div class="lib-layout">
+          <div class="folder-tree" id="folder-tree">
+            <div class="folder-tree-title">Papkalar</div>
+          </div>
+          <div class="lib-main">
+            <div class="lib-grid" id="lib-grid">
+              <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
+                📚 Kutubxona bo'sh. Material qo'shing!
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -4703,7 +4802,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateStratSelect();
   initGoalsInputs();
   renderDashboard();
+  document.querySelectorAll('#journal-view-toggle .view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===journalView));
+  document.getElementById('journal-cards').style.display = journalView==='grid' ? 'grid' : 'none';
+  document.getElementById('journal-table-wrap').style.display = journalView==='table' ? 'block' : 'none';
   renderJournal();
+  document.querySelectorAll('#lib-view-toggle .view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===libView));
   renderLibrary();
   renderVideoLessons();
   renderStrategies();
@@ -5426,6 +5529,63 @@ const EMOTION_MAP = {
   fomo:{label:"FOMO",icon:"⚡"}, fear:{label:"Qo'rquv",icon:"😟"},
   greed:{label:"Ochko'zlik",icon:"🤑"}, revenge:{label:"Qasos",icon:"😤"}
 };
+let journalView = localStorage.getItem('tp-journal-view') || 'grid';
+function setJournalView(v) {
+  journalView = v;
+  localStorage.setItem('tp-journal-view', v);
+  document.querySelectorAll('#journal-view-toggle .view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('journal-cards').style.display = v==='grid' ? 'grid' : 'none';
+  document.getElementById('journal-table-wrap').style.display = v==='table' ? 'block' : 'none';
+  renderJournal();
+}
+function renderJournalStats(data) {
+  const wrap = document.getElementById('journal-stats');
+  if(!wrap) return;
+  const total = data.reduce((s,t)=>s+t.pnl,0);
+  const wins = data.filter(t=>t.pnl>0);
+  const losses = data.filter(t=>t.pnl<0);
+  const wr = data.length ? Math.round(wins.length/data.length*100) : 0;
+  const grossW = wins.reduce((s,t)=>s+t.pnl,0);
+  const grossL = Math.abs(losses.reduce((s,t)=>s+t.pnl,0));
+  const pf = grossL ? (grossW/grossL) : 0;
+  // best streak (win) in chronological order
+  const chrono = [...data].reverse();
+  let curWin=0, bestStreak=0;
+  chrono.forEach(t=>{ if(t.pnl>0){curWin++; if(curWin>bestStreak)bestStreak=curWin;} else curWin=0; });
+
+  wrap.innerHTML = `
+    <div class="card stat-card">
+      <div class="stat-glow" style="background:var(--gold)"></div>
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value">${wr}%</div>
+      <span class="stat-change ${wr>=50?'up':'dn'}">${wins.length}G / ${losses.length}Z</span>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-glow" style="background:var(--blue)"></div>
+      <div class="stat-label">Profit Faktor (R:R)</div>
+      <div class="stat-value">${pf>0?pf.toFixed(2):'0.00'}</div>
+      <span class="stat-change ${pf>=1?'up':'dn'}">1:${pf>0?pf.toFixed(1):'0'}</span>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-glow" style="background:var(--green)"></div>
+      <div class="stat-label">Eng Yaxshi Seriya</div>
+      <div class="stat-value text-green">${bestStreak}</div>
+      <span class="stat-change up">Ketma-ket g'alaba</span>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-glow" style="background:${total>=0?'var(--green)':'var(--red)'}"></div>
+      <div class="stat-label">Jami P&L</div>
+      <div class="stat-value ${total>=0?'text-green':'text-red'}">${fmt(total)}</div>
+      <span class="stat-change ${total>=0?'up':'dn'}">${total>=0?'▲':'▼'} Filtrlangan</span>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-glow" style="background:var(--text-dim)"></div>
+      <div class="stat-label">Bitimlar Soni</div>
+      <div class="stat-value">${data.length}</div>
+      <span class="stat-change up">Jami yozuv</span>
+    </div>`;
+}
+const journalSessionLabels = {asia:'🌏 Asia',london:'🇬🇧 London',ny:'🇺🇸 NY',overlap:'🔁 Overlap'};
 function renderJournal() {
   let data = trades;
   if(journalFilter==='buy')  data = data.filter(t=>t.dir==='BUY');
@@ -5435,12 +5595,26 @@ function renderJournal() {
   const searchEl = document.getElementById('journal-search');
   const q = searchEl ? searchEl.value.trim().toUpperCase() : '';
   if(q) data = data.filter(t=>t.symbol.includes(q));
+
+  const sortVal = document.getElementById('journal-sort')?.value || 'new';
+  data = [...data];
+  if(sortVal==='old') data.reverse();
+  else if(sortVal==='high') data.sort((a,b)=>b.pnl-a.pnl);
+  else if(sortVal==='low') data.sort((a,b)=>a.pnl-b.pnl);
+
+  renderJournalStats(data);
+
   const wrap = document.getElementById('journal-cards');
+  const tbody = document.getElementById('journal-table-body');
+  document.getElementById('journal-cards').style.display = journalView==='grid' ? 'grid' : 'none';
+  document.getElementById('journal-table-wrap').style.display = journalView==='table' ? 'block' : 'none';
+
   if(!data.length) {
     wrap.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</div>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</td></tr>';
     return;
   }
-  const sessionLabels = {asia:'🌏 Asia',london:'🇬🇧 London',ny:'🇺🇸 NY',overlap:'🔁 Overlap'};
+
   wrap.innerHTML = data.map(t=>{
     const em = EMOTION_MAP[t.emotion] || null;
     const isProfit = t.pnl>=0;
@@ -5456,7 +5630,7 @@ function renderJournal() {
         <div class="trade-card-meta">
           <span class="badge ${t.dir==='BUY'?'buy':'sell'}" style="padding:2px 9px">${t.dir==='BUY'?'▲':'▼'} ${t.dir}</span>
           <span>${t.strategy}</span>
-          <span>${sessionLabels[t.session]||'—'}</span>
+          <span>${journalSessionLabels[t.session]||'—'}</span>
           ${em?`<span>${em.icon} ${em.label}</span>`:''}
         </div>
         <div class="trade-card-prices">
@@ -5476,15 +5650,52 @@ function renderJournal() {
       </div>
     </div>`;
   }).join('');
+
+  tbody.innerHTML = data.map(t=>{
+    const em = EMOTION_MAP[t.emotion] || null;
+    const isProfit = t.pnl>=0;
+    return `
+    <tr>
+      <td class="text-muted text-sm">${t.date}</td>
+      <td class="jt-symbol">${t.symbol}</td>
+      <td><span class="badge ${t.dir==='BUY'?'buy':'sell'}">${t.dir==='BUY'?'▲':'▼'} ${t.dir}</span></td>
+      <td class="mono">${t.entry}</td>
+      <td class="mono">${t.exit}</td>
+      <td class="mono">${t.lot}</td>
+      <td class="jt-pnl ${isProfit?'profit':'loss'}">${fmt(t.pnl)}</td>
+      <td class="text-muted text-sm">${t.strategy||'—'}</td>
+      <td class="text-muted text-sm">${journalSessionLabels[t.session]||'—'}</td>
+      <td class="text-muted text-sm">${em?`${em.icon} ${em.label}`:'—'}</td>
+      <td>
+        <div class="trade-card-actions">
+          <button class="btn btn-outline" style="padding:4px 9px;font-size:11px" onclick="openTradeView(${t.id})">👁️</button>
+          <button class="btn btn-danger" style="padding:4px 9px;font-size:11px" onclick="deleteTrade(${t.id})">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 // ─── LIBRARY ───
 let libFilter = 'all';
 let libType = 'file';
+let libFolderFilter = 'all';
+let libView = localStorage.getItem('tp-lib-view') || 'grid';
 function filterLib(f,el) {
   libFilter=f;
   document.querySelectorAll('#page-library .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+  renderLibrary();
+}
+function setLibView(v) {
+  libView = v;
+  localStorage.setItem('tp-lib-view', v);
+  document.querySelectorAll('#lib-view-toggle .view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  renderLibrary();
+}
+function selectFolder(folder) {
+  libFolderFilter = folder;
+  renderFolderTree();
   renderLibrary();
 }
 function switchLibType(type) {
@@ -5494,20 +5705,27 @@ function switchLibType(type) {
   document.getElementById('lib-url-group').style.display = type==='link' ? 'block' : 'none';
   document.getElementById('lib-desc-label').textContent = type==='note' ? 'Eslatma matni' : 'Tavsif / Matn';
 }
+function formatFileSize(bytes) {
+  if(!bytes) return '';
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
 function previewFile(input) {
   if(!input.files[0]) return;
   const file = input.files[0];
   const name = file.name;
   const mime = file.type;
+  const size = file.size;
   const el = document.getElementById('lib-file-preview');
   const isImg = mime.startsWith('image/');
   const reader = new FileReader();
   reader.onload = e => {
-    libFiles['pending'] = {data: e.target.result, name, type: isImg?'image':'file', mime};
+    libFiles['pending'] = {data: e.target.result, name, type: isImg?'image':'file', mime, size};
     if(isImg) {
-      el.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:2px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${name}</span>`;
+      el.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:2px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${name} (${formatFileSize(size)})</span>`;
     } else {
-      el.innerHTML = `<div style="font-size:28px">📎</div><div style="font-size:12px;color:var(--green);margin-top:4px">✅ ${name}</div>`;
+      el.innerHTML = `<div style="font-size:28px">📎</div><div style="font-size:12px;color:var(--green);margin-top:4px">✅ ${name} (${formatFileSize(size)})</div>`;
     }
   };
   reader.readAsDataURL(file);
@@ -5521,12 +5739,27 @@ function refreshFolderUI() {
   const folders = getLibFolders();
   const dl = document.getElementById('folder-list');
   if(dl) dl.innerHTML = folders.map(f=>`<option value="${f}">`).join('');
-  const ff = document.getElementById('lib-folder-filter');
-  if(ff) {
-    const cur = ff.value;
-    ff.innerHTML = '<option value="all">📁 Barcha papkalar</option>' + folders.map(f=>`<option value="${f}">${f}</option>`).join('');
-    if(folders.includes(cur)) ff.value = cur;
+  renderFolderTree();
+}
+function renderFolderTree() {
+  const tree = document.getElementById('folder-tree');
+  if(!tree) return;
+  const folders = getLibFolders();
+  if(!folders.includes(libFolderFilter) && libFolderFilter!=='all') libFolderFilter = 'all';
+  const countFor = f => f==='all' ? library.length : library.filter(i=>i.folder===f).length;
+  let html = '<div class="folder-tree-title">Papkalar</div>';
+  html += `<div class="folder-tree-item ${libFolderFilter==='all'?'active':''}" onclick="selectFolder('all')">
+    <span class="ft-name">📁 Barchasi</span><span class="ft-count">${countFor('all')}</span>
+  </div>`;
+  folders.forEach(f=>{
+    html += `<div class="folder-tree-item ${libFolderFilter===f?'active':''}" onclick="selectFolder(${JSON.stringify(f)})" title="${f}">
+      <span class="ft-name">📂 ${f}</span><span class="ft-count">${countFor(f)}</span>
+    </div>`;
+  });
+  if(!folders.length) {
+    html += `<div style="padding:8px 9px;font-size:11px;color:var(--text-muted)">Hali papka yo'q</div>`;
   }
+  tree.innerHTML = html;
 }
 async function saveLib() {
   const title = document.getElementById('lib-title').value.trim();
@@ -5547,7 +5780,7 @@ async function saveLib() {
     read: false,
     aiSummary: '',
     date: new Date().toLocaleDateString('uz-UZ'),
-    file: (libType==='file' && pending) ? {name: pending.name, type: pending.type, mime: pending.mime} : null
+    file: (libType==='file' && pending) ? {name: pending.name, type: pending.type, mime: pending.mime, size: pending.size||0} : null
   };
   if(libType==='file' && pending && pending.data) {
     idbCache[id] = pending.data;
@@ -5570,11 +5803,10 @@ async function saveLib() {
 }
 function renderLibrary() {
   const grid = document.getElementById('lib-grid');
-  refreshFolderUI();
+  renderFolderTree();
   let data = [...library];
   if(libFilter!=='all') data = data.filter(i=>i.cat===libFilter);
-  const folderSel = document.getElementById('lib-folder-filter');
-  if(folderSel && folderSel.value!=='all') data = data.filter(i=>i.folder===folderSel.value);
+  if(libFolderFilter!=='all') data = data.filter(i=>i.folder===libFolderFilter);
   const onlyPinned = document.getElementById('lib-only-pinned');
   if(onlyPinned && onlyPinned.checked) data = data.filter(i=>i.pinned);
   const q = (document.getElementById('lib-search')?.value||'').trim().toLowerCase();
@@ -5586,10 +5818,41 @@ function renderLibrary() {
   // Pinned items float to top regardless of sort (except az)
   if(sortVal!=='az') data.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
 
+  grid.className = libView==='list' ? 'lib-list' : 'lib-grid';
+
   if(!data.length) {
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">📚 Hali material qo\'shilmagan</div>';
     return;
   }
+
+  if(libView==='list') {
+    grid.innerHTML = data.map(i=>{
+      const imgSrc = idbCache[i.id] || (i.file && i.file.data) || '';
+      let icon = i.type==='link' ? '🔗' : i.type==='note' ? '📝' : i.cat;
+      const thumbHtml = imgSrc ? `<img src="${imgSrc}">` : `<span>${icon}</span>`;
+      const hasFile = i.file && i.file.name;
+      const sizeStr = hasFile && i.file.size ? formatFileSize(i.file.size) : '';
+      return `<div class="lib-row" onclick="openLibItem(${i.id})">
+        <div class="lib-row-thumb">${thumbHtml}</div>
+        <div class="lib-row-body">
+          <div class="lib-row-title">
+            ${i.title}
+            ${i.pinned?'<span title="Pin qilingan">📌</span>':''}
+            ${i.read?'<span class="badge" style="background:rgba(255,176,0,0.15);color:var(--gold);padding:1px 7px;font-size:9px">O\'QILDI</span>':''}
+          </div>
+          <div class="lib-row-meta">
+            <span>${i.date}</span>
+            ${i.folder?`<span style="color:var(--gold)">📁 ${i.folder}</span>`:''}
+            ${hasFile?`<span class="lib-file-size">📎 ${i.file.name}${sizeStr?' · '+sizeStr:''}</span>`:''}
+            ${i.type==='link'?`<span style="color:var(--blue)">🔗 Havola</span>`:''}
+          </div>
+        </div>
+        <div class="lib-row-tags">${(i.tags||[]).slice(0,3).map(t=>`<span class="lib-tag">${t}</span>`).join('')}</div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
   grid.innerHTML = data.map(i=>{
     const imgSrc = idbCache[i.id] || (i.file && i.file.data) || '';
     let icon = i.type==='link' ? '🔗' : i.type==='note' ? '📝' : i.cat;
@@ -5598,6 +5861,7 @@ function renderLibrary() {
       thumb = `<div class="lib-thumb"><img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;position:absolute"><div class="lib-type">${i.date}</div></div>`;
     }
     const hasFile = i.file && i.file.name;
+    const sizeStr = hasFile && i.file.size ? formatFileSize(i.file.size) : '';
     return `<div class="lib-card" onclick="openLibItem(${i.id})" style="cursor:pointer;position:relative">
       ${i.pinned?'<div style="position:absolute;top:8px;left:8px;z-index:2;font-size:16px">📌</div>':''}
       ${i.read?'<div style="position:absolute;top:8px;right:8px;z-index:2;background:rgba(255,176,0,0.8);color:#000;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px">O\'QILDI</div>':''}
@@ -5606,7 +5870,7 @@ function renderLibrary() {
         <div class="lib-title">${i.title}</div>
         <div class="lib-meta" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${i.desc||'—'}</div>
         ${i.folder?`<div class="text-sm mt-4" style="color:var(--gold)">📁 ${i.folder}</div>`:''}
-        ${hasFile?`<div class="text-sm mt-4" style="color:var(--green)">📎 ${i.file.name}</div>`:''}
+        ${hasFile?`<div class="lib-file-size mt-4">📎 ${i.file.name}${sizeStr?' · '+sizeStr:''}</div>`:''}
         ${i.type==='link'?`<div class="text-sm mt-4" style="color:var(--blue)">🔗 Havola</div>`:''}
         <div class="lib-tags">${(i.tags||[]).map(t=>`<span class="lib-tag">${t}</span>`).join('')}</div>
       </div>
