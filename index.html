@@ -708,6 +708,12 @@
   /* ─── JOURNAL TABLE ROW ─── */
   .jt-symbol { font-family:var(--mono); font-weight:700; }
   .jt-pnl { font-family:var(--mono); font-weight:700; }
+  .r-badge {
+    font-family:var(--mono); font-size:11px; font-weight:700;
+    padding:2px 7px; border-radius:3px; flex-shrink:0;
+  }
+  .r-badge.profit { background:var(--green-dim); color:var(--green); }
+  .r-badge.loss { background:var(--red-dim); color:var(--red); }
 
   /* ─── LIBRARY LAYOUT (folder tree + main) ─── */
   .lib-layout { display:flex; gap:18px; align-items:flex-start; }
@@ -1132,7 +1138,65 @@
   body.anim-lively .card:hover { transform: translateY(-7px) scale(1.012) !important; }
   body.anim-lively .topbar-btn:hover { transform: translateY(-3px) scale(1.03) !important; }
   body.anim-lively .nav-item:hover { transform: translateX(5px) scale(1.015) !important; }
+
+  /* ═══════════ RESPONSIVE / MOBILE ═══════════ */
+  .sidebar-backdrop {
+    display:none; position:fixed; inset:0; top:36px; background:rgba(0,0,0,0.55);
+    z-index:99; backdrop-filter:blur(2px);
+  }
+  .mobile-menu-btn { display:none; }
+
+  @media (max-width: 900px) {
+    .sidebar { left:-228px; transition: left .22s cubic-bezier(.4,0,.2,1), width .22s; }
+    .sidebar.mobile-open { left:0; box-shadow: 20px 0 40px rgba(0,0,0,0.5); }
+    .sidebar.collapsed { left:-228px; width:228px; }
+    .sidebar.collapsed.mobile-open { left:0; }
+    .sidebar.collapsed .logo-text-wrap,
+    .sidebar.collapsed .nav-label,
+    .sidebar.collapsed .nav-text,
+    .sidebar.collapsed .nav-badge { display:revert; }
+    .sidebar.collapsed .nav-item { justify-content:flex-start; padding:8px 10px; }
+    .sidebar-toggle { display:none; }
+    .mobile-menu-btn {
+      display:flex; align-items:center; justify-content:center;
+      width:34px; height:34px; border-radius:var(--radius-sm);
+      background:rgba(255,255,255,0.04); border:1px solid var(--border);
+      color:var(--text-dim); font-size:16px; cursor:pointer; margin-right:8px;
+      flex-shrink:0;
+    }
+    .sidebar-backdrop.show { display:block; }
+
+    .main, .main.sidebar-collapsed { margin-left:0; }
+
+    .topbar { padding:10px 14px; flex-wrap:wrap; gap:8px; }
+    .page-title { font-size:16px; }
+    .content { padding:14px; }
+
+    .grid-5, .grid-4, .grid-3 { grid-template-columns:repeat(2,1fr); }
+    .grid-2, .grid-21, .grid-12 { grid-template-columns:1fr; }
+    .journal-grid, .lib-grid { grid-template-columns:1fr; }
+    .calc-grid { grid-template-columns:1fr; }
+
+    .lib-layout { flex-direction:column; }
+    .folder-tree { width:100%; position:static; }
+
+    .modal { width:94vw !important; max-width:94vw !important; }
+
+    .flex-between { flex-wrap:wrap; gap:10px; }
+  }
+
+  @media (max-width: 560px) {
+    .grid-5, .grid-4, .grid-3, .grid-2 { grid-template-columns:1fr; }
+    .trade-card-prices { grid-template-columns:1fr 1fr; }
+    .stat-value { font-size:21px; }
+    .page-title { font-size:15px; }
+    .tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; }
+    .data-table { font-size:11.5px; }
+    .data-table th, .data-table td { padding:8px 8px; }
+  }
 </style>
+
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
 <!-- ══════════════════════════════════════════════
      ✨ UX LAYER — Spotlight · Commands · Cursor · Sound
@@ -2331,6 +2395,10 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         <label class="form-label">Lot / Hajm</label>
         <input class="form-input" id="m-lot" type="number" placeholder="0.10">
       </div>
+      <div class="form-group">
+        <label class="form-label">Risk miqdori ($) <span class="text-muted" style="font-weight:400">— ixtiyoriy, R hisoblash uchun</span></label>
+        <input class="form-input" id="m-risk" type="number" min="0" placeholder="50">
+      </div>
     </div>
     <div class="grid-2">
       <div class="form-group">
@@ -2490,10 +2558,14 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     <div id="tv-shot-wrap" style="display:none;margin-bottom:14px;text-align:center">
       <img id="tv-shot" src="" style="max-width:100%;max-height:320px;border-radius:2px;border:1px solid var(--border)">
     </div>
-    <div class="grid-3" style="margin-bottom:14px;gap:10px">
+    <div class="grid-4" style="margin-bottom:14px;gap:10px">
       <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">P&L</div>
         <div id="tv-pnl" class="fw-700 mt-4" style="font-size:18px"></div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
+        <div class="text-muted text-sm">R-Multiple</div>
+        <div id="tv-rmultiple" class="fw-700 mt-4" style="font-size:18px"></div>
       </div>
       <div style="background:rgba(255,255,255,0.03);border-radius:2px;padding:12px;text-align:center">
         <div class="text-muted text-sm">Sessiya</div>
@@ -2923,9 +2995,12 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
   <!-- MAIN -->
   <div class="main" id="app-main">
     <div class="topbar">
-      <div>
-        <div class="page-title" id="top-title">Dashboard</div>
-        <div class="page-sub" id="top-sub">Bugungi holatingiz</div>
+      <div style="display:flex;align-items:center">
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Menyu">☰</button>
+        <div>
+          <div class="page-title" id="top-title">Dashboard</div>
+          <div class="page-sub" id="top-sub">Bugungi holatingiz</div>
+        </div>
       </div>
       <div class="topbar-right">
         <div class="flex-center gap-8 text-sm text-muted" id="live-time"></div>
@@ -3193,6 +3268,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
               <button class="view-btn active" data-view="grid" onclick="setJournalView('grid')" title="Kartalar">▦</button>
               <button class="view-btn" data-view="table" onclick="setJournalView('table')" title="Jadval">☰</button>
             </div>
+            <button class="btn btn-outline" onclick="exportJournalCSV()" title="CSV formatida yuklab olish">📥 Export</button>
             <button class="btn btn-primary" onclick="openModal('tradeModal')">➕ Yangi Bitim</button>
           </div>
         </div>
@@ -3207,7 +3283,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
               <thead>
                 <tr>
                   <th>Sana</th><th>Juftlik</th><th>Yo'nalish</th><th>Kirish</th><th>Chiqish</th>
-                  <th>Lot</th><th>P&L</th><th>Strategiya</th><th>Sessiya</th><th>Kayfiyat</th><th></th>
+                  <th>Lot</th><th>P&L</th><th>R</th><th>Strategiya</th><th>Sessiya</th><th>Kayfiyat</th><th></th>
                 </tr>
               </thead>
               <tbody id="journal-table-body"></tbody>
@@ -3372,7 +3448,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
           <div id="ai-attach-preview" style="display:none;padding:0 18px;"></div>
           <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-outline btn-sm" onclick="quickAskTradeAnalysis()">📊 Savdo statistikamni tahlil qil</button>
+              <button class="btn btn-outline btn-sm" onclick="quickAskTradeAnalysis()">📊 Savdo naqshlarimni chuqur tahlil qil</button>
               <button class="btn btn-outline btn-sm" onclick="document.getElementById('ai-image-input').click()">🖼️ Rasm yuklash</button>
               <button class="btn btn-outline btn-sm" onclick="document.getElementById('ai-file-input').click()">📎 Fayl yuklash</button>
             </div>
@@ -4891,6 +4967,18 @@ const subs = {
   'checklist':'Bitim ochishdan oldin tekshiring','calendar':'Kunlik foyda/zarar va yangiliklar',
   'strategies':'Savdo strategiyalari','goals':'Maqsad va risk nazorati','analytics':'Chuqur tahlil','animations':'Effektlar va animatsiya sozlamalari','settings':'Hisob sozlamalari'
 };
+// ─── MOBILE SIDEBAR ───
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const isOpen = sidebar.classList.toggle('mobile-open');
+  backdrop.classList.toggle('show', isOpen);
+}
+function closeMobileSidebar() {
+  document.getElementById('app-sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
+
 function nav(id, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4898,6 +4986,7 @@ function nav(id, el) {
   el.classList.add('active');
   document.getElementById('top-title').textContent = pages[id];
   document.getElementById('top-sub').textContent = subs[id];
+  if(window.innerWidth <= 900) closeMobileSidebar();
   if(id==='analytics') { renderAnalytics(); setTimeout(()=>{drawAnalyticsChart();drawWeekdayChart();},80); }
   if(id==='video-lessons') renderVideoLessons();
   if(id==='strategies') renderStrategies();
@@ -5063,6 +5152,8 @@ function saveTrade() {
   const tagsRaw = document.getElementById('m-tags').value.trim();
   const tags = tagsRaw ? tagsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
   const pnlAmount = Math.abs(parseFloat(document.getElementById('m-pnl-amount').value)||0);
+  const riskAmount = Math.abs(parseFloat(document.getElementById('m-risk').value)||0);
+  const pnlSigned = currentPnlType==='loss' ? -pnlAmount : pnlAmount;
   const t = {
     id: Date.now(),
     symbol: sym.toUpperCase(),
@@ -5070,7 +5161,9 @@ function saveTrade() {
     entry: parseFloat(document.getElementById('m-entry').value)||0,
     exit: parseFloat(document.getElementById('m-exit').value)||0,
     lot: parseFloat(document.getElementById('m-lot').value)||0,
-    pnl: currentPnlType==='loss' ? -pnlAmount : pnlAmount,
+    pnl: pnlSigned,
+    risk: riskAmount,
+    rMultiple: riskAmount>0 ? (pnlSigned/riskAmount) : null,
     strategy: document.getElementById('m-strat').value,
     emotion: document.getElementById('m-emotion').value,
     session: document.getElementById('m-session').value,
@@ -5083,7 +5176,7 @@ function saveTrade() {
   localStorage.setItem('tp-trades', JSON.stringify(trades));
   if(pendingTradeShot) { saveFileIDB('shot-'+t.id, pendingTradeShot); idbCache['shot-'+t.id] = pendingTradeShot; }
   closeModal('tradeModal');
-  ['m-symbol','m-entry','m-exit','m-lot','m-pnl-amount','m-note','m-tags'].forEach(id=>document.getElementById(id).value='');
+  ['m-symbol','m-entry','m-exit','m-lot','m-pnl-amount','m-risk','m-note','m-tags'].forEach(id=>document.getElementById(id).value='');
   setPnlType('profit');
   document.getElementById('m-emotion').value = 'calm';
   document.getElementById('m-session').value = 'asia';
@@ -5105,6 +5198,14 @@ async function openTradeView(id) {
   document.getElementById('tv-symbol').textContent = `${t.symbol} — ${t.dir}`;
   document.getElementById('tv-pnl').textContent = fmt(t.pnl);
   document.getElementById('tv-pnl').className = 'fw-700 mt-4 '+(t.pnl>=0?'text-green':'text-red');
+  const rmEl = document.getElementById('tv-rmultiple');
+  if(t.rMultiple!=null) {
+    rmEl.textContent = (t.rMultiple>=0?'+':'')+t.rMultiple.toFixed(2)+'R';
+    rmEl.className = 'fw-700 mt-4 '+(t.rMultiple>=0?'text-green':'text-red');
+  } else {
+    rmEl.textContent = '—';
+    rmEl.className = 'fw-700 mt-4 text-muted';
+  }
   const sessionLabels = {asia:'🌏 Asia',london:'🇬🇧 London',ny:'🇺🇸 New York',overlap:'🔁 Overlap'};
   document.getElementById('tv-session').textContent = sessionLabels[t.session] || '—';
   document.getElementById('tv-date').textContent = t.date;
@@ -5530,6 +5631,33 @@ const EMOTION_MAP = {
   greed:{label:"Ochko'zlik",icon:"🤑"}, revenge:{label:"Qasos",icon:"😤"}
 };
 let journalView = localStorage.getItem('tp-journal-view') || 'grid';
+let lastJournalData = [];
+function csvEscape(v) {
+  const s = String(v==null?'':v);
+  if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function exportJournalCSV() {
+  const data = lastJournalData;
+  if(!data || !data.length) { showToast('📭 Eksport qilinadigan bitim yo\'q', 'error'); return; }
+  const headers = ['Sana','Juftlik','Yonalish','Kirish','Chiqish','Lot','PnL','Risk','R-Multiple','Strategiya','Sessiya','Kayfiyat','Teglar','Izoh'];
+  const sessionLabels = {asia:'Asia',london:'London',ny:'NY',overlap:'Overlap'};
+  const rows = data.map(t=>[
+    t.date, t.symbol, t.dir, t.entry, t.exit, t.lot, t.pnl,
+    t.risk||'', t.rMultiple!=null?t.rMultiple.toFixed(2):'',
+    t.strategy||'', sessionLabels[t.session]||t.session||'',
+    (EMOTION_MAP[t.emotion]||{}).label||'', (t.tags||[]).join(' | '), t.note||''
+  ]);
+  const csv = [headers, ...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `traderpro-jurnal-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ CSV fayl yuklandi', 'success');
+}
 function setJournalView(v) {
   journalView = v;
   localStorage.setItem('tp-journal-view', v);
@@ -5603,6 +5731,7 @@ function renderJournal() {
   else if(sortVal==='low') data.sort((a,b)=>a.pnl-b.pnl);
 
   renderJournalStats(data);
+  lastJournalData = data;
 
   const wrap = document.getElementById('journal-cards');
   const tbody = document.getElementById('journal-table-body');
@@ -5611,7 +5740,7 @@ function renderJournal() {
 
   if(!data.length) {
     wrap.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</div>';
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</td></tr>';
     return;
   }
 
@@ -5619,13 +5748,17 @@ function renderJournal() {
     const em = EMOTION_MAP[t.emotion] || null;
     const isProfit = t.pnl>=0;
     const tagsHtml = (t.tags||[]).slice(0,3).map(tag=>`<span class="lib-tag">${tag}</span>`).join('');
+    const rBadge = (t.rMultiple!=null) ? `<span class="r-badge ${t.rMultiple>=0?'profit':'loss'}">${t.rMultiple>=0?'+':''}${t.rMultiple.toFixed(2)}R</span>` : '';
     return `
     <div class="trade-card">
       <div class="trade-card-strip ${isProfit?'profit':'loss'}"></div>
       <div class="trade-card-body">
         <div class="trade-card-head">
           <div class="trade-card-symbol">${t.symbol}</div>
-          <div class="trade-card-pnl ${isProfit?'profit':'loss'}">${fmt(t.pnl)}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${rBadge}
+            <div class="trade-card-pnl ${isProfit?'profit':'loss'}">${fmt(t.pnl)}</div>
+          </div>
         </div>
         <div class="trade-card-meta">
           <span class="badge ${t.dir==='BUY'?'buy':'sell'}" style="padding:2px 9px">${t.dir==='BUY'?'▲':'▼'} ${t.dir}</span>
@@ -5663,6 +5796,7 @@ function renderJournal() {
       <td class="mono">${t.exit}</td>
       <td class="mono">${t.lot}</td>
       <td class="jt-pnl ${isProfit?'profit':'loss'}">${fmt(t.pnl)}</td>
+      <td class="mono ${t.rMultiple!=null?(t.rMultiple>=0?'text-green':'text-red'):'text-muted'}">${t.rMultiple!=null?(t.rMultiple>=0?'+':'')+t.rMultiple.toFixed(2)+'R':'—'}</td>
       <td class="text-muted text-sm">${t.strategy||'—'}</td>
       <td class="text-muted text-sm">${journalSessionLabels[t.session]||'—'}</td>
       <td class="text-muted text-sm">${em?`${em.icon} ${em.label}`:'—'}</td>
@@ -8630,15 +8764,53 @@ function clearAIChat() {
 
 function quickAskTradeAnalysis() {
   if (!trades.length) { showToast('Hali bitim mavjud emas', 'warning'); return; }
-  const recent = trades.slice(0, 20);
+  const recent = trades.slice(0, 50);
   const total = recent.reduce((s, t) => s + t.pnl, 0);
   const wins = recent.filter(t => t.pnl > 0).length;
   const wr = Math.round(wins / recent.length * 100);
-  const emotionLossMap = {};
-  recent.forEach(t => { if (t.pnl < 0) emotionLossMap[t.emotion] = (emotionLossMap[t.emotion] || 0) + 1; });
-  const worstEmotion = Object.keys(emotionLossMap).sort((a, b) => emotionLossMap[b] - emotionLossMap[a])[0];
-  const compact = recent.map(t => `${t.symbol} ${t.dir} pnl:${t.pnl} emotion:${t.emotion} session:${t.session || '-'} strategy:${t.strategy}`).join('\n');
-  const prompt = `Mening oxirgi ${recent.length} ta bitimimni tahlil qiling. Umumiy P&L: ${total.toFixed(2)}, win rate: ${wr}%, eng ko'p zarar bilan bog'liq hissiyot: ${worstEmotion || "ma'lum emas"}.\n\nBitimlar:\n${compact}\n\nEng katta zaiflik nuqtamni, kuchli tomonimni va 1 ta aniq tavsiyani ayting.`;
+
+  // Breakdown helper: win rate + net pnl per group key
+  function breakdown(keyFn) {
+    const groups = {};
+    recent.forEach(t => {
+      const k = keyFn(t) || 'nomalum';
+      if (!groups[k]) groups[k] = { count: 0, wins: 0, pnl: 0 };
+      groups[k].count++;
+      if (t.pnl > 0) groups[k].wins++;
+      groups[k].pnl += t.pnl;
+    });
+    return Object.entries(groups)
+      .map(([k, g]) => `${k}: ${g.count} bitim, win rate ${Math.round(g.wins / g.count * 100)}%, net ${g.pnl.toFixed(2)}`)
+      .join('; ');
+  }
+
+  const sessionLabels = {asia:'Asia',london:'London',ny:'NY',overlap:'Overlap'};
+  const bySession = breakdown(t => sessionLabels[t.session] || t.session);
+  const byEmotion = breakdown(t => (EMOTION_MAP[t.emotion]||{}).label || t.emotion);
+  const byStrategy = breakdown(t => t.strategy);
+  const byWeekday = breakdown(t => {
+    const d = parseTradeDate ? parseTradeDate(t) : null;
+    if (!d) return null;
+    return ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'][d.getDay()];
+  });
+
+  const rTrades = recent.filter(t => t.rMultiple != null);
+  const avgR = rTrades.length ? (rTrades.reduce((s,t)=>s+t.rMultiple,0)/rTrades.length).toFixed(2) : null;
+
+  const prompt = `Sen professional trading murabbiysan. Mening oxirgi ${recent.length} ta bitimim statistikasi asosida chuqur tahlil ber.
+
+UMUMIY: Jami P&L ${total.toFixed(2)}, Win Rate ${wr}%${avgR!=null ? `, O'rtacha R-multiple ${avgR}R` : ''}.
+
+SESSIYA BO'YICHA: ${bySession || "ma'lumot yo'q"}
+HISSIYOT BO'YICHA: ${byEmotion || "ma'lumot yo'q"}
+STRATEGIYA BO'YICHA: ${byStrategy || "ma'lumot yo'q"}
+HAFTA KUNI BO'YICHA: ${byWeekday || "ma'lumot yo'q"}
+
+Shu ma'lumotlar asosida O'ZBEK TILIDA, markdown belgilarisiz quyidagilarni ayt:
+1) Eng aniq naqsh (masalan, qaysi sessiya/hissiyot/kun eng zararli yoki eng foydali)
+2) Eng kuchli tomonim
+3) 2 ta aniq, amaliy tavsiya (masalan "London sessiyasida ehtiyot bo'ling" kabi)
+Qisqa va aniq yoz, 6-8 jumladan oshmasin.`;
   sendAIMessage(prompt);
 }
 </script>
