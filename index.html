@@ -2934,6 +2934,10 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         <span class="nav-icon">📡</span>
         <span class="nav-text">Live Charts</span>
       </button>
+      <button data-label="Market Signal" class="nav-item" onclick="nav('market-signals',this)">
+        <span class="nav-icon">🚨</span>
+        <span class="nav-text">Market Signal</span>
+      </button>
     </div>
 
     <div class="nav-section" style="margin-top:8px">
@@ -3422,6 +3426,76 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <div id="tv-live-chart" style="height:640px;width:100%"></div>
+        </div>
+      </div>
+
+      <!-- ════ MARKET SIGNAL & NEWS ════ -->
+      <div class="page" id="page-market-signals">
+        <div class="card" style="margin-bottom:14px;border:1px solid var(--gold-dim);padding:12px 14px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:16px;line-height:1">⚠️</span>
+            <div style="font-size:12px;color:var(--text-dim);line-height:1.55">
+              Bu signallar <b>real narx ma'lumoti</b> asosida hisoblangan texnik indikatorlar (EMA, RSI, MACD, struktura) kombinatsiyasidan olinadi.
+              Hech qanday tizim <b>90–95% aniqlik kafolati</b> bera olmaydi — bunday va'da beradigan har qanday xizmatga ishonmang.
+              Signal faqat qo'shimcha tahlil vositasi, moliyaviy maslahat emas. Har doim o'z Stop Loss va risk-menejmentingizni qo'llang.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-between" style="margin-bottom:10px">
+          <div class="page-sub" style="margin:0;font-size:12px">Oxirgi yangilanish: <span id="ms-updated">—</span></div>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:11.5px" onclick="loadMarketSignals()">🔄 Yangilash</button>
+        </div>
+
+        <div class="card" id="tg-settings-card" style="margin-bottom:14px;padding:14px">
+          <div class="flex-between" style="cursor:pointer" onclick="toggleTGPanel()">
+            <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">📨 Telegram Alert <span id="tg-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text-muted)"></span></div>
+            <span id="tg-toggle-arrow" style="font-size:11px;color:var(--text-muted)">▾</span>
+          </div>
+          <div id="tg-panel-body" style="display:none;margin-top:12px">
+            <div class="text-muted text-sm" style="margin-bottom:10px;font-size:11.5px;line-height:1.5">
+              1) Telegram'da <b>@BotFather</b>'ga yozib <code>/newbot</code> orqali bot yarating, Token oling.<br>
+              2) Botni kanalingizga <b>admin</b> qilib qo'shing.<br>
+              3) Chat ID sifatida kanal username'ini <code>@kanalim</code> shaklida yozing (kanal public bo'lsa) yoki raqamli chat ID kiriting.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <input class="form-input" id="tg-token-input" placeholder="Bot Token (masalan: 123456:AAExxxxxxxxxx)">
+              <input class="form-input" id="tg-chat-input" placeholder="Chat ID yoki @kanal_username">
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);margin-top:2px">
+                <input type="checkbox" id="tg-auto-toggle" onchange="setTGAuto(this.checked)">
+                Signal o'zgarganda avtomatik yuborish (BUY/SELL o'zgarganda)
+              </label>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <button class="btn btn-primary" style="flex:1;padding:8px;font-size:12px" onclick="saveTGConfigFromUI()">💾 Saqlash</button>
+                <button class="btn btn-outline" style="padding:8px 14px;font-size:12px" onclick="testTGAlert()">✉️ Test</button>
+                <button class="btn btn-outline" style="padding:8px 14px;font-size:12px" onclick="clearTGConfig()">🗑️</button>
+              </div>
+              <div id="tg-config-msg" class="text-sm" style="font-size:11px;min-height:14px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ms-signal-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px">
+          <div class="card text-muted text-sm" style="text-align:center;padding:30px">Signal yuklanmoqda...</div>
+        </div>
+
+        <div class="card" style="padding:14px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px">📰 Market Yangiliklar</div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+            {
+              "feedMode": "market",
+              "market": "forex",
+              "colorTheme": "dark",
+              "isTransparent": true,
+              "displayMode": "regular",
+              "width": "100%",
+              "height": 500,
+              "locale": "ru"
+            }
+            </script>
+          </div>
         </div>
       </div>
 
@@ -4955,6 +5029,7 @@ function buildTicker() {
 // ─── NAV ───
 const pages = {
   'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','video-lessons':'Video Darsliklar','livecharts':'Live Charts',
+  'market-signals':'Market Signal',
   'ai-assistant':'AI Yordamchi',
   'calc':'Kalkulyator','checklist':'Pre-Trade Tekshiruv','calendar':'P&L Kalendar',
   'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','animations':'Animatsiyalar','settings':'Sozlamalar'
@@ -4962,6 +5037,7 @@ const pages = {
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
   'library':'Bilim va materiallar','video-lessons':'Video darslar to\'plami — hajmi cheklanmagan yuklash','livecharts':'Real vaqtli bozor grafiklari (TradingView)',
+  'market-signals':'Real narx ma\'lumotiga asoslangan texnik signal va bozor yangiliklari',
   'ai-assistant':'Savol bering, rasm yoki fayl yuboring — AI yordam beradi',
   'calc':'Trading vositalari',
   'checklist':'Bitim ochishdan oldin tekshiring','calendar':'Kunlik foyda/zarar va yangiliklar',
@@ -4996,6 +5072,7 @@ function nav(id, el) {
   if(id==='calendar') { renderCalendar(); renderEconCalendar(); }
   if(id==='animations') updateAnimStyleUI();
   if(id==='livecharts') initLiveChart();
+  if(id==='market-signals') initMarketSignals();
   if(id==='ai-assistant') initAIAssistant();
 }
 
@@ -5101,6 +5178,323 @@ function changeChartInterval() {
   const sel = document.getElementById('lc-interval');
   __currentChartInterval = sel.value;
   loadTVScript().then(() => renderTVWidget(__currentChartSymbol, __currentChartInterval));
+}
+
+
+// ─── MARKET SIGNAL (real narx ma'lumotiga asoslangan texnik tahlil) ───
+// Binance (kalitsiz, ochiq API) — Oltin proksi (PAXG/USDT) va Bitcoin uchun soatlik sham ma'lumoti
+// Frankfurter (kalitsiz, ECB) — EUR/USD kunlik tarix, AQSh dollari kuchi proksi sifatida
+window.__msInited = false;
+
+function calcEMA(values, period) {
+  if (values.length < period) return values.map(()=>null);
+  const k = 2/(period+1);
+  const out = new Array(values.length).fill(null);
+  let ema = values.slice(0, period).reduce((a,b)=>a+b,0) / period;
+  out[period-1] = ema;
+  for (let i = period; i < values.length; i++) {
+    ema = values[i]*k + ema*(1-k);
+    out[i] = ema;
+  }
+  return out;
+}
+
+function calcRSI(values, period) {
+  period = period || 14;
+  const out = new Array(values.length).fill(null);
+  if (values.length <= period) return out;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = values[i] - values[i-1];
+    if (diff >= 0) gain += diff; else loss -= diff;
+  }
+  let avgGain = gain/period, avgLoss = loss/period;
+  out[period] = 100 - 100/(1 + (avgLoss===0 ? 100 : avgGain/avgLoss));
+  for (let i = period+1; i < values.length; i++) {
+    const diff = values[i] - values[i-1];
+    const g = diff > 0 ? diff : 0;
+    const l = diff < 0 ? -diff : 0;
+    avgGain = (avgGain*(period-1) + g) / period;
+    avgLoss = (avgLoss*(period-1) + l) / period;
+    const rs = avgLoss === 0 ? 100 : avgGain/avgLoss;
+    out[i] = 100 - 100/(1+rs);
+  }
+  return out;
+}
+
+function calcMACDHistogram(values, fast, slow, signalP) {
+  fast = fast||12; slow = slow||26; signalP = signalP||9;
+  const emaFast = calcEMA(values, fast);
+  const emaSlow = calcEMA(values, slow);
+  const macdLine = values.map((_,i)=> (emaFast[i]!=null && emaSlow[i]!=null) ? emaFast[i]-emaSlow[i] : null);
+  const firstIdx = macdLine.findIndex(v=>v!=null);
+  if (firstIdx === -1) return new Array(values.length).fill(null);
+  const macdValues = macdLine.slice(firstIdx).map(v=>v);
+  const signalArr = calcEMA(macdValues, signalP);
+  const signalLine = new Array(values.length).fill(null);
+  for (let i=0; i<signalArr.length; i++) if (signalArr[i]!=null) signalLine[firstIdx+i] = signalArr[i];
+  return macdLine.map((v,i)=> (v!=null && signalLine[i]!=null) ? v - signalLine[i] : null);
+}
+
+function computeSignal(closes) {
+  const ema20 = calcEMA(closes, 20);
+  const ema50 = calcEMA(closes, 50);
+  const rsiArr = calcRSI(closes, 14);
+  const macdHistArr = calcMACDHistogram(closes, 12, 26, 9);
+  const last = closes.length - 1;
+  const price = closes[last];
+  const recent = closes.slice(-20);
+  const recentHigh = Math.max(...recent);
+  const recentLow = Math.min(...recent);
+
+  let score = 0;
+  const checks = [];
+
+  if (ema20[last] != null && ema50[last] != null) {
+    if (ema20[last] > ema50[last]) { score++; checks.push({name:'EMA20 > EMA50 — trend yuqoriga', up:true}); }
+    else { score--; checks.push({name:'EMA20 < EMA50 — trend pastga', up:false}); }
+  }
+  const rsi = rsiArr[last];
+  if (rsi != null) {
+    if (rsi > 55) { score++; checks.push({name:`RSI ${rsi.toFixed(1)} — kuchli zona`, up:true}); }
+    else if (rsi < 45) { score--; checks.push({name:`RSI ${rsi.toFixed(1)} — zaif zona`, up:false}); }
+    else { checks.push({name:`RSI ${rsi.toFixed(1)} — neytral zona`, up:null}); }
+  }
+  const macdHist = macdHistArr[last];
+  if (macdHist != null) {
+    if (macdHist > 0) { score++; checks.push({name:'MACD gistogramma musbat', up:true}); }
+    else { score--; checks.push({name:'MACD gistogramma manfiy', up:false}); }
+  }
+  if (price >= recentHigh*0.999) { score++; checks.push({name:"20-davr yuqorisiga yaqin / breakout", up:true}); }
+  else if (price <= recentLow*1.001) { score--; checks.push({name:"20-davr pastiga yaqin / breakdown", up:false}); }
+  else { checks.push({name:"Range ichida — breakout yo'q", up:null}); }
+
+  let label, cls;
+  if (score >= 3) { label = 'KUCHLI BUY'; cls = 'buy'; }
+  else if (score >= 1) { label = 'BUY'; cls = 'buy'; }
+  else if (score <= -3) { label = 'KUCHLI SELL'; cls = 'sell'; }
+  else if (score <= -1) { label = 'SELL'; cls = 'sell'; }
+  else { label = 'NEYTRAL'; cls = 'neutral'; }
+
+  return { score, label, cls, checks };
+}
+
+function invertSignal(sig) {
+  const label = sig.label.replace('BUY','__T__').replace('SELL','BUY').replace('__T__','SELL');
+  const cls = sig.cls === 'buy' ? 'sell' : (sig.cls === 'sell' ? 'buy' : 'neutral');
+  return {
+    score: -sig.score,
+    label, cls,
+    checks: sig.checks.map(c => ({ name: c.name, up: c.up === null ? null : !c.up }))
+  };
+}
+
+async function fetchBinanceKlines(symbol, interval, limit) {
+  const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
+  if (!res.ok) throw new Error('Binance API xatosi ('+res.status+')');
+  return res.json();
+}
+async function fetchBinanceTicker(symbol) {
+  const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+  if (!res.ok) throw new Error('Ticker olinmadi');
+  return res.json();
+}
+
+window.__msData = {}; // id -> {title, sig, price, decimals}
+
+function signalCardHTML(id, title, note, sig, price, chgPct, timeframe, decimals) {
+  window.__msData[id] = { title, sig, price, decimals };
+  const chgColor = chgPct >= 0 ? 'var(--green)' : 'var(--red)';
+  const badgeColor = { buy:'var(--green)', sell:'var(--red)', neutral:'var(--text-muted)' }[sig.cls];
+  const badgeBg = { buy:'var(--green-dim)', sell:'var(--red-dim)', neutral:'rgba(255,255,255,0.06)' }[sig.cls];
+  const priceStr = Number(price).toLocaleString(undefined, { maximumFractionDigits: decimals!=null?decimals:2 });
+  return `<div class="card" style="padding:16px">
+    <div class="flex-between" style="margin-bottom:6px;gap:8px">
+      <div style="font-weight:600;font-size:13.5px">${title}</div>
+      <span style="font-size:9.5px;padding:3px 9px;border-radius:20px;font-weight:700;letter-spacing:.3px;white-space:nowrap;background:${badgeBg};color:${badgeColor}">${sig.label}</span>
+    </div>
+    <div class="text-muted" style="margin-bottom:10px;font-size:10.5px">${note} • ${timeframe}</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+      <span style="font-family:var(--mono);font-size:19px;font-weight:600">${priceStr}</span>
+      <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:${chgColor}">${chgPct>=0?'▲':'▼'} ${Math.abs(chgPct).toFixed(2)}%</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${sig.checks.map(c=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim)"><span style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${c.up===true?'var(--green)':c.up===false?'var(--red)':'var(--text-muted)'}"></span>${c.name}</div>`).join('')}
+    </div>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted)">Konfluensiya: ${Math.abs(sig.score)}/4 indikator ${sig.score>0?'BUY':sig.score<0?'SELL':'—'} tomonida. Bu ehtimollik foizi emas — oddiy indikator hisob-kitobi.</div>
+    <button class="btn btn-outline" style="width:100%;margin-top:10px;padding:7px;font-size:11px" onclick="sendCardAlert('${id}', this)">📨 Telegram'ga yuborish</button>
+  </div>`;
+}
+
+async function loadCryptoSignal(id, symbol, title, note, decimals) {
+  const [klines, ticker] = await Promise.all([
+    fetchBinanceKlines(symbol, '1h', 150),
+    fetchBinanceTicker(symbol)
+  ]);
+  const closes = klines.map(k => parseFloat(k[4]));
+  const sig = computeSignal(closes);
+  return signalCardHTML(id, title, note, sig, parseFloat(ticker.lastPrice), parseFloat(ticker.priceChangePercent), '1 soatlik grafik (Binance)', decimals);
+}
+
+async function loadForexSignal() {
+  const end = new Date();
+  const start = new Date(); start.setDate(start.getDate() - 150);
+  const f = d => d.toISOString().slice(0,10);
+  const res = await fetch(`https://api.frankfurter.dev/v1/${f(start)}..${f(end)}?base=EUR&symbols=USD`);
+  if (!res.ok) throw new Error('Frankfurter API xatosi');
+  const data = await res.json();
+  const dates = Object.keys(data.rates).sort();
+  const eurusd = dates.map(d => data.rates[d].USD);
+  const sig = computeSignal(eurusd);
+  const usdSig = invertSignal(sig);
+  const last = eurusd[eurusd.length-1], prev = eurusd[eurusd.length-2];
+  const dxyProxyChg = ((prev - last) / prev) * 100; // USD kuchi EUR/USD ga teskari harakatlanadi
+  return signalCardHTML('usd', '💵 AQSh Dollari (EUR/USD orqali proksi)', "ECB kunlik yopilish narxi — real vaqtli emas, kuniga ~1 marta yangilanadi", usdSig, 1/last, dxyProxyChg, 'Kunlik yopilish, EUR/USD teskari', 4);
+}
+
+async function loadMarketSignals() {
+  const container = document.getElementById('ms-signal-cards');
+  if (!container) return;
+  container.innerHTML = '<div class="card text-muted text-sm" style="text-align:center;padding:30px;grid-column:1/-1">Signal yuklanmoqda...</div>';
+  const results = await Promise.allSettled([
+    loadCryptoSignal('gold', 'PAXGUSDT', "🥇 Oltin (XAU/USD proksi)", 'Tokenlashtirilgan oltin narxi (Binance PAXG) — spot XAU/USD ga yaqin', 2),
+    loadCryptoSignal('btc', 'BTCUSDT', '₿ Bitcoin (BTC/USD)', 'Binance spot narxi', 0),
+    loadForexSignal()
+  ]);
+  container.innerHTML = results.map(r => r.status === 'fulfilled'
+    ? r.value
+    : `<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--red)">⚠️ Yuklab bo'lmadi: ${(r.reason && r.reason.message) || "noma'lum xatolik"}</div></div>`
+  ).join('');
+  const upd = document.getElementById('ms-updated');
+  if (upd) upd.textContent = new Date().toLocaleTimeString('ru-RU');
+  checkTGAutoAlerts();
+}
+
+function initMarketSignals() {
+  loadMarketSignals();
+  updateTGUI();
+  if (!window.__msInited) {
+    window.__msInited = true;
+    setInterval(() => {
+      const page = document.getElementById('page-market-signals');
+      if (page && page.classList.contains('active')) loadMarketSignals();
+    }, 5*60*1000);
+  }
+}
+
+// ─── TELEGRAM ALERT ───
+function toggleTGPanel() {
+  const body = document.getElementById('tg-panel-body');
+  const arrow = document.getElementById('tg-toggle-arrow');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent = open ? '▾' : '▴';
+}
+function getTGConfig() {
+  return {
+    token: localStorage.getItem('tp-tg-token') || '',
+    chat: localStorage.getItem('tp-tg-chat') || '',
+    auto: localStorage.getItem('tp-tg-auto') === '1'
+  };
+}
+function updateTGUI() {
+  const cfg = getTGConfig();
+  const tokenEl = document.getElementById('tg-token-input');
+  const chatEl = document.getElementById('tg-chat-input');
+  const autoEl = document.getElementById('tg-auto-toggle');
+  const dot = document.getElementById('tg-status-dot');
+  if (tokenEl && cfg.token) tokenEl.placeholder = '•••• saqlangan ••••';
+  if (chatEl && cfg.chat) chatEl.value = cfg.chat;
+  if (autoEl) autoEl.checked = cfg.auto;
+  if (dot) dot.style.background = (cfg.token && cfg.chat) ? 'var(--green)' : 'var(--text-muted)';
+}
+function saveTGConfigFromUI() {
+  const tokenEl = document.getElementById('tg-token-input');
+  const chatEl = document.getElementById('tg-chat-input');
+  const msgEl = document.getElementById('tg-config-msg');
+  const token = (tokenEl.value || '').trim();
+  const chat = (chatEl.value || '').trim();
+  if (!chat) { msgEl.textContent = "Chat ID kiritilmadi"; msgEl.style.color = 'var(--red)'; return; }
+  if (token) localStorage.setItem('tp-tg-token', token);
+  if (!localStorage.getItem('tp-tg-token')) { msgEl.textContent = "Bot Token kiritilmadi"; msgEl.style.color = 'var(--red)'; return; }
+  localStorage.setItem('tp-tg-chat', chat);
+  tokenEl.value = '';
+  msgEl.textContent = '✅ Saqlandi';
+  msgEl.style.color = 'var(--green)';
+  updateTGUI();
+}
+function clearTGConfig() {
+  localStorage.removeItem('tp-tg-token');
+  localStorage.removeItem('tp-tg-chat');
+  localStorage.removeItem('tp-tg-auto');
+  Object.keys(localStorage).filter(k=>k.startsWith('tp-tg-last-')).forEach(k=>localStorage.removeItem(k));
+  document.getElementById('tg-token-input').value = '';
+  document.getElementById('tg-chat-input').value = '';
+  const msgEl = document.getElementById('tg-config-msg');
+  msgEl.textContent = "🗑️ Tozalandi";
+  msgEl.style.color = 'var(--text-muted)';
+  updateTGUI();
+}
+function setTGAuto(checked) {
+  localStorage.setItem('tp-tg-auto', checked ? '1' : '0');
+}
+async function sendTelegramMessage(text) {
+  const cfg = getTGConfig();
+  if (!cfg.token || !cfg.chat) throw new Error("Bot Token yoki Chat ID sozlanmagan");
+  const res = await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: cfg.chat, text, parse_mode: 'HTML', disable_web_page_preview: true })
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.description || 'Telegram xatosi');
+  return data;
+}
+function buildAlertMessage(title, sig, price, decimals) {
+  const emoji = sig.cls === 'buy' ? '🟢' : sig.cls === 'sell' ? '🔴' : '⚪';
+  const priceStr = Number(price).toLocaleString(undefined, { maximumFractionDigits: decimals!=null?decimals:2 });
+  const lines = sig.checks.map(c => `${c.up===true?'✅':c.up===false?'❌':'➖'} ${c.name}`).join('\n');
+  return `${emoji} <b>${title}</b>\nSignal: <b>${sig.label}</b>\nNarx: <b>${priceStr}</b>\n\n${lines}\n\nKonfluensiya: ${Math.abs(sig.score)}/4\n⚠️ Bu moliyaviy maslahat emas, faqat texnik hisob-kitob. Kafolatlangan aniqlik mavjud emas.\n🕐 ${new Date().toLocaleString('ru-RU')}`;
+}
+async function sendCardAlert(id, btn) {
+  const d = window.__msData[id];
+  if (!d) return;
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Yuborilmoqda...';
+  try {
+    await sendTelegramMessage(buildAlertMessage(d.title, d.sig, d.price, d.decimals));
+    btn.textContent = '✅ Yuborildi';
+    showToast('📨 Telegram\'ga yuborildi', 'success');
+  } catch (e) {
+    btn.textContent = '⚠️ Xatolik';
+    showToast('Telegram xatosi: ' + e.message, 'error');
+  }
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2500);
+}
+async function testTGAlert() {
+  const msgEl = document.getElementById('tg-config-msg');
+  try {
+    await sendTelegramMessage("✅ TraderPro Telegram alert ulandi. Endi signal xabarlarini shu kanalda olasiz.");
+    msgEl.textContent = '✅ Test xabar yuborildi — kanalni tekshiring';
+    msgEl.style.color = 'var(--green)';
+  } catch (e) {
+    msgEl.textContent = '⚠️ ' + e.message;
+    msgEl.style.color = 'var(--red)';
+  }
+}
+function checkTGAutoAlerts() {
+  const cfg = getTGConfig();
+  if (!cfg.auto || !cfg.token || !cfg.chat) return;
+  Object.keys(window.__msData).forEach(id => {
+    const d = window.__msData[id];
+    const key = 'tp-tg-last-' + id;
+    const prevLabel = localStorage.getItem(key);
+    localStorage.setItem(key, d.sig.label);
+    if (prevLabel === null) return; // birinchi yuklanishda yubormaymiz, faqat bazaviy holatni saqlaymiz
+    if (prevLabel !== d.sig.label && d.sig.cls !== 'neutral') {
+      sendTelegramMessage(buildAlertMessage('🔔 Signal o\'zgardi: ' + d.title, d.sig, d.price, d.decimals)).catch(()=>{});
+    }
+  });
 }
 
 
