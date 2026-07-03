@@ -2551,7 +2551,7 @@ body.light-mode .ls-card { background: rgba(255,255,255,0.85); }
     </div>
     <div class="form-group">
       <label class="form-label">Chart Skrinshoti (ixtiyoriy)</label>
-      <div class="upload-zone" onclick="document.getElementById('m-shot').click()">
+      <div class="upload-zone" onclick="triggerFileUpload('m-shot')">
         <div id="m-shot-preview" class="upload-icon">🖼️</div>
         <div class="upload-text">Skrinshot tanlash</div>
         <div class="upload-sub">PNG, JPG — chart skrini</div>
@@ -5623,15 +5623,35 @@ function setPnlType(type) {
   document.getElementById('pnl-type-loss').classList.toggle('active', type==='loss');
   document.getElementById('m-pnl-label').textContent = type==='profit' ? 'Foyda Miqdori ($)' : 'Zarar Miqdori ($)';
 }
+// Fayl input disabled bo'lsa (masalan viewer-rejimida yoki hali login/admin holati
+// aniqlanmagan bo'lsa), brauzer hech qanday dialog ochmaydi va foydalanuvchi hech narsa
+// sodir bo'lmaganini ko'radi. Shu sabab bosishdan oldin holatni tekshirib, aniq xabar beramiz.
+function triggerFileUpload(inputId) {
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  if(input.disabled) {
+    if(window.__isAdmin === false) {
+      showToast('⚠️ Faqat admin (asosiy hisob) rasm/fayl yuklay oladi — admin hisobingiz bilan qayta kiring', 'error');
+    } else {
+      showToast('⏳ Hisob holati hali aniqlanmoqda, biroz kutib qayta urinib ko\'ring', 'info');
+    }
+    return;
+  }
+  input.click();
+}
 let pendingTradeShot = null;
 function previewTradeShot(input) {
   if(!input.files[0]) return;
   const file = input.files[0];
+  if(!file.type.startsWith('image/')) { showToast('❌ Faqat rasm fayllari qabul qilinadi (PNG, JPG)', 'error'); input.value=''; return; }
+  if(file.size > 8*1024*1024) { showToast('⚠️ Rasm juda katta (8MB dan kichik bo\'lishi kerak)', 'error'); input.value=''; return; }
   const reader = new FileReader();
   reader.onload = e => {
     pendingTradeShot = e.target.result;
     document.getElementById('m-shot-preview').innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:2px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${file.name}</span>`;
+    showToast('🖼️ Skrinshot tanlandi — "Saqlash" tugmasini bosing', 'success');
   };
+  reader.onerror = () => { showToast('❌ Rasmni o\'qib bo\'lmadi, qayta urinib ko\'ring', 'error'); };
   reader.readAsDataURL(file);
 }
 function saveTrade() {
@@ -5662,7 +5682,13 @@ function saveTrade() {
   };
   trades.unshift(t);
   localStorage.setItem('tp-trades', JSON.stringify(trades));
-  if(pendingTradeShot) { saveFileIDB('shot-'+t.id, pendingTradeShot); idbCache['shot-'+t.id] = pendingTradeShot; }
+  if(pendingTradeShot) {
+    idbCache['shot-'+t.id] = pendingTradeShot; // darhol shu qurilmada ko'rinishi uchun
+    saveFileIDB('shot-'+t.id, pendingTradeShot).catch(err => {
+      console.warn('Skrinshot saqlashda xatolik:', err);
+      showToast('⚠️ Bitim saqlandi, lekin skrinshot saqlanmadi', 'error');
+    });
+  }
   closeModal('tradeModal');
   ['m-symbol','m-entry','m-exit','m-lot','m-pnl-amount','m-risk','m-note','m-tags'].forEach(id=>document.getElementById(id).value='');
   setPnlType('profit');
@@ -5678,6 +5704,25 @@ function saveTrade() {
   getAITradeFeedback(t);
 }
 
+// Risk kiritilmagan (yoki 0) bitimlar uchun R-Multiple "—" ko'rinib qolmasligi uchun,
+// foydalanuvchining boshqa bitimlaridagi o'rtacha risk asosida taxminiy R hisoblaymiz.
+// Bu qiymat bitim ma'lumotiga doimiy yozilmaydi (haqiqiy risk emasligi uchun) — faqat
+// ko'rsatishda "≈" belgisi bilan taxminiy ekani bildiriladi.
+function getEffectiveRMultiple(t) {
+  if(t.risk > 0 && t.rMultiple != null) return { value: t.rMultiple, approx: false };
+  const risked = trades.filter(x => x.risk > 0 && x.id !== t.id);
+  if(!risked.length) return { value: null, approx: false };
+  const avgRisk = risked.reduce((s,x)=>s+x.risk, 0) / risked.length;
+  if(avgRisk <= 0) return { value: null, approx: false };
+  return { value: t.pnl / avgRisk, approx: true };
+}
+function formatRMultiple(t, withApproxTag) {
+  const r = getEffectiveRMultiple(t);
+  if(r.value == null) return '—';
+  const txt = (r.value>=0?'+':'')+r.value.toFixed(2)+'R';
+  return r.approx ? (txt + (withApproxTag===false ? '' : ' ≈')) : txt;
+}
+
 let currentTradeViewId = null;
 async function openTradeView(id) {
   const t = trades.find(x=>x.id===id);
@@ -5687,12 +5732,15 @@ async function openTradeView(id) {
   document.getElementById('tv-pnl').textContent = fmt(t.pnl);
   document.getElementById('tv-pnl').className = 'fw-700 mt-4 '+(t.pnl>=0?'text-green':'text-red');
   const rmEl = document.getElementById('tv-rmultiple');
-  if(t.rMultiple!=null) {
-    rmEl.textContent = (t.rMultiple>=0?'+':'')+t.rMultiple.toFixed(2)+'R';
-    rmEl.className = 'fw-700 mt-4 '+(t.rMultiple>=0?'text-green':'text-red');
+  const rEff = getEffectiveRMultiple(t);
+  if(rEff.value!=null) {
+    rmEl.textContent = (rEff.value>=0?'+':'')+rEff.value.toFixed(2)+'R' + (rEff.approx ? ' ≈' : '');
+    rmEl.className = 'fw-700 mt-4 '+(rEff.value>=0?'text-green':'text-red');
+    rmEl.title = rEff.approx ? "Risk kiritilmagan, shu sabab boshqa bitimlaringizning o'rtacha riski asosida taxminiy hisoblandi" : '';
   } else {
     rmEl.textContent = '—';
     rmEl.className = 'fw-700 mt-4 text-muted';
+    rmEl.title = '';
   }
   const sessionLabels = {asia:'🌏 Asia',london:'🇬🇧 London',ny:'🇺🇸 New York',overlap:'🔁 Overlap'};
   document.getElementById('tv-session').textContent = sessionLabels[t.session] || '—';
@@ -6236,7 +6284,8 @@ function renderJournal() {
     const em = EMOTION_MAP[t.emotion] || null;
     const isProfit = t.pnl>=0;
     const tagsHtml = (t.tags||[]).slice(0,3).map(tag=>`<span class="lib-tag">${tag}</span>`).join('');
-    const rBadge = (t.rMultiple!=null) ? `<span class="r-badge ${t.rMultiple>=0?'profit':'loss'}">${t.rMultiple>=0?'+':''}${t.rMultiple.toFixed(2)}R</span>` : '';
+    const rEff = getEffectiveRMultiple(t);
+    const rBadge = (rEff.value!=null) ? `<span class="r-badge ${rEff.value>=0?'profit':'loss'}">${rEff.value>=0?'+':''}${rEff.value.toFixed(2)}R${rEff.approx?' ≈':''}</span>` : '';
     return `
     <div class="trade-card">
       <div class="trade-card-strip ${isProfit?'profit':'loss'}"></div>
@@ -6284,7 +6333,7 @@ function renderJournal() {
       <td class="mono">${t.exit}</td>
       <td class="mono">${t.lot}</td>
       <td class="jt-pnl ${isProfit?'profit':'loss'}">${fmt(t.pnl)}</td>
-      <td class="mono ${t.rMultiple!=null?(t.rMultiple>=0?'text-green':'text-red'):'text-muted'}">${t.rMultiple!=null?(t.rMultiple>=0?'+':'')+t.rMultiple.toFixed(2)+'R':'—'}</td>
+      <td class="mono ${getEffectiveRMultiple(t).value!=null?(getEffectiveRMultiple(t).value>=0?'text-green':'text-red'):'text-muted'}">${formatRMultiple(t)}</td>
       <td class="text-muted text-sm">${t.strategy||'—'}</td>
       <td class="text-muted text-sm">${journalSessionLabels[t.session]||'—'}</td>
       <td class="text-muted text-sm">${em?`${em.icon} ${em.label}`:'—'}</td>
