@@ -5783,7 +5783,10 @@ function renderDashboard() {
   const worst = loss.length ? Math.min(...loss.map(t=>t.pnl)) : 0;
   const grossW = wins.reduce((s,t)=>s+t.pnl,0);
   const grossL = Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
-  const pf     = grossL ? (grossW/grossL) : 0;
+  // grossL=0 bo'lsa (hali zararli bitim yo'q) PF ni 0 emas, balki mavjud bo'lsa cheksiz (∞) deb ko'rsatamiz
+  const pf     = grossL ? (grossW/grossL) : (grossW>0 ? Infinity : 0);
+  const pfDisplay = pf===Infinity ? '∞' : pf.toFixed(2);
+  const pfBarPct = pf===Infinity ? 100 : Math.min(pf/3*100,100);
 
   const startBalance = settings.balance || 10000;
   const equity = startBalance + total;
@@ -5803,11 +5806,11 @@ function renderDashboard() {
   setEl('wins-count', wins.length);
   setEl('loss-count', loss.length);
   setEl('lib-count-dash', library.length);
-  setEl('pf-val', pf.toFixed(2));
-  setEl('rr-ratio', `1:${pf>0?pf.toFixed(1):'0'}`);
+  setEl('pf-val', pfDisplay);
+  setEl('rr-ratio', `1:${pf>0?(pf===Infinity?'∞':pf.toFixed(1)):'0'}`);
   document.getElementById('wr-bar').style.width = wr+'%';
-  document.getElementById('pf-bar').style.width = Math.min(pf/3*100,100)+'%';
-  document.getElementById('rr-bar').style.width = Math.min(pf/3*100,100)+'%';
+  document.getElementById('pf-bar').style.width = pfBarPct+'%';
+  document.getElementById('rr-bar').style.width = pfBarPct+'%';
   document.getElementById('trade-badge').textContent = trades.length;
   document.getElementById('lib-badge').textContent = library.length;
 
@@ -6211,7 +6214,9 @@ function renderJournalStats(data) {
   const wr = data.length ? Math.round(wins.length/data.length*100) : 0;
   const grossW = wins.reduce((s,t)=>s+t.pnl,0);
   const grossL = Math.abs(losses.reduce((s,t)=>s+t.pnl,0));
-  const pf = grossL ? (grossW/grossL) : 0;
+  const pf = grossL ? (grossW/grossL) : (grossW>0 ? Infinity : 0);
+  const pfDisplay = pf===Infinity ? '∞' : (pf>0?pf.toFixed(2):'0.00');
+  const pfRatioDisplay = pf===Infinity ? '∞' : (pf>0?pf.toFixed(1):'0');
   // best streak (win) in chronological order
   const chrono = [...data].reverse();
   let curWin=0, bestStreak=0;
@@ -6227,8 +6232,8 @@ function renderJournalStats(data) {
     <div class="card stat-card">
       <div class="stat-glow" style="background:var(--blue)"></div>
       <div class="stat-label">Profit Faktor (R:R)</div>
-      <div class="stat-value">${pf>0?pf.toFixed(2):'0.00'}</div>
-      <span class="stat-change ${pf>=1?'up':'dn'}">1:${pf>0?pf.toFixed(1):'0'}</span>
+      <div class="stat-value">${pfDisplay}</div>
+      <span class="stat-change ${pf>=1?'up':'dn'}">1:${pfRatioDisplay}</span>
     </div>
     <div class="card stat-card">
       <div class="stat-glow" style="background:var(--green)"></div>
@@ -7630,7 +7635,8 @@ function renderAnalytics() {
   const avgL  = loss.length  ? loss.reduce((s,t)=>s+t.pnl,0)/loss.length : 0;
   const grossW = wins.reduce((s,t)=>s+t.pnl,0);
   const grossL = Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
-  const pf = grossL ? grossW/grossL : 0;
+  const pf = grossL ? grossW/grossL : (grossW>0 ? Infinity : 0);
+  const pfDisplay = pf===Infinity ? '∞' : pf.toFixed(2);
 
   // Drawdown
   let peak=0, maxDD=0, running=0;
@@ -7647,13 +7653,13 @@ function renderAnalytics() {
   setEl('an-wr', wr+'%');
   setEl('an-avgw', fmt(avgW));
   setEl('an-avgl', fmt(avgL));
-  setEl('an-pf', pf.toFixed(2));
+  setEl('an-pf', pfDisplay);
   setEl('an-sharpe', sharpe);
   setEl('an-dd', fmt(-maxDD));
   setEl('an-total', trades.length);
   setEl('an-wins', wins.length);
   setEl('an-losses', loss.length);
-  const pfPct = Math.min(pf/4*100,100);
+  const pfPct = pf===Infinity ? 100 : Math.min(pf/4*100,100);
   const shPct = Math.min(Math.max(parseFloat(sharpe)/3*100,0),100);
   const ddPct = total ? Math.min(maxDD/Math.abs(total)*100,100) : 0;
   const pfBar = document.getElementById('an-pf-bar');
