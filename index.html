@@ -743,6 +743,29 @@
   @media (max-width:900px){ .lib-stats-grid { grid-template-columns:repeat(3,1fr); } }
   @media (max-width:560px){ .lib-stats-grid { grid-template-columns:repeat(2,1fr); } .lib-catbar-name { width:82px; } }
 
+  /* ─── SCALPING ─── */
+  .scalp-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .scalp-tf { background:var(--bg-card2); border:1px solid var(--border); border-radius:8px; padding:12px; }
+  .scalp-levels { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+  .scalp-lv { display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:11px; }
+  .scalp-lv span { color:var(--text-muted); }
+  .scalp-lv b { font-family:var(--mono); }
+  @media (max-width:720px){ .scalp-grid { grid-template-columns:1fr; } }
+
+  /* ─── OPFX ZONA ─── */
+  .opfx-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .opfx-stat{background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+  .opfx-stat-v{font-size:19px;font-weight:700;font-family:var(--mono)}
+  .opfx-stat-l{font-size:10.5px;color:var(--text-muted);margin-top:3px}
+  .opfx-sigcard{background:var(--bg-card2);border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-top:4px}
+  .opfx-levels{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .opfx-lv{display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-size:12px}
+  .opfx-lv span{color:var(--text-muted)}
+  .opfx-lv b{font-family:var(--mono);font-size:13px}
+  .opfx-advice{margin-top:11px;font-size:12px;line-height:1.6;color:var(--text-dim)}
+  .opfx-hist{display:flex;flex-direction:column;gap:5px}
+  .opfx-hrow{display:grid;grid-template-columns:1.1fr 1.3fr 1.3fr 0.6fr;gap:6px;font-size:11px;background:var(--bg-card2);border:1px solid var(--border);border-radius:5px;padding:6px 9px;align-items:center}
+  @media(max-width:720px){ .opfx-stats{grid-template-columns:repeat(2,1fr)} .opfx-levels{grid-template-columns:1fr} .opfx-hrow{grid-template-columns:1fr 1fr;grid-auto-rows:auto} }
   /* ─── VIEW TOGGLE ─── */
   .view-toggle { display:flex; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
   .view-btn {
@@ -3009,7 +3032,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
           <option value="📊">📊 Tahlil</option>
           <option value="📈">📈 Strategiya</option>
           <option value="📰">📰 Yangilik</option>
-          <option value="📖">���� Kitob</option>
+          <option value="📖">     Kitob</option>
           <option value="🎓">🎓 Dars</option>
           <option value="🖼️">🖼️ Rasm/Sxema</option>
         </select>
@@ -3175,6 +3198,10 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
       <button data-label="Market Signal" class="nav-item" onclick="nav('market-signals',this)">
         <span class="nav-icon">🚨</span>
         <span class="nav-text">Market Signal</span>
+      </button>
+      <button data-label="OPFX ZONA" class="nav-item" onclick="nav('opfx',this)">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-text">OPFX ZONA</span>
       </button>
     </div>
 
@@ -4863,6 +4890,22 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
           <div class="card text-muted text-sm" style="text-align:center;padding:30px">Signal yuklanmoqda...</div>
         </div>
 
+        <div class="card" id="scalp-card" style="padding:16px;margin-bottom:18px;border:1px solid var(--gold-dim)">
+          <div class="flex-between" style="margin-bottom:8px;gap:8px;flex-wrap:wrap">
+            <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px">⚡ Scalping Signallari <span class="text-muted" style="font-size:10.5px;font-weight:400">1M · 2M · 3M · 5M</span></div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <select id="scalp-instrument" class="form-input" style="width:auto;padding:6px 10px;font-size:12px">
+                <option value="gold">🥇 Oltin (XAU/USD)</option>
+                <option value="btc">₿ Bitcoin (BTC/USD)</option>
+                <option value="eth">Ξ Ethereum (ETH/USD)</option>
+              </select>
+              <button class="btn btn-primary" style="padding:7px 14px;font-size:12px" onclick="analyzeScalp()">🔍 Tahlil qil</button>
+            </div>
+          </div>
+          <div class="text-muted" style="font-size:10.5px;line-height:1.5;margin-bottom:12px">Har bir qisqa timeframe uchun yo'nalish, <b>Kirish (Entry)</b>, <b>Stop Loss</b> va <b>Take Profit</b> darajalari, grafik surati va aniq maslahat — qayerdan kirib qayerdan chiqish. Faqat ta'lim maqsadida, moliyaviy maslahat emas.</div>
+          <div id="scalp-results"><div class="text-muted text-sm" style="text-align:center;padding:24px">Instrument tanlab “Tahlil qil” tugmasini bosing.</div></div>
+        </div>
+
         <div class="card" style="padding:14px">
           <div style="font-weight:600;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px">📰 Market Yangiliklar</div>
           <div class="tradingview-widget-container">
@@ -4883,7 +4926,60 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
         </div>
       </div>
 
-      <!-- ══��═ AI ASSISTANT ════ -->
+      <!-- ══  ═ AI ASSISTANT ════ -->
+      <!-- OPFX ZONA -->
+      <div class="page" id="page-opfx">
+        <div class="card" style="margin-bottom:14px;border:1px solid var(--gold-dim);padding:12px 14px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:16px;line-height:1">⚡</span>
+            <div style="font-size:12px;color:var(--text-dim);line-height:1.55">
+              Bu bo'lim sizning <b>OPFX ZONA PREMIUM</b> Pine Script strategiyangiz asosida ishlaydi: <b>UT Bot (ATR trailing)</b> + <b>Supply/Demand zonalari</b> + <b>pivot tasdiq</b>. Har bir signalda aniq <b>Kirish (Entry)</b>, <b>Stop Loss</b>, <b>TP1</b> va <b>TP2</b> darajalari hamda tarixiy <b>win-rate</b> ko'rsatiladi. Avtomatik rejim yoqilsa, yangi signal paydo bo'lganda Telegram'ga grafik rasm + tahlil o'zi yuboriladi. Faqat ta'lim maqsadida, moliyaviy maslahat emas.
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:14px;margin-bottom:14px">
+          <div class="flex-between" style="gap:8px;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="opfx-instrument" class="form-input" style="width:auto;padding:7px 11px;font-size:12px" onchange="analyzeOPFX()">
+                <option value="gold">🥇 Oltin (XAU/USD)</option>
+                <option value="btc">₿ Bitcoin (BTC/USD)</option>
+                <option value="eth">Ξ Ethereum (ETH/USD)</option>
+              </select>
+              <select id="opfx-tf" class="form-input" style="width:auto;padding:7px 11px;font-size:12px" onchange="analyzeOPFX()">
+                <option value="1m">1M</option>
+                <option value="2m">2M</option>
+                <option value="3m">3M</option>
+                <option value="5m">5M</option>
+                <option value="15m" selected>15M</option>
+                <option value="30m">30M</option>
+                <option value="1h">1H</option>
+                <option value="4h">4H</option>
+                <option value="1d">1D</option>
+              </select>
+              <button class="btn btn-primary" style="padding:8px 15px;font-size:12px" onclick="analyzeOPFX()">🔍 Tahlil qil</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="opfx-auto-card" style="padding:14px;margin-bottom:14px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px">🤖 Avtomatik signal (Telegram)</div>
+          <div class="text-muted" style="font-size:11px;line-height:1.55;margin-bottom:10px">Yoqilsa, ilova ochiq turganda har 2 daqiqada Oltin, Bitcoin va Ethereum bo'yicha yangi OPFX signal tekshiriladi va paydo bo'lganda grafik rasm + tahlil avtomatik Telegram'ga yuboriladi. Telegram Token/Chat ID <b>Market Signal</b> bo'limidagi sozlamadan olinadi.</div>
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim)">
+              <input type="checkbox" id="opfx-auto-toggle" onchange="setOPFXAuto(this.checked)"> Avtomatik yuborishni yoqish
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim)">Timeframe:
+              <select id="opfx-auto-tf" class="form-input" style="width:auto;padding:5px 9px;font-size:12px" onchange="setOPFXAutoTf(this.value)">
+                <option value="1m">1M</option><option value="2m">2M</option><option value="3m">3M</option><option value="5m">5M</option><option value="15m" selected>15M</option><option value="30m">30M</option><option value="1h">1H</option><option value="4h">4H</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="opfx-results"><div class="text-muted text-sm" style="text-align:center;padding:24px">Instrument va timeframe tanlab “Tahlil qil” tugmasini bosing.</div></div>
+      </div>
+
       <div class="page" id="page-ai-assistant">
         <div id="ai-key-banner" class="card" style="display:none;margin-bottom:14px;border:1px solid var(--yellow, #FFB000);">
           <div class="flex-between" style="gap:12px;flex-wrap:wrap">
@@ -6486,6 +6582,7 @@ function buildTicker() {
 const pages = {
   'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona','video-lessons':'Video Darsliklar','livecharts':'Live Charts',
   'market-signals':'Market Signal',
+  'opfx':'OPFX ZONA',
   'ai-assistant':'AI Yordamchi',
   'calc':'Kalkulyator','checklist':'Pre-Trade Tekshiruv','calendar':'P&L Kalendar',
   'strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','animations':'Animatsiyalar','settings':'Sozlamalar'
@@ -6493,6 +6590,7 @@ const pages = {
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
   'library':'Bilim va materiallar','video-lessons':'Video darslar to\'plami — hajmi cheklanmagan yuklash','livecharts':'Real vaqtli bozor grafiklari (TradingView)',
+  'opfx':'Pine Script (OPFX ZONA) strategiyangiz asosida signal, TP/SL va avtomatik Telegram',
   'market-signals':'Real narx ma\'lumotiga asoslangan texnik signal va bozor yangiliklari',
   'ai-assistant':'Chart rasmini yuklang — AI bozorni tahlil qilib, strategiya va rejani chizib beradi',
   'calc':'Trading vositalari',
@@ -6529,6 +6627,7 @@ function nav(id, el) {
   if(id==='animations') updateAnimStyleUI();
   if(id==='livecharts') initLiveChart();
   if(id==='market-signals') initMarketSignals();
+  if(id==='opfx') initOPFX();
   if(id==='ai-assistant') initAIAssistant();
 }
 
@@ -6932,6 +7031,578 @@ function initMarketSignals() {
   }
 }
 
+// ─── SCALPING SIGNALLARI (1M · 2M · 3M · 5M) — ENTRY/SL/TP + GRAFIK + TELEGRAM ───
+const SCALP_TFS = [{tf:"1m",f:1},{tf:"2m",f:2},{tf:"3m",f:3},{tf:"5m",f:5}];
+const SCALP_SYMBOLS = {
+  gold:{sym:"PAXGUSDT", title:"🥇 Oltin (XAU/USD)", dec:2},
+  btc:{sym:"BTCUSDT", title:"₿ Bitcoin (BTC/USD)", dec:1},
+  eth:{sym:"ETHUSDT", title:"Ξ Ethereum (ETH/USD)", dec:2}
+};
+window.__scalpData = {};
+
+function klineToCandle(k){ return {t:k[0], o:+k[1], h:+k[2], l:+k[3], c:+k[4]}; }
+function aggregateCandles(cs, factor){
+  if(factor<=1) return cs.slice();
+  const out=[];
+  for(let end=cs.length; end>0; end-=factor){
+    const grp=cs.slice(Math.max(0,end-factor), end);
+    if(!grp.length) break;
+    out.unshift({ t:grp[0].t, o:grp[0].o, h:Math.max.apply(null,grp.map(x=>x.h)), l:Math.min.apply(null,grp.map(x=>x.l)), c:grp[grp.length-1].c });
+  }
+  return out;
+}
+function calcATR(candles, period){
+  period=period||14;
+  if(candles.length<period+1) return null;
+  const trs=[];
+  for(let i=1;i<candles.length;i++){
+    const h=candles[i].h,l=candles[i].l,pc=candles[i-1].c;
+    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+  }
+  const slice=trs.slice(-period);
+  return slice.reduce((a,b)=>a+b,0)/slice.length;
+}
+function scalpPlan(candles, sig){
+  const n=candles.length;
+  const price=candles[n-1].c;
+  const atr=calcATR(candles,14) || (price*0.001);
+  const look=Math.min(20,n);
+  const recent=candles.slice(-look);
+  const swingHigh=Math.max.apply(null,recent.map(c=>c.h));
+  const swingLow=Math.min.apply(null,recent.map(c=>c.l));
+  const dir=sig.cls;
+  let entry=price, stop=null, tp1=null, tp2=null, rr=null;
+  if(dir==="buy"){
+    entry=price;
+    stop=Math.min(swingLow, price-1.2*atr);
+    const risk=entry-stop;
+    tp1=entry+risk; tp2=entry+risk*2; rr=2;
+  } else if(dir==="sell"){
+    entry=price;
+    stop=Math.max(swingHigh, price+1.2*atr);
+    const risk=stop-entry;
+    tp1=entry-risk; tp2=entry-risk*2; rr=2;
+  }
+  return {dir, price, entry, stop, tp1, tp2, rr, atr, swingHigh, swingLow};
+}
+function dirColor(d){ return d==="buy"?"var(--green)":d==="sell"?"var(--red)":"var(--text-muted)"; }
+function dirBg(d){ return d==="buy"?"var(--green-dim)":d==="sell"?"var(--red-dim)":"rgba(255,255,255,0.05)"; }
+function dirHex(d){ return d==="buy"?"#00E676":d==="sell"?"#FF3B30":"#7A7670"; }
+
+function scalpAdvice(it, dec){
+  const p=it.plan; const tf=it.tf.toUpperCase();
+  const fL=v=>Number(v).toLocaleString(undefined,{maximumFractionDigits:dec});
+  const hold={"1m":"1–5 daqiqa","2m":"2–10 daqiqa","3m":"3–15 daqiqa","5m":"5–25 daqiqa"}[it.tf];
+  if(p.dir==="neutral") return tf+": yo'nalish aniq emas — chetda turing. Narx <b>"+fL(p.swingHigh)+"</b> ustidan yopilsa long, <b>"+fL(p.swingLow)+"</b> ostidan yopilsa short imkoniyati paydo bo'ladi.";
+  const side=p.dir==="buy"?"Long (sotib olish)":"Short (sotish)";
+  const entryHow=p.dir==="buy"
+    ? "Narx <b>"+fL(p.entry)+"</b> atrofida yoki kichik pullback'da long oching."
+    : "Narx <b>"+fL(p.entry)+"</b> atrofida yoki kichik retrace'da short oching.";
+  const conf=it.sig.label.indexOf("KUCHLI")>=0 ? "Signal kuchli" : "Signal o'rtacha — tasdiq kuting";
+  return tf+" — <b>"+side+"</b>. "+entryHow+" Stop <b>"+fL(p.stop)+"</b>; birinchi chiqish TP1 <b>"+fL(p.tp1)+"</b> (yarim pozitsiyani yoping), qolganini TP2 <b>"+fL(p.tp2)+"</b> gacha. Ushlash: ~"+hold+". "+conf+". R:R ≈ 1:"+p.rr+".";
+}
+
+async function analyzeScalp(){
+  const sel=document.getElementById("scalp-instrument");
+  const id=sel?sel.value:"gold";
+  const meta=SCALP_SYMBOLS[id];
+  const box=document.getElementById("scalp-results");
+  if(!box) return;
+  box.innerHTML='<div class="text-muted text-sm" style="text-align:center;padding:24px">⏳ '+meta.title+" — 1M ma'lumoti yuklanmoqda...</div>";
+  try{
+    const raw=await fetchBinanceKlines(meta.sym,"1m",500);
+    const base=raw.map(klineToCandle);
+    const items=SCALP_TFS.map(t=>{
+      const candles=aggregateCandles(base,t.f);
+      const closes=candles.map(c=>c.c);
+      const sig=computeSignal(closes);
+      return {tf:t.tf, candles, sig, plan:scalpPlan(candles,sig)};
+    });
+    window.__scalpData[id]={meta, items, ts:Date.now()};
+    renderScalpResults(id);
+  }catch(e){
+    box.innerHTML='<div style="color:var(--red);font-size:12px;padding:16px;text-align:center">⚠️ Yuklab bo'+String.fromCharCode(39)+'lmadi: '+((e&&e.message)||e)+"<br><span style='color:var(--text-muted);font-size:10.5px'>Binance API ba'zi mintaqalarda cheklangan bo'lishi mumkin — VPN yoki boshqa tarmoq bilan urinib ko'ring.</span></div>";
+  }
+}
+
+function renderScalpResults(id){
+  const d=window.__scalpData[id]; if(!d) return;
+  const box=document.getElementById("scalp-results"); if(!box) return;
+  const dec=d.meta.dec;
+  const fL=v=> v==null?"—":Number(v).toLocaleString(undefined,{maximumFractionDigits:dec});
+  const cards=d.items.map(it=>{
+    const p=it.plan; const c=dirColor(p.dir);
+    const dirTxt=p.dir==="buy"?"BUY (Long)":p.dir==="sell"?"SELL (Short)":"NEYTRAL";
+    const body = p.dir==="neutral"
+      ? '<div style="font-size:11px;color:var(--text-dim);line-height:1.6">Aniq signal yo'+String.fromCharCode(39)+'q. Range: <b>'+fL(p.swingLow)+'</b> — <b>'+fL(p.swingHigh)+'</b>. Chegara sinovini (breakout/rejection) kuting.</div>'
+      : '<div class="scalp-levels">'
+        +'<div class="scalp-lv"><span>Kirish</span><b style="color:var(--blue)">'+fL(p.entry)+'</b></div>'
+        +'<div class="scalp-lv"><span>Stop Loss</span><b style="color:var(--red)">'+fL(p.stop)+'</b></div>'
+        +'<div class="scalp-lv"><span>TP1 (1:1)</span><b style="color:var(--green)">'+fL(p.tp1)+'</b></div>'
+        +'<div class="scalp-lv"><span>TP2 (1:2)</span><b style="color:var(--green)">'+fL(p.tp2)+'</b></div>'
+        +'</div><div style="font-size:10.5px;color:var(--text-dim);margin-top:8px;line-height:1.55">'+scalpAdvice(it,dec)+'</div>';
+    return '<div class="scalp-tf" style="border-left:3px solid '+c+'"><div class="flex-between" style="margin-bottom:8px"><span style="font-weight:700;font-family:var(--mono);font-size:12px">'+it.tf.toUpperCase()+'</span><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+dirBg(p.dir)+';color:'+c+'">'+dirTxt+'</span></div>'+body+'</div>';
+  }).join("");
+  box.innerHTML='<div style="display:flex;justify-content:center;margin-bottom:14px"><canvas id="scalp-canvas" width="900" height="680" style="width:100%;max-width:900px;border:1px solid var(--border);border-radius:8px;background:#0D0D0D"></canvas></div>'
+    +'<div class="scalp-grid">'+cards+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn btn-primary" style="flex:1;min-width:200px;padding:9px" onclick="sendScalpAlert('+String.fromCharCode(39)+id+String.fromCharCode(39)+',this)">📨 Rasm + tahlilni Telegramga yuborish</button><button class="btn btn-outline" style="padding:9px 14px" onclick="downloadScalpChart('+String.fromCharCode(39)+id+String.fromCharCode(39)+')">⬇️ Rasmni yuklab olish</button></div>'
+    +'<div style="font-size:9.5px;color:var(--text-muted);margin-top:8px;line-height:1.5">⚠️ Darajalar ATR va oxirgi 20 sham strukturasidan avtomatik hisoblanadi. Scalping yuqori xatarli — har doim Stop Loss qo'+String.fromCharCode(39)+'ying va 1–2% risk qoidasiga amal qiling. Bu moliyaviy maslahat emas.</div>';
+  drawScalpComposite(document.getElementById("scalp-canvas"), d);
+}
+
+function scalpRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function drawScalpComposite(cv, d){
+  if(!cv) return; const ctx=cv.getContext("2d"); const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#0D0D0D"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#ECE8DD"; ctx.font="bold 16px system-ui"; ctx.textBaseline="top";
+  ctx.fillText(d.meta.title+" — Scalping (1M · 2M · 3M · 5M)", 14, 12);
+  ctx.fillStyle="#7A7670"; ctx.font="11px system-ui";
+  ctx.fillText(new Date(d.ts).toLocaleString("ru-RU")+"  ·  TraderPro", 14, 33);
+  const top=52, gap=10;
+  const cw=(W-gap*3)/2, ch=(H-top-gap*3)/2;
+  d.items.forEach((it,i)=>{
+    const col=i%2, row=Math.floor(i/2);
+    drawScalpCell(ctx, gap+col*(cw+gap), top+row*(ch+gap), cw, ch, it, d.meta.dec);
+  });
+}
+function drawScalpCell(ctx,x,y,w,h,it,dec){
+  const p=it.plan;
+  ctx.fillStyle="#131313"; ctx.strokeStyle="#262626"; ctx.lineWidth=1;
+  scalpRoundRect(ctx,x,y,w,h,6); ctx.fill(); ctx.stroke();
+  ctx.textBaseline="top"; ctx.fillStyle="#ECE8DD"; ctx.font="bold 12px system-ui";
+  const lab=it.tf.toUpperCase(); ctx.fillText(lab, x+10, y+8);
+  const dtxt=p.dir==="buy"?"BUY":p.dir==="sell"?"SELL":"NEYTRAL";
+  ctx.fillStyle=dirHex(p.dir); ctx.font="bold 11px system-ui";
+  ctx.fillText(dtxt, x+14+ctx.measureText(lab).width, y+9);
+  const padL=x+8, padR=x+w-54, padT=y+26, padB=y+h-8;
+  const cand=it.candles.slice(-40);
+  if(cand.length<2) return;
+  let lo=Math.min.apply(null,cand.map(c=>c.l)), hi=Math.max.apply(null,cand.map(c=>c.h));
+  [p.entry,p.stop,p.tp1,p.tp2].forEach(v=>{ if(v!=null){ lo=Math.min(lo,v); hi=Math.max(hi,v); } });
+  const rng=(hi-lo)||1; const pad=rng*0.08; lo-=pad; hi+=pad;
+  const py=v=> padT + (hi-v)/(hi-lo)*(padB-padT);
+  const n=cand.length; const step=(padR-padL)/n; const bw=Math.max(1.5,Math.min(6,step*0.6));
+  if(p.dir!=="neutral"){
+    [[p.entry,"#29B6F6"],[p.stop,"#FF3B30"],[p.tp1,"#00E676"],[p.tp2,"#00C853"]].forEach(pair=>{
+      const v=pair[0], cc=pair[1]; if(v==null) return; const yy=py(v); if(yy<padT||yy>padB) return;
+      ctx.strokeStyle=cc; ctx.globalAlpha=0.9; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(padR,yy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.globalAlpha=1; ctx.fillStyle=cc; ctx.font="9px monospace"; ctx.textBaseline="middle";
+      ctx.fillText(Number(v).toLocaleString(undefined,{maximumFractionDigits:dec}), padR+3, yy);
+    });
+  }
+  cand.forEach((c,i)=>{
+    const cx=padL+i*step+step/2; const up=c.c>=c.o;
+    ctx.strokeStyle=up?"#00E676":"#FF3B30"; ctx.fillStyle=up?"#00E676":"#FF3B30"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,py(c.h)); ctx.lineTo(cx,py(c.l)); ctx.stroke();
+    const oy=py(c.o), cy=py(c.c); ctx.fillRect(cx-bw/2, Math.min(oy,cy), bw, Math.max(1,Math.abs(cy-oy)));
+  });
+  ctx.textBaseline="top";
+}
+
+function dataUrlToBlob(dataUrl){
+  const parts=dataUrl.split(","); const mime=(parts[0].match(/:(.*?);/)||[])[1]||"image/png";
+  const bin=atob(parts[1]); const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+async function sendTelegramPhoto(blob, caption){
+  const cfg=getTGConfig();
+  if(!cfg.token||!cfg.chat) throw new Error("Bot Token yoki Chat ID sozlanmagan");
+  const fd=new FormData();
+  fd.append("chat_id", cfg.chat);
+  fd.append("photo", blob, "scalp.png");
+  if(caption){ fd.append("caption", caption); fd.append("parse_mode", "HTML"); }
+  const res=await fetch("https://api.telegram.org/bot"+cfg.token+"/sendPhoto", {method:"POST", body:fd});
+  const data=await res.json();
+  if(!data.ok) throw new Error(data.description||"Telegram rasm xatosi");
+  return data;
+}
+function buildScalpCaption(d){
+  const dec=d.meta.dec; const fL=v=>v==null?"—":Number(v).toLocaleString(undefined,{maximumFractionDigits:dec});
+  let s="⚡ <b>"+d.meta.title+"</b> — Scalping\n";
+  d.items.forEach(it=>{ const p=it.plan; const ic=p.dir==="buy"?"🟢":p.dir==="sell"?"🔴":"⚪";
+    if(p.dir==="neutral") s+=ic+" <b>"+it.tf.toUpperCase()+"</b>: NEYTRAL (kutish)\n";
+    else s+=ic+" <b>"+it.tf.toUpperCase()+"</b>: "+(p.dir==="buy"?"BUY":"SELL")+" · Kirish "+fL(p.entry)+" · SL "+fL(p.stop)+" · TP "+fL(p.tp2)+"\n";
+  });
+  s+="🕐 "+new Date(d.ts).toLocaleString("ru-RU");
+  return s;
+}
+function buildScalpDetail(d){
+  const dec=d.meta.dec;
+  let s="📋 <b>"+d.meta.title+" — batafsil scalping rejasi</b>\n\n";
+  d.items.forEach(it=>{ s+="▫️ "+scalpAdvice(it,dec)+"\n\n"; });
+  s+="⚠️ Bu moliyaviy maslahat emas. Scalping yuqori xatarli — Stop Loss majburiy, 1–2% risk qoidasiga amal qiling.";
+  return s;
+}
+async function sendScalpAlert(id, btn){
+  const d=window.__scalpData[id];
+  if(!d){ showToast("Avval tahlil qiling","info"); return; }
+  const cv=document.getElementById("scalp-canvas"); if(!cv) return;
+  const orig=btn?btn.textContent:""; if(btn){ btn.disabled=true; btn.textContent="Yuborilmoqda..."; }
+  try{
+    const blob=dataUrlToBlob(cv.toDataURL("image/png"));
+    await sendTelegramPhoto(blob, buildScalpCaption(d));
+    await sendTelegramMessage(buildScalpDetail(d));
+    if(btn) btn.textContent="✅ Yuborildi";
+    showToast("📨 Rasm va tahlil Telegramga yuborildi","success");
+  }catch(e){
+    if(btn) btn.textContent="⚠️ Xatolik";
+    showToast("Telegram xatosi: "+((e&&e.message)||e),"error");
+  }
+  if(btn) setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 2600);
+}
+function downloadScalpChart(id){
+  const cv=document.getElementById("scalp-canvas"); if(!cv) return;
+  const a=document.createElement("a"); a.download="scalping-"+id+"-"+Date.now()+".png"; a.href=cv.toDataURL("image/png"); a.click();
+  showToast("⬇️ Rasm yuklab olindi","success");
+}
+
+// ─── OPFX ZONA PREMIUM ─── Pine Script strategiyasi asosida signal + avtomatik Telegram
+// UT Bot (ATR trailing stop) + Supply/Demand zonalari + longevity pivot tasdiqlash.
+const OPFX_SYMBOLS = {
+  gold:{sym:"PAXGUSDT", title:"🥇 Oltin (XAU/USD)", dec:2},
+  btc:{sym:"BTCUSDT", title:"₿ Bitcoin (BTC/USD)", dec:1},
+  eth:{sym:"ETHUSDT", title:"Ξ Ethereum (ETH/USD)", dec:2}
+};
+const OPFX_TF_LABELS = {"1m":"1M","2m":"2M","3m":"3M","5m":"5M","15m":"15M","30m":"30M","1h":"1H","4h":"4H","1d":"1D"};
+// 2M Binance'da tabiiy yo'q — 1M'dan yig'iladi. Qolganlari tabiiy interval.
+async function opfxFetchCandles(sym, tf){
+  if(tf==="2m"){
+    const raw=await fetchBinanceKlines(sym, "1m", 500);
+    return aggregateCandles(raw.map(klineToCandle), 2);
+  }
+  const raw=await fetchBinanceKlines(sym, tf, 500);
+  return raw.map(klineToCandle);
+}
+const OPFX_CFG = { aBuy:2, cBuy:1, aSell:2, cSell:1, swingLen:15, lenZ:10, atrLen:14, tp1Mult:2.0, tp2Mult:3.5, forceZoneATR:1.0, maxZoneATR:1.0, minZoneDist:44 };
+window.__opfxData = {};
+
+function opfxRMA(values, period){
+  const out=new Array(values.length).fill(null);
+  if(values.length<period) return out;
+  let sum=0; for(let i=0;i<period;i++) sum+=values[i];
+  let prev=sum/period; out[period-1]=prev;
+  for(let i=period;i<values.length;i++){ prev=(prev*(period-1)+values[i])/period; out[i]=prev; }
+  return out;
+}
+function opfxATRseries(c, period){
+  const tr=[c.length?(c[0].h-c[0].l):0];
+  for(let i=1;i<c.length;i++){ const h=c[i].h,l=c[i].l,pc=c[i-1].c; tr.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc))); }
+  return opfxRMA(tr, period);
+}
+function opfxPivotHigh(c, m, len){
+  if(m-len<0 || m+len>=c.length) return false;
+  const v=c[m].h;
+  for(let j=m-len;j<=m+len;j++){ if(j!==m && c[j].h>=v) return false; }
+  return true;
+}
+function opfxPivotLow(c, m, len){
+  if(m-len<0 || m+len>=c.length) return false;
+  const v=c[m].l;
+  for(let j=m-len;j<=m+len;j++){ if(j!==m && c[j].l<=v) return false; }
+  return true;
+}
+function opfxWinMax(c,i,len,key){ let mx=-Infinity; for(let j=Math.max(0,i-len+1);j<=i;j++) mx=Math.max(mx,c[j][key]); return mx; }
+function opfxWinMin(c,i,len,key){ let mn=Infinity; for(let j=Math.max(0,i-len+1);j<=i;j++) mn=Math.min(mn,c[j][key]); return mn; }
+
+function opfxRun(c){
+  const n=c.length;
+  const CFG=OPFX_CFG;
+  const atr14=opfxATRseries(c, CFG.atrLen);
+  const atr20=opfxATRseries(c, 20);
+  const zones=[];
+  let lastSupplyBar=-1e9, lastDemandBar=-1e9;
+  for(let m=CFG.swingLen; m+CFG.swingLen<n; m++){
+    const cm=m+CFG.swingLen;
+    const a20=atr20[cm]||(c[cm].c*0.001);
+    if(opfxPivotHigh(c,m,CFG.swingLen) && cm-lastSupplyBar>=CFG.minZoneDist){
+      let top=c[m].h, bot=c[m].l; const mid=(top+bot)/2; let hgt=top-bot;
+      const fH=a20*CFG.forceZoneATR; if(hgt<fH){ top=mid+fH/2; bot=mid-fH/2; hgt=fH; }
+      const mH=a20*CFG.maxZoneATR; if(hgt>mH){ top=mid+mH/2; bot=mid-mH/2; }
+      zones.push({type:"supply", top:top, bottom:bot, startBar:m, createdAt:cm, broken:false, brokenAt:null});
+      lastSupplyBar=cm;
+    }
+    if(opfxPivotLow(c,m,CFG.swingLen) && cm-lastDemandBar>=CFG.minZoneDist){
+      let top=c[m].h, bot=c[m].l; const mid=(top+bot)/2; let hgt=top-bot;
+      const fH=a20*CFG.forceZoneATR; if(hgt<fH){ top=mid+fH/2; bot=mid-fH/2; hgt=fH; }
+      const mH=a20*CFG.maxZoneATR; if(hgt>mH){ top=mid+mH/2; bot=mid-mH/2; }
+      zones.push({type:"demand", top:top, bottom:bot, startBar:m, createdAt:cm, broken:false, brokenAt:null});
+      lastDemandBar=cm;
+    }
+  }
+  zones.forEach(z=>{
+    for(let i=z.createdAt+1;i<n;i++){
+      if(z.type==="supply" && c[i].c>z.top){ z.broken=true; z.brokenAt=i; break; }
+      if(z.type==="demand" && c[i].c<z.bottom){ z.broken=true; z.brokenAt=i; break; }
+    }
+  });
+  function zoneActiveAt(z,i){ return z.createdAt<=i && (!z.broken || z.brokenAt>i); }
+  function priceInZone(price,type,i){
+    for(let k=0;k<zones.length;k++){ const z=zones[k];
+      if(z.type===type && zoneActiveAt(z,i) && price>=z.bottom && price<=z.top) return true; }
+    return false;
+  }
+  const signals=[];
+  for(let i=CFG.lenZ; i<n; i++){
+    const hCur=opfxWinMax(c,i,CFG.lenZ,"h"), hPre=opfxWinMax(c,i-1,CFG.lenZ,"h");
+    const lCur=opfxWinMin(c,i,CFG.lenZ,"l"), lPre=opfxWinMin(c,i-1,CFG.lenZ,"l");
+    const high_pivot=(c[i-1].h===hPre)&&(c[i].h<hCur);
+    const low_pivot=(c[i-1].l===lPre)&&(c[i].l>lCur);
+    if(high_pivot && priceInZone(hCur,"supply",i)){
+      const entry=c[i-1].c, stop=c[i-1].h, a=atr14[i]||(entry*0.001);
+      signals.push({dir:"sell", bar:i, t:c[i].t, entry:entry, stop:stop, tp1:entry-a*CFG.tp1Mult, tp2:entry-a*CFG.tp2Mult, atr:a, result:null});
+    }
+    if(low_pivot && priceInZone(lCur,"demand",i)){
+      const entry=c[i-1].c, stop=c[i-1].l, a=atr14[i]||(entry*0.001);
+      signals.push({dir:"buy", bar:i, t:c[i].t, entry:entry, stop:stop, tp1:entry+a*CFG.tp1Mult, tp2:entry+a*CFG.tp2Mult, atr:a, result:null});
+    }
+  }
+  let tp=0, sl=0;
+  signals.forEach(sg=>{
+    for(let i=sg.bar+1;i<n;i++){
+      if(sg.dir==="buy"){
+        if(c[i].l<=sg.stop){ sl++; sg.result="SL"; break; }
+        if(c[i].h>=sg.tp1){ tp++; sg.result="TP"; break; }
+      } else {
+        if(c[i].h>=sg.stop){ sl++; sg.result="SL"; break; }
+        if(c[i].l<=sg.tp1){ tp++; sg.result="TP"; break; }
+      }
+    }
+  });
+  const total=tp+sl; const winrate= total>0 ? (tp/total*100) : 0;
+  return { candles:c, zones:zones, signals:signals, tp:tp, sl:sl, total:total, winrate:winrate, atr14:atr14, price:c[n-1].c, last: signals.length?signals[signals.length-1]:null };
+}
+
+function opfxFmt(v,dec){ return v==null?"—":Number(v).toLocaleString(undefined,{maximumFractionDigits:dec}); }
+
+async function analyzeOPFX(){
+  const sel=document.getElementById("opfx-instrument"); const tfSel=document.getElementById("opfx-tf");
+  const id=sel?sel.value:"gold"; const tf=tfSel?tfSel.value:"15m";
+  const meta=OPFX_SYMBOLS[id];
+  const box=document.getElementById("opfx-results"); if(!box) return;
+  box.innerHTML=`<div class="text-muted text-sm" style="text-align:center;padding:26px">⏳ ${meta.title} — ${OPFX_TF_LABELS[tf]||tf} ma'lumoti yuklanmoqda...</div>`;
+  try{
+    const c=await opfxFetchCandles(meta.sym, tf);
+    const res=opfxRun(c);
+    window.__opfxData[id]={meta:meta, tf:tf, res:res, ts:Date.now()};
+    renderOPFX(id);
+  }catch(e){
+    box.innerHTML=`<div style="color:var(--red);font-size:12px;padding:16px;text-align:center">⚠️ Yuklab bo'lmadi: ${((e&&e.message)||e)}<br><span style="color:var(--text-muted);font-size:10.5px">Binance API ba'zi mintaqalarda cheklangan bo'lishi mumkin — VPN yoki boshqa tarmoq bilan urinib ko'ring.</span></div>`;
+  }
+}
+
+function opfxLv(label,val,color){ return `<div class="opfx-lv"><span>${label}</span><b style="color:${color}">${val}</b></div>`; }
+function opfxAdviceHtml(sg,dec){
+  const isBuy=sg.dir==="buy"; const fL=v=>opfxFmt(v,dec);
+  const zoneTxt=isBuy?"Demand (talab) zonasida":"Supply (taklif) zonasida";
+  return `Narx <b>${zoneTxt}</b> tasdiqlandi. ${isBuy?"Long (sotib olish)":"Short (sotish)"} uchun <b>${fL(sg.entry)}</b> atrofida ${isBuy?"pullback":"retrace"} kutib kiring. Stop <b>${fL(sg.stop)}</b> — buzilsa chiqing. TP1 <b>${fL(sg.tp1)}</b> da yarim pozitsiyani yoping va stopni breakeven'ga suring, qolganini TP2 <b>${fL(sg.tp2)}</b> gacha ushlang.`;
+}
+
+function renderOPFX(id){
+  const d=window.__opfxData[id]; if(!d) return;
+  const box=document.getElementById("opfx-results"); if(!box) return;
+  const dec=d.meta.dec; const r=d.res; const sg=r.last; const fL=v=>opfxFmt(v,dec);
+  let html="";
+  html+=`<div class="opfx-stats">
+    <div class="opfx-stat"><div class="opfx-stat-v" style="color:var(--gold)">${r.winrate.toFixed(1)}%</div><div class="opfx-stat-l">Win Rate (backtest)</div></div>
+    <div class="opfx-stat"><div class="opfx-stat-v" style="color:var(--green)">${r.tp}</div><div class="opfx-stat-l">TP</div></div>
+    <div class="opfx-stat"><div class="opfx-stat-v" style="color:var(--red)">${r.sl}</div><div class="opfx-stat-l">SL</div></div>
+    <div class="opfx-stat"><div class="opfx-stat-v">${r.total}</div><div class="opfx-stat-l">Jami signal</div></div>
+  </div>`;
+  html+=`<canvas id="opfx-canvas" style="width:100%;border:1px solid var(--border);border-radius:6px;margin:12px 0;background:#0D0D0D"></canvas>`;
+  if(sg){
+    const isBuy=sg.dir==="buy"; const col=dirColor(sg.dir);
+    const risk=Math.abs(sg.entry-sg.stop); const rr1=risk?Math.abs(sg.tp1-sg.entry)/risk:0; const rr2=risk?Math.abs(sg.tp2-sg.entry)/risk:0;
+    html+=`<div class="opfx-sigcard" style="border-color:${col}">
+      <div class="flex-between" style="margin-bottom:10px"><div style="font-weight:700;font-size:15px;color:${col}">${isBuy?"🟢 BUY (Long)":"🔴 SELL (Short)"} — signal</div><div class="text-muted" style="font-size:11px">${new Date(sg.t).toLocaleString("ru-RU")}</div></div>
+      <div class="opfx-levels">
+        ${opfxLv("Kirish (Entry)", fL(sg.entry), "var(--blue)")}
+        ${opfxLv("Stop Loss", fL(sg.stop), "var(--red)")}
+        ${opfxLv("TP1 (R:R "+rr1.toFixed(1)+")", fL(sg.tp1), "var(--green)")}
+        ${opfxLv("TP2 (R:R "+rr2.toFixed(1)+")", fL(sg.tp2), "var(--green)")}
+      </div>
+      <div class="opfx-advice">${opfxAdviceHtml(sg,dec)}</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="flex:1;min-width:150px;padding:9px;font-size:12px" onclick="sendOPFXAlert(this)">📨 Telegramga yuborish</button>
+        <button class="btn btn-outline" style="padding:9px 14px;font-size:12px" onclick="downloadOPFXChart()">⬇️ Rasm</button>
+      </div>
+    </div>`;
+  } else {
+    html+=`<div class="card" style="padding:18px;text-align:center;color:var(--text-muted);font-size:12.5px">Hozircha tasdiqlangan OPFX signal yo'q. Narx Supply yoki Demand zonasiga kirib pivot hosil qilганда signal paydo bo'ladi — boshqa timeframe yoki instrument tanlab ko'ring.</div>`;
+  }
+  if(r.signals.length){
+    const recent=r.signals.slice(-6).reverse();
+    html+=`<div style="margin-top:14px"><div style="font-weight:600;font-size:12.5px;margin-bottom:8px">🕘 Oxirgi signallar (backtest)</div><div class="opfx-hist">`;
+    recent.forEach(x=>{
+      const ic=x.dir==="buy"?"🟢":"🔴"; const rc=x.result==="TP"?"var(--green)":x.result==="SL"?"var(--red)":"var(--text-muted)";
+      html+=`<div class="opfx-hrow"><span>${ic} ${x.dir==="buy"?"BUY":"SELL"}</span><span class="text-muted">${new Date(x.t).toLocaleString("ru-RU",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span><span>Kirish ${fL(x.entry)}</span><span style="color:${rc};font-weight:600">${x.result||"—"}</span></div>`;
+    });
+    html+=`</div></div>`;
+  }
+  box.innerHTML=html;
+  const cv=document.getElementById("opfx-canvas"); if(cv) drawOPFXChart(cv,d);
+}
+
+function drawOPFXChart(cv, d){
+  const dpr=2, W=900, H=470;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.maxWidth=W+"px";
+  const ctx=cv.getContext("2d"); ctx.scale(dpr,dpr);
+  ctx.fillStyle="#0D0D0D"; ctx.fillRect(0,0,W,H);
+  const c=d.res.candles; const dec=d.meta.dec; const n=c.length;
+  const show=Math.min(130,n); const data=c.slice(-show); const firstIdx=n-show;
+  const pad={l:8,r:78,t:44,b:18};
+  const x0=pad.l, x1=W-pad.r, y0=pad.t, y1=H-pad.b;
+  let hi=-Infinity, lo=Infinity;
+  data.forEach(k=>{ hi=Math.max(hi,k.h); lo=Math.min(lo,k.l); });
+  const sg=d.res.last;
+  if(sg){ [sg.entry,sg.stop,sg.tp1,sg.tp2].forEach(v=>{ hi=Math.max(hi,v); lo=Math.min(lo,v); }); }
+  const rng=(hi-lo)||1; hi+=rng*0.06; lo-=rng*0.06;
+  const Y=pp=> y0+(hi-pp)/(hi-lo)*(y1-y0);
+  const bw=(x1-x0)/data.length;
+  const bx=gi=> x0+(gi-firstIdx)*bw;
+  ctx.fillStyle="#FFB000"; ctx.font="bold 15px Arial";
+  ctx.fillText("OPFX ZONA — "+d.meta.title+"  ·  "+(OPFX_TF_LABELS[d.tf]||d.tf), x0+2, 20);
+  ctx.fillStyle="#7A7670"; ctx.font="11px Arial";
+  ctx.fillText(new Date(d.ts).toLocaleString("ru-RU")+"  ·  TraderPro", x0+2, 37);
+  d.res.zones.forEach(z=>{
+    if(z.brokenAt!=null && z.brokenAt<firstIdx) return;
+    const zy1=Y(z.top), zy2=Y(z.bottom);
+    if(zy2<y0||zy1>y1) return;
+    const startX=Math.max(x0, bx(z.startBar));
+    const yA=Math.max(y0,zy1), yB=Math.min(y1,zy2);
+    ctx.fillStyle=z.type==="supply"?"rgba(255,59,48,0.13)":"rgba(0,230,118,0.12)";
+    ctx.fillRect(startX, yA, x1-startX, yB-yA);
+    ctx.strokeStyle=z.type==="supply"?"rgba(255,59,48,0.38)":"rgba(0,230,118,0.38)"; ctx.lineWidth=0.6;
+    ctx.strokeRect(startX, yA, x1-startX, yB-yA);
+  });
+  data.forEach((k,i)=>{
+    const cx=x0+i*bw+bw/2; const up=k.c>=k.o;
+    ctx.strokeStyle=up?"#00E676":"#FF3B30"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,Y(k.h)); ctx.lineTo(cx,Y(k.l)); ctx.stroke();
+    const bwB=Math.max(1,bw*0.62); const oy=Y(k.o), cyy=Y(k.c);
+    ctx.fillStyle=up?"#00E676":"#FF3B30";
+    ctx.fillRect(cx-bwB/2, Math.min(oy,cyy), bwB, Math.max(1,Math.abs(cyy-oy)));
+  });
+  if(sg){
+    const lvls=[["Kirish",sg.entry,"#29B6F6",[5,4]],["SL",sg.stop,"#FF3B30",[]],["TP1",sg.tp1,"#00E676",[5,4]],["TP2",sg.tp2,"#00C853",[5,4]]];
+    ctx.font="10px Arial";
+    lvls.forEach(l=>{
+      const yy=Y(l[1]); if(yy<y0||yy>y1) return;
+      ctx.strokeStyle=l[2]; ctx.lineWidth=l[0]==="SL"?1.5:1; ctx.setLineDash(l[3]);
+      ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=l[2]; ctx.fillText(l[0]+" "+opfxFmt(l[1],dec), x1+3, yy+3);
+    });
+    const sx=bx(sg.bar);
+    if(sx>=x0&&sx<=x1){
+      const isBuy=sg.dir==="buy"; ctx.fillStyle=isBuy?"#00E676":"#FF3B30";
+      const my=isBuy?Y(sg.stop)+14:Y(sg.stop)-14;
+      ctx.beginPath();
+      if(isBuy){ ctx.moveTo(sx,my-9); ctx.lineTo(sx-5,my); ctx.lineTo(sx+5,my); }
+      else { ctx.moveTo(sx,my+9); ctx.lineTo(sx-5,my); ctx.lineTo(sx+5,my); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle="#fff"; ctx.font="bold 10px Arial";
+      ctx.fillText(isBuy?"BUY":"SELL", sx+8, my+3);
+    }
+  }
+}
+
+function opfxCaption(d){
+  const sg=d.res.last, dec=d.meta.dec;
+  const ic=sg.dir==="buy"?"🟢":"🔴"; const side=sg.dir==="buy"?"BUY (Long)":"SELL (Short)";
+  const risk=Math.abs(sg.entry-sg.stop); const rr1=risk?Math.abs(sg.tp1-sg.entry)/risk:0; const rr2=risk?Math.abs(sg.tp2-sg.entry)/risk:0;
+  const fL=v=>opfxFmt(v,dec);
+  let t="";
+  t+="⚡ <b>OPFX ZONA — "+d.meta.title+"</b> · "+(OPFX_TF_LABELS[d.tf]||d.tf)+"\n";
+  t+=ic+" <b>"+side+"</b> signal\n";
+  t+="🎯 Kirish: <b>"+fL(sg.entry)+"</b>\n";
+  t+="🛑 Stop Loss: <b>"+fL(sg.stop)+"</b>\n";
+  t+="✅ TP1: <b>"+fL(sg.tp1)+"</b> (R:R "+rr1.toFixed(1)+")\n";
+  t+="✅ TP2: <b>"+fL(sg.tp2)+"</b> (R:R "+rr2.toFixed(1)+")\n";
+  t+="📊 Win rate (backtest): <b>"+d.res.winrate.toFixed(1)+"%</b> ("+d.res.tp+"/"+d.res.total+")\n";
+  t+="🕐 "+new Date(d.ts).toLocaleString("ru-RU");
+  return t;
+}
+function opfxDetail(d){
+  const sg=d.res.last, dec=d.meta.dec; const isBuy=sg.dir==="buy"; const fL=v=>opfxFmt(v,dec);
+  const zoneTxt=isBuy?"Demand (talab) zonasi":"Supply (taklif) zonasi";
+  let t="📋 <b>OPFX ZONA — "+d.meta.title+" batafsil reja</b>\n\n";
+  t+=(isBuy?"🟢 <b>BUY (Long)</b>":"🔴 <b>SELL (Short)</b>")+" — narx "+zoneTxt+"da tasdiqlandi.\n\n";
+  t+="• <b>Qayerdan kirish:</b> "+fL(sg.entry)+" atrofida "+(isBuy?"pullback":"retrace")+" kutib "+(isBuy?"long":"short")+" oching.\n";
+  t+="• <b>Stop Loss:</b> "+fL(sg.stop)+" ("+(isBuy?"oxirgi swing pastida":"oxirgi swing tepasida")+"). Buzilsa chiqing.\n";
+  t+="• <b>TP1:</b> "+fL(sg.tp1)+" — yarim pozitsiyani yoping, stopni breakeven'ga suring.\n";
+  t+="• <b>TP2:</b> "+fL(sg.tp2)+" — qolgan pozitsiyani yoping.\n\n";
+  t+="⚠️ OPFX ZONA indikatori Pine Script strategiyasi asosida. Bu moliyaviy maslahat emas — Stop Loss majburiy, 1–2% risk qoidasiga amal qiling.";
+  return t;
+}
+
+async function opfxBuildAndSend(id, canvasEl){
+  const d=window.__opfxData[id]; if(!d||!d.res.last) return false;
+  let cv=canvasEl;
+  if(!cv){ cv=document.createElement("canvas"); drawOPFXChart(cv,d); }
+  const blob=dataUrlToBlob(cv.toDataURL("image/png"));
+  await sendTelegramPhoto(blob, opfxCaption(d));
+  await sendTelegramMessage(opfxDetail(d));
+  return true;
+}
+async function sendOPFXAlert(btn){
+  const sel=document.getElementById("opfx-instrument"); const id=sel?sel.value:"gold";
+  const d=window.__opfxData[id];
+  if(!d||!d.res.last){ showToast("Avval signal chiqadigan tahlil qiling","info"); return; }
+  const orig=btn?btn.textContent:""; if(btn){ btn.disabled=true; btn.textContent="Yuborilmoqda..."; }
+  try{
+    await opfxBuildAndSend(id, document.getElementById("opfx-canvas"));
+    if(btn) btn.textContent="✅ Yuborildi"; showToast("📨 OPFX signal Telegramga yuborildi","success");
+  }catch(e){ if(btn) btn.textContent="⚠️ Xatolik"; showToast("Telegram xatosi: "+((e&&e.message)||e),"error"); }
+  if(btn) setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 2600);
+}
+function downloadOPFXChart(){
+  const cv=document.getElementById("opfx-canvas"); if(!cv) return;
+  const sel=document.getElementById("opfx-instrument"); const id=sel?sel.value:"gold";
+  const a=document.createElement("a"); a.download="opfx-"+id+"-"+Date.now()+".png"; a.href=cv.toDataURL("image/png"); a.click();
+  showToast("⬇️ Rasm yuklab olindi","success");
+}
+
+async function opfxAutoScan(){
+  const cfg=getTGConfig();
+  const auto=localStorage.getItem("tp-opfx-auto")==="1";
+  if(!auto||!cfg.token||!cfg.chat) return;
+  const tf=localStorage.getItem("tp-opfx-auto-tf")||"15m";
+  const ids=Object.keys(OPFX_SYMBOLS);
+  for(let k=0;k<ids.length;k++){
+    const id=ids[k];
+    try{
+      const meta=OPFX_SYMBOLS[id];
+      const c=await opfxFetchCandles(meta.sym, tf); const res=opfxRun(c);
+      window.__opfxData[id]={meta:meta, tf:tf, res:res, ts:Date.now()};
+      const last=res.last; if(!last) continue;
+      const key="tp-opfx-last-"+id;
+      const prev=localStorage.getItem(key);
+      const fresh=last.bar>=c.length-3;
+      if(String(last.t)===prev) continue;
+      localStorage.setItem(key, String(last.t));
+      if(prev===null) continue;
+      if(fresh){ try{ await opfxBuildAndSend(id); }catch(e){} }
+    }catch(e){}
+  }
+}
+window.__opfxAutoInited=false;
+function opfxStartAuto(){ if(window.__opfxAutoInited) return; window.__opfxAutoInited=true; setInterval(opfxAutoScan, 2*60*1000); setTimeout(opfxAutoScan, 9000); }
+function setOPFXAuto(checked){
+  localStorage.setItem("tp-opfx-auto", checked?"1":"0");
+  if(checked){ const cfg=getTGConfig(); if(!cfg.token||!cfg.chat){ showToast("Avval Market Signal bo'limida Telegram sozlang","info"); } opfxStartAuto(); opfxAutoScan(); showToast("🤖 OPFX avtomatik signal yoqildi","success"); }
+  else showToast("OPFX avtomatik signal o'chirildi","info");
+}
+function setOPFXAutoTf(v){ localStorage.setItem("tp-opfx-auto-tf", v); }
+function initOPFX(){
+  updateTGUI();
+  const autoEl=document.getElementById("opfx-auto-toggle"); if(autoEl) autoEl.checked=localStorage.getItem("tp-opfx-auto")==="1";
+  const autoTfEl=document.getElementById("opfx-auto-tf"); if(autoTfEl) autoTfEl.value=localStorage.getItem("tp-opfx-auto-tf")||"15m";
+  const sel=document.getElementById("opfx-instrument"); const id=sel?sel.value:"gold";
+  if(!window.__opfxData[id]) analyzeOPFX();
+}
+(function(){ try{ if(localStorage.getItem("tp-opfx-auto")==="1") opfxStartAuto(); }catch(e){} })();
+
 // ─── TELEGRAM ALERT ───
 function toggleTGPanel() {
   const body = document.getElementById('tg-panel-body');
@@ -7317,7 +7988,7 @@ function renderRiskMetrics() {
   const expectancy = (wr*avgWin) + ((1-wr)*avgLoss);
 
   setEl('rk-maxdd', '-'+Math.abs(maxDD).toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}));
-  setEl('rk-maxdd-pct', `��� ${maxDDPct.toFixed(2)}%`);
+  setEl('rk-maxdd-pct', `    ${maxDDPct.toFixed(2)}%`);
   setEl('rk-winstreak', winStreak);
   setEl('rk-lossstreak', lossStreak);
   const avgwlEl = document.getElementById('rk-avgwl');
@@ -10337,7 +11008,7 @@ window.popNumber = function(el){
    ✨ UX LAYER — Cursor · Spotlight · Commands · Sound
    ══════════════════════════════════════════════════ */
 
-// ─────────────────────────────────────────
+// ────────────────  ────────────────────────
 // 1. CUSTOM NEON CURSOR
 // ─────────────────────────────────────────
 (function(){
@@ -10515,7 +11186,7 @@ document.getElementById('ux-spot-input').addEventListener('keydown', e=>{
 
 // ─────────────────────────────────────────
 // 4. COMMAND PALETTE (Ctrl+P)
-// ─────────────────────���───────────────────
+// ─────────────────────   ───────────────────
 const UX_COMMANDS = [
   { section:'🧭 Navigatsiya', items:[
     {icon:'🏠', label:'Dashboard ochish',        shortcut:'G D',   action:()=>nav('dashboard', document.querySelector('[onclick*=dashboard]'))},
