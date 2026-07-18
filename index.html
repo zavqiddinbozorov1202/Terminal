@@ -41,7 +41,7 @@
 
   // Faqat shu email — to'liq huquqli admin (o'zgartirish, qo'shish, yuklash).
   // Boshqa barcha ro'yxatdan o'tgan foydalanuvchilar faqat KO'RISH huquqiga ega bo'ladi.
-  const ADMIN_EMAIL = 'bozorovzavqiddin28@gmail.com';
+  const ADMIN_EMAIL = 'bozorovzavqiddin28gmail.com';
 
   let resolveAuthReady;
   window.__authReady = new Promise(res => { resolveAuthReady = res; });
@@ -2780,11 +2780,11 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
       <button class="modal-close" onclick="closeModal('apiKeyModal')">✕</button>
     </div>
     <div class="text-muted text-sm" style="margin-bottom:14px;line-height:1.6">
-      AI Yordamchi ishlashi uchun bepul Google Gemini API kalit kerak. Kalitni <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--green)">aistudio.google.com/apikey</a> sahifasidan bir necha soniyada, bepul va kredit kartasiz olishingiz mumkin (Google hisobingiz bilan kiring → "Create API key"). Kalit faqat shu qurilma brauzerida (localStorage) saqlanadi va faqat to'g'ridan-to'g'ri Google serveriga yuboriladi — boshqa hech qayerga jo'natilmaydi.<br><br>💡 <b>Limitni oshirish (limitsizga yaqin):</b> bir nechta bepul kalit qo'shishingiz mumkin — ularni vergul yoki yangi qatordan ajrating. Bitta kalit kunlik/daqiqalik limitga yetganda tizim avtomatik keyingi kalitga o'tadi.
+      AI Yordamchi ishlashi uchun bepul Google Gemini API kalit kerak. Kalitni <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--green)">aistudio.google.com/apikey</a> sahifasidan bir necha soniyada, bepul va kredit kartasiz olishingiz mumkin (Google hisobingiz bilan kiring → "Create API key"). Kalit faqat shu qurilma brauzerida (localStorage) saqlanadi va faqat to'g'ridan-to'g'ri Google serveriga yuboriladi — boshqa hech qayerga jo'natilmaydi.
     </div>
     <div class="form-group">
       <label class="form-label">API kalit</label>
-      <input type="password" class="form-input" id="ai-key-input" placeholder="AIzaSy... (bir nechta kalitni vergul bilan ajrating)">
+      <input type="password" class="form-input" id="ai-key-input" placeholder="AIzaSy...">
     </div>
     <div id="ai-key-error" style="color:var(--red);font-size:13px;min-height:16px;margin-top:4px"></div>
     <div class="flex-between" style="margin-top:16px;gap:10px">
@@ -2925,7 +2925,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
         <select class="form-select" id="m-emotion">
           <option value="calm">😌 Xotirjam</option>
           <option value="confident">💪 Ishonchli</option>
-          <option value="fomo">   FOMO</option>
+          <option value="fomo">⚡ FOMO</option>
           <option value="fear">😟 Qo'rquv</option>
           <option value="greed">🤑 Ochko'zlik</option>
           <option value="revenge">😤 Qasos (revenge)</option>
@@ -7257,32 +7257,6 @@ function saveTGConfigFromUI() {
   msgEl.style.color = 'var(--green)';
   updateTGUI();
 }
-async function testTGAlert() {
-  const tokenEl = document.getElementById('tg-token-input');
-  const chatEl = document.getElementById('tg-chat-input');
-  const msgEl = document.getElementById('tg-config-msg');
-  const token = ((tokenEl && tokenEl.value) || '').trim() || localStorage.getItem('tp-tg-token') || '';
-  const chat = ((chatEl && chatEl.value) || '').trim() || localStorage.getItem('tp-tg-chat') || '';
-  if (!token || !chat) {
-    if (msgEl) { msgEl.textContent = "Avval Bot Token va Chat ID kiriting"; msgEl.style.color = 'var(--red)'; }
-    return;
-  }
-  if (msgEl) { msgEl.textContent = 'Yuborilmoqda...'; msgEl.style.color = 'var(--text-muted)'; }
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chat, text: '✅ TraderPro test xabari — Telegram ulanishi ishlayapti!', parse_mode: 'HTML', disable_web_page_preview: true })
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.description || 'Telegram xatosi');
-    if (msgEl) { msgEl.textContent = '✅ Test xabari yuborildi'; msgEl.style.color = 'var(--green)'; }
-    try { showToast('📨 Test xabari yuborildi', 'success'); } catch (e) {}
-  } catch (e) {
-    if (msgEl) { msgEl.textContent = '⚠️ Xatolik: ' + e.message; msgEl.style.color = 'var(--red)'; }
-    try { showToast('Telegram xatosi: ' + e.message, 'error'); } catch (e2) {}
-  }
-}
 function clearTGConfig() {
   localStorage.removeItem('tp-tg-token');
   localStorage.removeItem('tp-tg-chat');
@@ -11155,27 +11129,18 @@ function renderEconCalendar() {
 function getAIKey() {
   return localStorage.getItem('tp-gemini-key') || '';
 }
-// Saqlangan bir yoki bir nechta Gemini kalitini massiv sifatida qaytaradi
-// (vergul, bo'sh joy yoki yangi qator bilan ajratilgan bo'lishi mumkin).
-function getGeminiKeys() {
-  return (localStorage.getItem('tp-gemini-key') || '')
-    .split(/[\s,]+/)
-    .map(function (k) { return k.trim(); })
-    .filter(Boolean);
-}
 function saveAIKey() {
   const input = document.getElementById('ai-key-input');
   const errEl = document.getElementById('ai-key-error');
-  const raw = (input.value || '').trim();
+  const key = (input.value || '').trim();
   errEl.textContent = '';
-  if (!raw) { errEl.textContent = 'Kalitni kiriting'; return; }
-  const keys = raw.split(/[\s,]+/).map(function (k) { return k.trim(); }).filter(Boolean);
-  if (keys.some(function (k) { return k.length < 20; })) { errEl.textContent = 'Kalit(lar) juda qisqa ko\'rinadi, qayta tekshiring'; return; }
-  localStorage.setItem('tp-gemini-key', keys.join('\n'));
+  if (!key) { errEl.textContent = 'Kalitni kiriting'; return; }
+  if (key.length < 20) { errEl.textContent = 'Kalit juda qisqa ko\'rinadi, qayta tekshiring'; return; }
+  localStorage.setItem('tp-gemini-key', key);
   input.value = '';
   closeModal('apiKeyModal');
   updateAIKeyBanner();
-  showToast(keys.length > 1 ? ('✅ ' + keys.length + ' ta API kalit saqlandi') : '✅ API kalit saqlandi', 'success');
+  showToast('✅ API kalit saqlandi', 'success');
 }
 function clearAIKeyStored() {
   localStorage.removeItem('tp-gemini-key');
@@ -11191,6 +11156,7 @@ function updateAIKeyBanner() {
 }
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
 
 // Bitta matnli prompt yuborish uchun sodda wrapper (Trade Feedback, Weekly Coach shu funksiyadan foydalanadi)
 async function callClaude(prompt) {
@@ -11201,60 +11167,57 @@ async function callClaude(prompt) {
 // To'liq suhbat tarixi va content-bloklar (matn/rasm/fayl) bilan Gemini API'ga murojaat
 // contents formati: [{ role:'user'|'model', parts:[{text},{inline_data:{mime_type,data}}] }, ...]
 async function callGeminiAPI(contents, systemPrompt, opts) {
-  // Ko'p kalitli aylanma: bir kalit limitga (429) yoki ruxsat xatosiga (403)
-  // urilsa, avtomatik keyingi bepul kalitga o'tamiz — bu amaliy jihatdan limitsizlikka yaqin natija beradi.
-  const keys = getGeminiKeys();
-  if (!keys.length) {
+  const key = getAIKey();
+  if (!key) {
     const err = new Error('API kalit topilmadi');
     err.code = 'no-key';
     throw err;
   }
-  let lastErr = null;
-  for (let ki = 0; ki < keys.length; ki++) {
-    try {
-      return await callGeminiOnce(keys[ki], contents, systemPrompt, opts);
-    } catch (e) {
-      lastErr = e;
-      if ((e.status === 429 || e.status === 403) && ki < keys.length - 1) continue;
-      throw e;
-    }
-  }
-  throw lastErr || new Error('AI xatosi');
-}
-
-async function callGeminiOnce(key, contents, systemPrompt, opts) {
   const body = { contents: contents };
   if (systemPrompt) body.system_instruction = { parts: [{ text: systemPrompt }] };
   if (opts && opts.responseMimeType) body.generationConfig = { response_mime_type: opts.responseMimeType };
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": key
-      },
-      body: JSON.stringify(body)
+  const models = (typeof GEMINI_MODELS !== 'undefined' && GEMINI_MODELS.length) ? GEMINI_MODELS : [GEMINI_MODEL];
+  let lastErr = null;
+  for (let mi = 0; mi < models.length; mi++) {
+    const model = models[mi];
+    let response;
+    try {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key
+          },
+          body: JSON.stringify(body)
+        }
+      );
+    } catch (netErr) {
+      const err = new Error('Tarmoqqa ulanib bo\'lmadi: ' + ((netErr && netErr.message) || 'network'));
+      err.code = 'network';
+      throw err;
     }
-  );
-  if (!response.ok) {
-    let errBody = null;
-    try { errBody = await response.json(); } catch(e) {}
-    const err = new Error((errBody && errBody.error && errBody.error.message) || ('HTTP ' + response.status));
-    err.status = response.status;
-    throw err;
+    if (!response.ok) {
+      let errBody = null;
+      try { errBody = await response.json(); } catch(e) {}
+      const err = new Error((errBody && errBody.error && errBody.error.message) || ('HTTP ' + response.status));
+      err.status = response.status;
+      if (response.status === 404 && mi < models.length - 1) { lastErr = err; continue; }
+      throw err;
+    }
+    const data = await response.json();
+    const candidate = (data.candidates || [])[0];
+    if (!candidate) {
+      const reason = (data && data.promptFeedback && data.promptFeedback.blockReason) || '';
+      const err = new Error('Javob qaytmadi' + (reason ? ' (' + reason + ')' : ''));
+      err.status = 'empty';
+      throw err;
+    }
+    const text = ((candidate.content && candidate.content.parts) || []).map(p => p.text || '').join('\n').trim();
+    return text || "Javob olinmadi.";
   }
-  const data = await response.json();
-  const candidate = (data.candidates || [])[0];
-  if (!candidate) {
-    // Xavfsizlik filtri yoki bo'sh javob
-    const reason = candidate && candidate.finishReason;
-    const err = new Error('Javob qaytmadi' + (reason ? ' (' + reason + ')' : ''));
-    err.status = 'empty';
-    throw err;
-  }
-  const text = ((candidate.content && candidate.content.parts) || []).map(p => p.text || '').join('\n').trim();
-  return text || "Javob olinmadi.";
+  throw lastErr || new Error('AI modeliga ulanib bo\'lmadi');
 }
 
 function aiErrorMessage(err) {
@@ -11262,7 +11225,11 @@ function aiErrorMessage(err) {
   if (err && err.status === 400) return '⚠️ API kalit noto\'g\'ri yoki so\'rov xato. Kalitni qayta tekshiring.';
   if (err && err.status === 403) return '⚠️ Kalit ushbu amal uchun ruxsatga ega emas (Gemini API yoqilganini tekshiring).';
   if (err && err.status === 429) return '⚠️ Bepul limitga yetdingiz, birozdan keyin qayta urinib ko\'ring.';
-  return '⚠️ AI javob berishda xatolik yuz berdi. Internet aloqasini tekshiring.';
+  if (err && err.code === 'network') return '⚠️ Internetga yoki AI serveriga ulanib bo\'lmadi. Aloqani tekshirib, qayta urinib ko\'ring.';
+  if (err && err.status === 404) return '⚠️ Tanlangan AI modeli topilmadi. Ilova boshqa modelga o\'tadi; muammo davom etsa API kalitingizni yangilang.';
+  if (err && (err.status === 500 || err.status === 503)) return '⚠️ AI serveri vaqtincha band. Birozdan so\'ng qayta urinib ko\'ring.';
+  var _d = (err && err.message) ? (' (' + err.message + ')') : '';
+  return '⚠️ AI javob berishda xatolik yuz berdi' + _d + '. Qayta urinib ko\'ring.';
 }
 
 // ─── AI TRADE FEEDBACK (Gemini API) ───
