@@ -1481,9 +1481,9 @@
   .gyro3d span:nth-child(3){ transform:rotateZ(20deg); border-color:rgba(0,230,118,0.6); }
   @keyframes gyroSpin { from{transform:rotateX(0) rotateY(0);} to{transform:rotateX(360deg) rotateY(360deg);} }
   /* ULTRON OVERSEER */
-  .ultron-hero{ display:flex; gap:20px; align-items:center; padding:0; overflow:hidden; position:relative; background:radial-gradient(circle at 18% 30%, rgba(255,59,48,0.10), transparent 60%), var(--bg-card); }
-  .ultron-core-canvas{ width:300px; height:230px; display:block; flex-shrink:0; background:#0a0304; }
-  .ultron-hero-info{ padding:20px 24px 20px 6px; flex:1; min-width:0; }
+  .ultron-hero{ display:flex; flex-direction:column; gap:0; align-items:stretch; padding:0; overflow:hidden; position:relative; background:radial-gradient(circle at 50% 30%, rgba(255,59,48,0.10), transparent 62%), var(--bg-card); }
+  .ultron-core-canvas{ width:100%; height:460px; display:block; background:#050208; border-bottom:1px solid var(--border); }
+  .ultron-hero-info{ padding:20px 24px; flex:1; min-width:0; }
   .ultron-brand{ font-size:26px; font-weight:800; letter-spacing:5px; color:#FF5A4D; text-shadow:0 0 14px rgba(255,59,48,0.55); display:flex; align-items:center; gap:10px; font-family:var(--mono); }
   .ultron-dot{ width:11px; height:11px; border-radius:50%; background:#FF3B30; box-shadow:0 0 10px #FF3B30; animation:ultronPulse 1.6s infinite; }
   .ultron-dot.ok{ background:#00E676; box-shadow:0 0 10px #00E676; animation-duration:2.4s; }
@@ -1552,7 +1552,7 @@
   .ultron-hud-foot .btn{ flex:1; }
   @media (max-width:900px){
     .ultron-hero{ flex-direction:column; align-items:stretch; }
-    .ultron-core-canvas{ width:100%; height:180px; }
+    .ultron-core-canvas{ width:100%; height:320px; }
     .ultron-hero-info{ padding:16px 18px; }
     .ultron-hud{ right:14px; bottom:14px; }
   }
@@ -12353,11 +12353,6 @@ function ultronCfg(){
   ["discipline","perf","routine","alert","data"].forEach(function(k){ if(c.mon[k] === undefined) c.mon[k] = true; });
   if(c.hud === undefined) c.hud = true;
   if(c.voice === undefined) c.voice = true;
-  if(c.exec === undefined) c.exec = true;
-  if(c.web === undefined) c.web = true;
-  if(c.confirmExec === undefined) c.confirmExec = false;
-  if(c.replyLang === undefined) c.replyLang = "en";
-  if(c.asrLang === undefined) c.asrLang = "en-US";
   return c;
 }
 function ultronSaveCfg(c){ try { localStorage.setItem(ULTRON_KEY, JSON.stringify(c)); } catch(e){} }
@@ -12522,10 +12517,6 @@ function ultronRenderToggles(){
   var html = mons.map(function(mm){ var on = cfg.mon[mm[0]]; return `<div class="ultron-toggle ${on?"on":""}" onclick="ultronToggleMonitor('${mm[0]}')"><span class="ut-name">${mm[1]}</span><span class="ut-sw"></span></div>`; }).join("");
   html += `<div class="ultron-toggle ${cfg.hud?"on":""}" onclick="ultronToggleHudSetting()"><span class="ut-name">🛰️ Suzuvchi HUD</span><span class="ut-sw"></span></div>`;
   html += `<div class="ultron-toggle ${cfg.voice!==false?"on":""}" onclick="ultronToggleVoice()"><span class="ut-name">🔊 Ultron ovozi</span><span class="ut-sw"></span></div>`;
-  html += `<div class="ultron-toggle ${cfg.exec!==false?"on":""}" onclick="ultronToggleCfg('exec')"><span class="ut-name">🛠️ Sayt boshqaruvi (buyruqlarni bajarish)</span><span class="ut-sw"></span></div>`;
-  html += `<div class="ultron-toggle ${cfg.web!==false?"on":""}" onclick="ultronToggleCfg('web')"><span class="ut-name">🌐 Tashqi manbalar (Google, GitHub, YouTube, Telegram)</span><span class="ut-sw"></span></div>`;
-  html += `<div class="ultron-toggle ${cfg.confirmExec?"on":""}" onclick="ultronToggleCfg('confirmExec')"><span class="ut-name">⚠️ O'zgartirishdan oldin tasdiqlash</span><span class="ut-sw"></span></div>`;
-  html += `<div class="ultron-toggle on" onclick="ultronCycleLang()"><span class="ut-name">🗣️ Javob tili: ${cfg.replyLang==="uz"?"O'zbekcha":"English"}</span><span class="ut-sw"></span></div>`;
   el.innerHTML = html;
 }
 function ultronToggleMonitor(k){ var c = ultronCfg(); c.mon[k] = !c.mon[k]; ultronSaveCfg(c); renderUltron(); }
@@ -12572,7 +12563,7 @@ async function ultronBriefing(){
   if(el) el.textContent = "🧠 Ultron tahlil qilmoqda...";
   var res = ultronScan();
   var ctx = ultronBuildContext(res);
-  var sys = "Sen ULTRON — treyderning shaxsiy suniy intellekt nazoratchisisan. Uning trading holatini kuzatib, intizom, risk va rejim bo'yicha qatiy, ishonchli va biroz salobatli, lekin himoyalovchi ohangda maslahat berasan. " + (ultronCfg().replyLang==="en" ? "Always write in ENGLISH." : "Har doim OZBEK TILIDA yoz.") + " Qisqa (5-8 gap), aniq va amaliy bo'l. Markdown belgilaridan foydalanma. Moliyaviy kafolat berma, talimiy ohangda yoz.";
+  var sys = "Sen ULTRON — treyderning shaxsiy suniy intellekt nazoratchisisan. Uning trading holatini kuzatib, intizom, risk va rejim bo'yicha qatiy, ishonchli va biroz salobatli, lekin himoyalovchi ohangda maslahat berasan. Har doim OZBEK TILIDA yoz. Qisqa (5-8 gap), aniq va amaliy bo'l. Markdown belgilaridan foydalanma. Moliyaviy kafolat berma, talimiy ohangda yoz.";
   try {
     var reply = await callGeminiAPI([{role:"user",parts:[{text:ctx}]}], sys);
     if(el) el.textContent = reply;
@@ -12581,73 +12572,62 @@ async function ultronBriefing(){
 }
 
 function _ultronEye(cv, big){
-  if(!cv) return;
+  if(!cv || !cv.getContext) return;
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
-  var w = cv.offsetWidth || (big ? 300 : 58), h = cv.offsetHeight || (big ? 230 : 58);
-  var BW = Math.round(w * dpr), BH = Math.round(h * dpr);
-  if(cv.width !== BW){ cv.width = BW; cv.height = BH; }
+  var w = cv.offsetWidth || (big ? 600 : 58), h = cv.offsetHeight || (big ? 460 : 58);
+  var BW = Math.round(w*dpr), BH = Math.round(h*dpr);
+  if(cv.width !== BW || cv.height !== BH){ cv.width = BW; cv.height = BH; }
   var ctx = cv.getContext("2d"); if(!ctx) return;
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,w,h);
-  var tt = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+  if(!cv._u3d){
+    var P=[]; for(var pi=0;pi<64;pi++){ P.push({ x:Math.random(), y:Math.random(), z:Math.random()*0.8+0.2, s:Math.random()*1.4+0.3 }); }
+    var N=[]; var nn=big?9:6; for(var ni=0;ni<nn;ni++){ N.push({ ang:Math.random()*Math.PI*2, rad:0.6+Math.random()*0.36, spd:(Math.random()*0.4+0.5)*(Math.random()<0.35?-1:1), tilt:Math.random()*0.5-0.25, hex:Math.floor(Math.random()*65536) }); }
+    cv._u3d = { parts:P, nodes:N };
+  }
+  var st = cv._u3d;
   var speaking = (typeof ultronSpeaking !== "undefined" && ultronSpeaking);
   var listening = (typeof ultronListening !== "undefined" && ultronListening);
-  var col = ultronMood === "crit" ? "255,64,52" : (ultronMood === "alert" ? "255,182,40" : "64,196,255");
-  var acc = ultronMood === "crit" ? "255,120,110" : (ultronMood === "alert" ? "255,214,120" : "140,232,255");
-  var spd = ultronMood === "crit" ? 2.6 : (ultronMood === "alert" ? 1.7 : 1.0);
-  if(speaking) spd *= 1.8;
-  var pulse = 0.5 + 0.5 * Math.sin(tt * spd);
-  ctx.fillStyle = "#03070d"; ctx.fillRect(0,0,w,h);
-  var cx = w/2, cy = h/2, R = Math.min(w,h) * 0.46;
-  var amb = ctx.createRadialGradient(cx,cy,R*0.05,cx,cy,R*1.55);
-  amb.addColorStop(0,"rgba(" + col + "," + (0.14 + 0.12*pulse) + ")");
-  amb.addColorStop(0.55,"rgba(" + col + ",0.04)");
-  amb.addColorStop(1,"rgba(" + col + ",0)");
-  ctx.fillStyle = amb; ctx.fillRect(0,0,w,h);
+  var TH = ultronMood === "crit" ? { main:"255,64,52", glow:"255,150,130", accent:"255,209,102" }
+         : ultronMood === "alert" ? { main:"255,182,40", glow:"255,214,140", accent:"255,120,60" }
+         : { main:"41,182,246", glow:"150,220,255", accent:"255,176,0" };
+  var t = (typeof performance !== "undefined" ? performance.now() : Date.now())/1000;
+  var sb = speaking ? 1.7 : 1;
+  var cx=w/2, cy=h/2, R=Math.min(w,h)*0.34;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#050208"; ctx.fillRect(0,0,w,h);
+  var bg = ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(w,h)*0.7);
+  bg.addColorStop(0,"rgba("+TH.main+",0.09)"); bg.addColorStop(1,"rgba(2,4,8,0)");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
+  for(var p=0;p<st.parts.length;p++){ var pcl=st.parts[p]; var px=((pcl.x + t*0.012*pcl.z)%1)*w, py=pcl.y*h; ctx.beginPath(); ctx.arc(px,py,pcl.s*pcl.z,0,Math.PI*2); ctx.fillStyle="rgba("+TH.glow+","+(0.08+pcl.z*0.22)+")"; ctx.fill(); }
+  function ring(ax,ay,rx,ry,rot,col,lw,alpha){ ctx.save(); ctx.translate(ax,ay); ctx.rotate(rot); ctx.beginPath(); ctx.ellipse(0,0,Math.max(0,rx),Math.max(0,ry),0,0,Math.PI*2); ctx.strokeStyle="rgba("+col+","+alpha+")"; ctx.lineWidth=lw; ctx.stroke(); ctx.restore(); }
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(t*0.12);
+  for(var i=0;i<72;i++){ var ang=(i/72)*Math.PI*2, lng=(i%9===0); var r1=R*1.42, r2=R*(lng?1.32:1.38); ctx.beginPath(); ctx.moveTo(Math.cos(ang)*r1,Math.sin(ang)*r1); ctx.lineTo(Math.cos(ang)*r2,Math.sin(ang)*r2); ctx.strokeStyle="rgba("+TH.main+","+(lng?0.6:0.22)+")"; ctx.lineWidth=lng?1.6:1; ctx.stroke(); }
+  ctx.restore();
+  ring(cx,cy,R*1.42,R*1.42,0,TH.main,1,0.3);
   ctx.save(); ctx.translate(cx,cy);
-  var lw = big ? 1.4 : 0.8;
-  function ring(rad, from, to, width, alpha, color){ ctx.beginPath(); ctx.arc(0,0,rad,from,to); ctx.strokeStyle = "rgba(" + (color||col) + "," + alpha + ")"; ctx.lineWidth = width; ctx.stroke(); }
-  ctx.strokeStyle = "rgba(" + col + ",0.06)"; ctx.lineWidth = lw*0.6;
-  ctx.beginPath(); ctx.moveTo(-R*1.35,0); ctx.lineTo(R*1.35,0); ctx.moveTo(0,-R*1.35); ctx.lineTo(0,R*1.35); ctx.stroke();
-  ctx.save(); ctx.rotate(tt*0.18);
-  var ticks = big ? 64 : 28;
-  for(var i=0;i<ticks;i++){ var a=i/ticks*Math.PI*2; var mj=(i%5===0); var r0=R*1.15, r1=R*(mj?1.24:1.19); ctx.strokeStyle="rgba(" + col + "," + (mj?0.6:0.2) + ")"; ctx.lineWidth=mj?lw:lw*0.55; ctx.beginPath(); ctx.moveTo(Math.cos(a)*r0,Math.sin(a)*r0); ctx.lineTo(Math.cos(a)*r1,Math.sin(a)*r1); ctx.stroke(); }
+  for(var k=0;k<3;k++){ var rr=R*(1.14+k*0.1), stt=t*(0.6+k*0.3)*sb+k*2; ctx.beginPath(); ctx.arc(0,0,rr,stt,stt+Math.PI*0.5,false); ctx.strokeStyle="rgba("+(k===1?TH.glow:TH.main)+",0.7)"; ctx.lineWidth=2; ctx.stroke(); }
   ctx.restore();
-  ring(R*1.13,0,Math.PI*2,lw*0.7,0.22);
-  ctx.save(); ctx.rotate(-tt*0.4);
-  for(var s2=0;s2<3;s2++){ var base=s2/3*Math.PI*2; ring(R*1.0, base+0.16, base+Math.PI*2/3-0.16, lw*2.4, 0.45+0.3*pulse); }
-  ctx.restore();
-  ctx.save(); ctx.rotate(tt*0.62);
-  var d3=big?44:20;
-  for(var j=0;j<d3;j++){ if(j%2) continue; var a3=j/d3*Math.PI*2; ring(R*0.87, a3, a3+Math.PI/d3, lw*1.5, 0.4, acc); }
-  ctx.restore();
-  ring(R*0.73,0,Math.PI*2,lw*0.8,0.28);
-  ctx.save(); ctx.rotate(-tt*0.25);
-  ctx.strokeStyle="rgba(" + acc + "," + (0.28+0.2*pulse) + ")"; ctx.lineWidth=lw; ctx.beginPath();
-  for(var t3=0;t3<3;t3++){ var at=t3/3*Math.PI*2 - Math.PI/2; var px=Math.cos(at)*R*0.62, py=Math.sin(at)*R*0.62; if(t3===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); }
-  ctx.closePath(); ctx.stroke();
-  ctx.restore();
-  var np=big?12:5;
-  for(var p=0;p<np;p++){ var pr=R*(0.58+0.55*((p%4)/4)); var pa=tt*(0.5+0.14*p)+p*1.7; var ppx=Math.cos(pa)*pr, ppy=Math.sin(pa)*pr; ctx.beginPath(); ctx.arc(ppx,ppy,big?2:1.1,0,Math.PI*2); ctx.fillStyle="rgba(" + acc + ",0.85)"; ctx.shadowColor="rgba(" + acc + ",0.9)"; ctx.shadowBlur=big?8:4; ctx.fill(); ctx.shadowBlur=0; }
-  ctx.save(); ctx.rotate(tt*1.2);
-  var sweep=ctx.createLinearGradient(0,0,R,0);
-  sweep.addColorStop(0,"rgba(" + col + ",0)"); sweep.addColorStop(1,"rgba(" + col + "," + (0.22+0.15*pulse) + ")");
-  ctx.strokeStyle=sweep; ctx.lineWidth=lw*1.6; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(R*0.98,0); ctx.stroke();
-  ctx.restore();
-  if(listening){ var lp=(tt*0.8)%1; ring(R*1.14 + lp*R*0.32, 0, Math.PI*2, lw*1.3, (1-lp)*0.5, acc); }
-  var coreR = R*(0.42 + 0.08*pulse + (speaking ? 0.1 : 0));
-  var core = ctx.createRadialGradient(0,0,0,0,0,coreR);
-  core.addColorStop(0,"rgba(255,255,255," + (0.6+0.3*pulse) + ")");
-  core.addColorStop(0.3,"rgba(" + acc + ",0.8)");
-  core.addColorStop(0.7,"rgba(" + col + ",0.4)");
-  core.addColorStop(1,"rgba(" + col + ",0)");
-  ctx.fillStyle=core; ctx.beginPath(); ctx.arc(0,0,coreR,0,Math.PI*2); ctx.fill();
-  ring(R*0.5,0,Math.PI*2,lw*1.2,0.45+0.3*pulse,acc);
-  ctx.save(); ctx.rotate(-tt*0.9);
-  var idc=big?24:12;
-  for(var q=0;q<idc;q++){ var aq=q/idc*Math.PI*2; ctx.beginPath(); ctx.arc(Math.cos(aq)*R*0.5,Math.sin(aq)*R*0.5,lw*0.7,0,Math.PI*2); ctx.fillStyle="rgba(" + col + "," + (q%2?0.3:0.6) + ")"; ctx.fill(); }
-  ctx.restore();
-  ctx.restore();
+  if(ctx.createConicGradient){ ctx.save(); ctx.translate(cx,cy); ctx.rotate(-t*0.8*sb); var sweep=ctx.createConicGradient(0,0,0); sweep.addColorStop(0,"rgba("+TH.main+",0.32)"); sweep.addColorStop(0.12,"rgba("+TH.main+",0)"); sweep.addColorStop(1,"rgba("+TH.main+",0)"); ctx.fillStyle=sweep; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R*1.14,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  var rotY=t*0.5;
+  for(var la=-2;la<=2;la++){ var lat=la*(Math.PI/6), ry=R*Math.cos(lat), yoff=R*Math.sin(lat)*0.5; ring(cx,cy+yoff,ry,ry*0.32,0,TH.glow,1,0.26); }
+  for(var lo=0;lo<6;lo++){ var ag=rotY+lo*(Math.PI/6), rx=Math.abs(R*Math.cos(ag)); ring(cx,cy,rx,R,0,TH.main,1,0.2); }
+  ring(cx,cy,R*0.95,R*0.34,t*1.2*sb,TH.main,2,0.85);
+  ring(cx,cy,R*0.34,R*0.95,-t*0.9*sb,TH.main,2,0.7);
+  ring(cx,cy,R*0.7,R*0.7,t*0.5,TH.accent,1.4,0.5);
+  for(var q=0;q<st.nodes.length;q++){ var nd=st.nodes[q]; nd.ang+=0.01*nd.spd*sb; var rn=R*nd.rad; var nx=cx+Math.cos(nd.ang)*rn, ny=cy+Math.sin(nd.ang)*rn*(0.42+nd.tilt); ctx.beginPath(); ctx.arc(nx,ny,big?3:2,0,Math.PI*2); ctx.fillStyle="rgba("+TH.accent+",1)"; ctx.fill(); ctx.beginPath(); ctx.arc(nx,ny,big?6:5,0,Math.PI*2); ctx.strokeStyle="rgba("+TH.main+",0.4)"; ctx.lineWidth=1; ctx.stroke(); }
+  if(listening){ var lp=(t*0.8)%1; ring(cx,cy,R*(1.42+lp*0.4),R*(1.42+lp*0.4),0,TH.glow,1.4,(1-lp)*0.5); }
+  var pulse=0.5+0.5*Math.sin(t*3*sb), coreR=R*0.26*(0.92+0.08*pulse)*(speaking?1.12:1);
+  var cg=ctx.createRadialGradient(cx,cy,0,cx,cy,coreR*2.4); cg.addColorStop(0,"rgba("+TH.glow+",0.9)"); cg.addColorStop(0.4,"rgba("+TH.main+",0.5)"); cg.addColorStop(1,"rgba("+TH.main+",0)"); ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(cx,cy,coreR*2.4,0,Math.PI*2); ctx.fill();
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-t*0.6*sb); var seg=8; for(var si=0;si<seg;si++){ var a0=(si/seg)*Math.PI*2+0.09, a1=((si+1)/seg)*Math.PI*2-0.09; ctx.beginPath(); ctx.arc(0,0,coreR,a0,a1); ctx.arc(0,0,coreR*0.6,a1,a0,true); ctx.closePath(); ctx.fillStyle="rgba("+TH.glow+","+(0.35+0.4*pulse)+")"; ctx.fill(); } ctx.restore();
+  ctx.beginPath(); ctx.arc(cx,cy,coreR*0.5,0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,"+(0.7+0.3*pulse)+")"; ctx.fill();
+  if(big){
+    ctx.font="11px monospace"; ctx.fillStyle="rgba("+TH.main+",0.85)"; ctx.textAlign="left";
+    var status = listening ? "OVOZ TINGLANMOQDA..." : (speaking ? "ULTRON GAPIRMOQDA..." : (ultronMood==="crit" ? "THREAT ASSESSMENT: ACTIVE" : (ultronMood==="alert" ? "OGOHLANTIRISH: KUZATUVDA" : "BARCHA TIZIMLAR NAZORATDA")));
+    ctx.fillText("> "+status,16,h-40);
+    ctx.fillText("> CORE "+Math.round(60+pulse*39)+"%   -   ONLINE",16,h-24);
+    ctx.textAlign="right";
+    for(var hi=0; hi<3 && hi<st.nodes.length; hi++){ var ndh=st.nodes[hi]; var val=((ndh.hex+Math.floor(t*12)) & 65535).toString(16).toUpperCase(); ctx.fillText("0x"+("0000"+val).slice(-4),w-16,h-54+hi*15); }
+  }
 }
 function _ultronLoopHud(){ try { _ultronEye(document.getElementById("ultron-hud-canvas"), false); } catch(e){} _ultronHudRaf = requestAnimationFrame(_ultronLoopHud); }
 function startUltronCore(){ stopUltronCore(); (function f(){ try { _ultronEye(document.getElementById("ultron-canvas"), true); } catch(e){} _ultronCoreRaf = requestAnimationFrame(f); })(); }
@@ -12693,7 +12673,7 @@ function ultronSpeakStatus(){
     ultronSpeak(intro + q);
   } catch(e){}
 }
-function ultronToggleVoice(){ var c = ultronCfg(); c.voice = !c.voice; ultronSaveCfg(c); if(!c.voice){ ultronStopVoice(); } else { ultronSpeak(ultronL("Voice system activated. I am monitoring your site.","Ovoz tizimi faollashtirildi. Men sizni kuzatib turibman.")); } ultronRenderToggles(); }
+function ultronToggleVoice(){ var c = ultronCfg(); c.voice = !c.voice; ultronSaveCfg(c); if(!c.voice){ ultronStopVoice(); } else { ultronSpeak("Ovoz tizimi faollashtirildi. Men sizni kuzatib turibman."); } ultronRenderToggles(); }
 
 var ultronListening = false;
 var _ultronRec = null;
@@ -12706,7 +12686,7 @@ function ultronStartListen(){
     if(!SR){ ultronChatPush("ultron","Kechirasiz, brauzeringiz ovozli tanishni qollab-quvvatlamaydi. Savolingizni pastdan yozib yuboring."); return; }
     if(_ultronRec){ try { _ultronRec.onend = null; _ultronRec.stop(); } catch(e){} _ultronRec = null; }
     var rec = new SR();
-    rec.lang = (ultronCfg().asrLang || "en-US");
+    rec.lang = "tr-TR";
     rec.continuous = true; rec.interimResults = false;
     rec.onresult = function(ev){ var txt=""; for(var i=ev.resultIndex;i<ev.results.length;i++){ if(ev.results[i].isFinal) txt += ev.results[i][0].transcript; } txt=(txt||"").trim(); if(txt) ultronHandleSpeech(txt); };
     rec.onend = function(){ if(ultronListening){ try { rec.start(); } catch(e){} } };
@@ -12714,7 +12694,7 @@ function ultronStartListen(){
     _ultronRec = rec; ultronListening = true;
     try { rec.start(); } catch(e){}
     ultronSetListenUI();
-    ultronSpeak(ultronL("I'm listening. Go ahead.","Eshityapman. Savolingizni ayting."));
+    ultronSpeak("Eshityapman. Savolingizni ayting.");
   } catch(e){}
 }
 function ultronStopListen(){ ultronListening = false; if(_ultronRec){ try { _ultronRec.onend = null; _ultronRec.stop(); } catch(e){} } ultronSetListenUI(); }
@@ -12726,218 +12706,38 @@ function ultronSetListenUI(){
 function ultronHandleSpeech(txt){
   var q = String(txt||"").replace(/ultron/ig,"").replace(/oltron/ig,"").replace(/ультрон/ig,"").trim();
   ultronChatPush("you", txt);
-  if(!q){ var g=ultronL("Yes, I'm listening.","Labbay, eshityapman."); ultronChatPush("ultron", g); ultronSpeak(g); return; }
+  if(!q){ var g="Labbay, eshityapman."; ultronChatPush("ultron", g); ultronSpeak(g); return; }
   ultronAsk(q);
 }
 function ultronChatPush(role, text){ ultronChat.push({ role: role, text: String(text==null?"":text) }); if(ultronChat.length>40) ultronChat = ultronChat.slice(-40); ultronRenderChat(); }
 function ultronChatReplaceLast(text){ for(var i=ultronChat.length-1;i>=0;i--){ if(ultronChat[i].role==="ultron"){ ultronChat[i].text = String(text==null?"":text); break; } } ultronRenderChat(); }
 function ultronRenderChat(){
   var el = document.getElementById("ultron-chat"); if(!el) return;
-  if(!ultronChat.length){ el.innerHTML = "<div class='text-muted text-sm'>Meni chaqiring yoki yozing. Masalan: «yangi bitim och EURUSD buy, SL 1.0850, TP 1.0920», «jurnalni och», yoki «telegramga signal jo'nat», «Google'dan XAUUSD tahlili». Buyruqlarni bajaraman, javoblar inglizcha.</div>"; return; }
+  if(!ultronChat.length){ el.innerHTML = "<div class='text-muted text-sm'>Meni chaqiring yoki savolingizni yozing — men javob beraman.</div>"; return; }
   el.innerHTML = ultronChat.map(function(m){ return `<div class="ultron-msg ${m.role}"><div class="um-role">${m.role==="you"?"Siz":"🤖 Ultron"}</div><div class="um-txt">${ultronEsc(m.text)}</div></div>`; }).join("");
   el.scrollTop = el.scrollHeight;
 }
 function ultronChatSend(){ var inp = document.getElementById("ultron-chat-input"); if(!inp) return; var v=(inp.value||"").trim(); if(!v) return; inp.value=""; ultronChatPush("you", v); ultronAsk(v); }
 function ultronChatKey(ev){ if(ev && (ev.key==="Enter" || ev.keyCode===13)){ if(ev.preventDefault) ev.preventDefault(); ultronChatSend(); } }
 function ultronAsk(text){
-  var q = String(text||"").trim(); if(!q) return;
-  if(_ultronPendingAction){
-    var _pa=_ultronPendingAction; _ultronPendingAction=null;
-    if(/^(yes|yeah|ye|ok|okay|sure|yep|ha|xa|davom|tasdiq|proceed|confirm|bajar)/i.test(q)){ var _r=ultronExecAction(_pa.action,_pa.params); var _m=ultronL("Done.","Bajarildi.")+(_r&&_r.msg?(" "+_r.msg):""); ultronChatPush("ultron",_m); ultronSpeak(_r&&_r.reply?_r.reply:_m); if(_r&&_r.done){ try{setTimeout(function(){ultronRunScan(false);},400);}catch(e){} } return; }
-    ultronChatPush("ultron", ultronL("Okay, cancelled.","Yaxshi, bekor qilindi."));
-  }
-  if(_ultronThinking) return;
+  var q = String(text||"").trim(); if(!q || _ultronThinking) return;
   _ultronThinking = true;
   ultronChatPush("ultron", "…");
   (async function(){
     try {
-      if(typeof getAIKey === "function" && !getAIKey()){ var wmsg=ultronL("I need a Gemini API key to talk with you and control the site. Add it in the AI Assistant section.","Men bilan to'liq suhbatlashish va saytni boshqarish uchun Gemini API kalit kerak. AI Yordamchi bo'limida kiriting."); ultronChatReplaceLast(wmsg); ultronSpeak(wmsg); _ultronThinking=false; return; }
+      if(typeof getAIKey === "function" && !getAIKey()){ var wmsg="Men bilan toliq suhbatlashish uchun Gemini API kalit kerak. AI Yordamchi bolimida kiriting."; ultronChatReplaceLast(wmsg); ultronSpeak(wmsg); _ultronThinking=false; return; }
       var res = ultronScan();
       var cxx = ultronBuildContext(res);
       var NL = String.fromCharCode(10);
-      var hist = ultronChat.slice(-7,-1).map(function(m){ return (m.role==="you"?"User: ":"Ultron: ") + m.text; }).join(NL);
-      var cfg = ultronCfg();
-      var Q = String.fromCharCode(34);
-      var langName = cfg.replyLang==="uz" ? "Uzbek" : "English";
-      var sys = [
-        "You are ULTRON, a powerful AI assistant that CONTROLS the user TraderPro trading website (JARVIS / Iron Man style, but your name is Ultron).",
-        "You can read the trader data and EDIT the site by returning an action.",
-        "ALWAYS respond with ONE JSON object only, no markdown and no code fences, shaped exactly like: {"+Q+"action"+Q+": STRING, "+Q+"params"+Q+": OBJECT, "+Q+"reply"+Q+": STRING}.",
-        "Supported action values:",
-        "- add_trade : open/add/log a trade. params keys: symbol, dir (buy or sell), entry, sl, tp, lot, risk, pnl, result (win or loss), note.",
-        "- delete_last_trade : delete the most recent trade. params: empty.",
-        "- set_balance : set account balance. params: amount (number).",
-        "- navigate : open a page. params: section = one of dashboard, journal, analytics, goals, calendar, checklist, strategies, library, video, ai, opfx, signals, livecharts, animations, ultron.",
-        "- open_web : open an external search when the user wants to FIND info from Google, GitHub, YouTube, or a public Telegram channel. params: query (string), site (google, github, youtube, telegram or web).",
-        "- send_telegram : actually SEND a message or trading signal to the user Telegram via their saved bot. Use this when the user says send/post a signal to Telegram. params: message (string) OR symbol, dir, entry, sl, tp to auto-build a signal; if none given it uses the most recent trade.",
-        "- none : normal conversation or answering a question with no site change. params: empty.",
-        "Example: open a new trade EURUSD buy, stop loss 1.0850, tp 1.0920 -> add_trade with params symbol EURUSD, dir buy, sl 1.0850, tp 1.0920. Omit unknown keys.",
-        "The reply field MUST be written in " + langName + ", short (1 to 4 sentences), confident and helpful, plain text for text-to-speech (no markdown).",
-        "Use the trader context below to answer accurately."
-      ].join(NL);
-      var prompt = cxx + NL + NL + "Conversation history:" + NL + hist + NL + NL + "User message: " + q;
-      var raw = await callGeminiAPI([{ role:"user", parts:[{ text: prompt }] }], sys, { responseMimeType: "application/json" });
-      var parsed = ultronParseAction(raw);
-      var reply = parsed.reply || raw;
-      var execRes = { ok:true, done:false, msg:"" };
-      if(parsed.action && parsed.action !== "none"){
-        var cfg2 = ultronCfg();
-        var needsConfirm = cfg2.confirmExec && (parsed.action==="add_trade"||parsed.action==="delete_last_trade"||parsed.action==="set_balance"||parsed.action==="send_telegram");
-        if(needsConfirm){
-          _ultronPendingAction = { action: parsed.action, params: parsed.params };
-          ultronChatReplaceLast(reply + "  " + ultronL("Confirm? Say or type yes to proceed.","Tasdiqlaysizmi? 'ha' deb yozing yoki ayting."));
-          ultronSpeak(reply); _ultronThinking=false; return;
-        }
-        execRes = ultronExecAction(parsed.action, parsed.params) || execRes;
-      }
-      var finalMsg = reply;
-      if(execRes.done && execRes.msg){ finalMsg = reply + "  ✓ " + execRes.msg; }
-      else if(execRes.ok===false && execRes.msg){ finalMsg = reply + "  ⚠️ " + execRes.msg; }
-      ultronChatReplaceLast(finalMsg);
+      var hist = ultronChat.slice(-7,-1).map(function(m){ return (m.role==="you"?"Foydalanuvchi: ":"Ultron: ") + m.text; }).join(NL);
+      var sys = "Sen ULTRON — Marvel Qasoskorlar filmidagidek kuchli suniy intellekt yordamchisan (JARVIS uslubida, ammo isming Ultron). Foydalanuvchi treyder, sen uning TraderPro saytini nazorat qilasan. Savollariga javob ber: trading, risk, intizom, statistika, sayt bolimlari va umumiy savollar. Har doim OZBEK TILIDA, qisqa (2-5 gap), aniq, ishonchli va salobatli ohangda javob ber. Markdown belgilaridan foydalanma. Ovozli oqish uchun sodda gaplar yoz.";
+      var prompt = cxx + NL + NL + "Suhbat tarixi:" + NL + hist + NL + NL + "Foydalanuvchi savoli: " + q;
+      var reply = await callGeminiAPI([{ role:"user", parts:[{ text: prompt }] }], sys);
+      ultronChatReplaceLast(reply);
       ultronSpeak(reply);
-      if(execRes.done){ try{ setTimeout(function(){ ultronRunScan(false); }, 400); }catch(e){} }
     } catch(e){ ultronChatReplaceLast((typeof aiErrorMessage==="function") ? aiErrorMessage(e) : "Kechirasiz, javob berishda xatolik yuz berdi."); }
     _ultronThinking = false;
   })();
-}
-
-// ====== ULTRON SITE CONTROL (commands + external sources) ======
-var _ultronPendingAction = null;
-function ultronL(en, uz){ try { return ultronCfg().replyLang==="uz" ? uz : en; } catch(e){ return en; } }
-function ultronToggleCfg(k){ var c=ultronCfg(); c[k]=!c[k]; ultronSaveCfg(c); ultronRenderToggles(); }
-function ultronCycleLang(){ var c=ultronCfg(); c.replyLang=(c.replyLang==="uz")?"en":"uz"; c.asrLang=(c.replyLang==="uz")?"tr-TR":"en-US"; ultronSaveCfg(c); ultronRenderToggles(); try{ ultronSpeak(ultronL("Language set to English.","Til o'zbekchaga o'zgartirildi.")); }catch(e){} }
-function ultronParseAction(raw){
-  var out={action:"none",params:{},reply:""};
-  if(!raw) return out;
-  var s=String(raw).trim();
-  s=s.replace(/^```[a-zA-Z]*\s*/,"").replace(/```\s*$/,"").trim();
-  try{ var o=JSON.parse(s); if(o&&typeof o==="object"){ out.action=o.action||"none"; out.params=o.params||{}; out.reply=(o.reply!=null?String(o.reply):""); return out; } }catch(e){}
-  var i=s.indexOf("{"), j=s.lastIndexOf("}");
-  if(i>=0&&j>i){ try{ var o2=JSON.parse(s.slice(i,j+1)); out.action=o2.action||"none"; out.params=o2.params||{}; out.reply=(o2.reply!=null?String(o2.reply):""); return out; }catch(e){} }
-  out.reply=s; return out;
-}
-function ultronNavTo(section){
-  var map={dashboard:"dashboard",home:"dashboard","bosh sahifa":"dashboard",journal:"journal",jurnal:"journal",trades:"journal",bitimlar:"journal",analytics:"analytics",tahlil:"analytics",statistika:"analytics",goals:"goals",maqsad:"goals",maqsadlar:"goals",calendar:"calendar",taqvim:"calendar",checklist:"checklist",tekshiruv:"checklist",strategies:"strategies",strategiya:"strategies",strategiyalar:"strategies",library:"library",kutubxona:"library",video:"video-lessons","video darslar":"video-lessons","video-lessons":"video-lessons",ai:"ai-assistant","ai yordamchi":"ai-assistant","ai-assistant":"ai-assistant",yordamchi:"ai-assistant",opfx:"opfx","opfx zona":"opfx",signals:"market-signals",signal:"market-signals",signallar:"market-signals","market-signals":"market-signals",livecharts:"livecharts",live:"livecharts",jonli:"livecharts","jonli grafik":"livecharts",animations:"animations",animatsiya:"animations",ultron:"ultron"};
-  var key=String(section||"").toLowerCase().trim();
-  var id=map[key];
-  if(!id){ for(var k in map){ if(k.length>2 && key.indexOf(k)>=0){ id=map[k]; break; } } }
-  if(!id) return false;
-  var btn=document.querySelector('.nav-item[onclick*="'+id+'"]');
-  if(btn){ try{ nav(id, btn); }catch(e){ return false; } return true; }
-  return false;
-}
-function ultronOpenWeb(query, site){
-  var raw=String(query||"").trim();
-  var q=encodeURIComponent(raw);
-  var st=String(site||"web").toLowerCase();
-  var url;
-  if(st.indexOf("git")>=0) url="https://github.com/search?q="+q+"&type=repositories";
-  else if(st.indexOf("you")>=0) url="https://www.youtube.com/results?search_query="+q;
-  else if(st.indexOf("tele")>=0){ var h=raw.replace(/[^a-zA-Z0-9_]/g,""); url=h?("https://t.me/s/"+encodeURIComponent(h)):("https://www.google.com/search?q="+q+"+site:t.me"); }
-  else url="https://www.google.com/search?q="+q;
-  try{ window.open(url,"_blank","noopener"); }catch(e){}
-  return url;
-}
-function ultronCreateTrade(p){
-  p=p||{};
-  var dir=String(p.dir||p.direction||"buy").toLowerCase();
-  dir=(dir.indexOf("sell")>=0||dir.indexOf("short")>=0||dir==="s"||dir.indexOf("sot")>=0)?"sell":"buy";
-  var entry=parseFloat(p.entry)||0;
-  var sl=(p.sl!=null&&p.sl!=="")?(parseFloat(p.sl)||0):0;
-  var tp=(p.tp!=null&&p.tp!=="")?(parseFloat(p.tp)||0):0;
-  var lot=parseFloat(p.lot)||0;
-  var risk=Math.abs(parseFloat(p.risk)||0);
-  var pnlNum=parseFloat(p.pnl);
-  var pnlAmount=isFinite(pnlNum)?Math.abs(pnlNum):0;
-  var result=String(p.result||"").toLowerCase();
-  var isLoss=result.indexOf("los")>=0||result.indexOf("zar")>=0||(isFinite(pnlNum)&&pnlNum<0);
-  var pnlSigned=pnlAmount?(isLoss?-pnlAmount:pnlAmount):0;
-  var plannedRR=(entry&&sl&&tp&&Math.abs(entry-sl)>0)?Math.abs(tp-entry)/Math.abs(entry-sl):null;
-  var tagsV=Array.isArray(p.tags)?p.tags:(p.tags?String(p.tags).split(",").map(function(x){return x.trim();}).filter(Boolean):[]);
-  var t={
-    id:Date.now(),
-    symbol:String(p.symbol||p.pair||"PAIR").toUpperCase(),
-    dir:dir, entry:entry, exit:parseFloat(p.exit)||0,
-    sl:sl||null, tp:tp||null, plannedRR:plannedRR,
-    lot:lot, pnl:pnlSigned, fee:0, netPnl:pnlSigned, risk:risk,
-    rMultiple:risk>0?(pnlSigned/risk):null,
-    strategy:p.strategy||"", emotion:p.emotion||"", session:p.session||"",
-    grade:"", checklistOk:false, mistakes:[],
-    openTime:p.openTime||"", closeTime:p.closeTime||"", durationMin:null,
-    tags:tagsV, note:p.note||"Ultron tomonidan qo'shildi",
-    hasShot:false, hasShot2:false,
-    date:new Date().toLocaleDateString("uz-UZ"),
-    isoDate:new Date().toISOString().slice(0,10),
-    createdByUltron:true
-  };
-  trades.unshift(t);
-  try{ localStorage.setItem("tp-trades", JSON.stringify(trades)); }catch(e){}
-  try{ renderDashboard(); renderJournal(); renderAnalytics(); renderGoals(); }catch(e){}
-  return t;
-}
-function ultronBuildTgSignal(p){
-  p=p||{};
-  var t=null;
-  if(p.symbol||p.entry||p.sl||p.tp||p.dir){ t={symbol:p.symbol,dir:p.dir,entry:p.entry,sl:p.sl,tp:p.tp}; }
-  else if(typeof trades!=="undefined" && trades && trades.length){ t=trades[0]; }
-  var NL=String.fromCharCode(10);
-  if(!t) return "TraderPro — signal";
-  var dir=String(t.dir||"").toLowerCase();
-  var emo=dir.indexOf("sell")>=0?"🔴":"🟢";
-  var L=[];
-  L.push(emo+" <b>"+String(t.symbol||"PAIR").toUpperCase()+(dir?(" "+dir.toUpperCase()):"")+"</b>");
-  if(t.entry) L.push("Entry: <b>"+t.entry+"</b>");
-  if(t.sl) L.push("SL: <b>"+t.sl+"</b>");
-  if(t.tp) L.push("TP: <b>"+t.tp+"</b>");
-  L.push("");
-  L.push("⚠️ Moliyaviy maslahat emas. Stop Loss majburiy, risk 1-2%.");
-  return L.join(NL);
-}
-function ultronExecAction(action, p){
-  p=p||{}; action=String(action||"none").toLowerCase();
-  var cfg=ultronCfg();
-  if(action==="add_trade"||action==="create_trade"||action==="new_trade"||action==="open_trade"){
-    if(cfg.exec===false) return {ok:false,done:false,msg:ultronL("Site control is turned off in settings.","Sayt boshqaruvi sozlamalarda o'chirilgan.")};
-    var t=ultronCreateTrade(p);
-    var d=ultronL("Trade added: ","Bitim qo'shildi: ")+t.symbol+" "+t.dir.toUpperCase()+(t.entry?(" @ "+t.entry):"")+(t.sl?(", SL "+t.sl):"")+(t.tp?(", TP "+t.tp):"");
-    return {ok:true,done:true,msg:d,trade:t};
-  }
-  if(action==="delete_last_trade"||action==="delete_trade"||action==="remove_last_trade"){
-    if(cfg.exec===false) return {ok:false,done:false,msg:ultronL("Site control is turned off.","Sayt boshqaruvi o'chirilgan.")};
-    if(!trades.length) return {ok:false,done:false,msg:ultronL("There are no trades to delete.","O'chirish uchun bitim yo'q.")};
-    var rem=trades.shift();
-    try{ localStorage.setItem("tp-trades", JSON.stringify(trades)); }catch(e){}
-    try{ renderDashboard(); renderJournal(); renderAnalytics(); renderGoals(); }catch(e){}
-    return {ok:true,done:true,msg:ultronL("Deleted last trade: ","Oxirgi bitim o'chirildi: ")+(rem.symbol||"")};
-  }
-  if(action==="set_balance"||action==="update_balance"){
-    if(cfg.exec===false) return {ok:false,done:false,msg:ultronL("Site control is turned off.","Sayt boshqaruvi o'chirilgan.")};
-    var amt=parseFloat(p.amount!=null?p.amount:p.balance);
-    if(!isFinite(amt)) return {ok:false,done:false,msg:ultronL("Invalid amount.","Noto'g'ri summa.")};
-    try{ settings.balance=amt; localStorage.setItem("tp-settings", JSON.stringify(settings)); }catch(e){}
-    try{ if(typeof updateUser==="function") updateUser(); renderDashboard(); renderGoals(); }catch(e){}
-    return {ok:true,done:true,msg:ultronL("Balance set to $","Balans o'rnatildi: $")+amt};
-  }
-  if(action==="navigate"||action==="open_section"||action==="goto"||action==="open"){
-    var ok=ultronNavTo(p.section||p.page||p.target||p.name);
-    return {ok:ok,done:ok,msg:ok?(ultronL("Opened ","Ochildi: ")+(p.section||p.page||"")):ultronL("I could not find that section.","Bu bo'limni topolmadim.")};
-  }
-  if(action==="open_web"||action==="search"||action==="web"||action==="lookup"){
-    if(cfg.web===false) return {ok:false,done:false,msg:ultronL("External sources are turned off in settings.","Tashqi manbalar sozlamalarda o'chirilgan.")};
-    var url=ultronOpenWeb(p.query||p.q||p.text||p.term, p.site||p.source);
-    return {ok:true,done:true,msg:ultronL("Opened ","Ochildi: ")+(p.site||"Google")+": "+(p.query||p.q||""),url:url};
-  }
-  if(action==="send_telegram"||action==="telegram"||action==="send_signal"||action==="post_signal"){
-    if(cfg.exec===false) return {ok:false,done:false,msg:ultronL("Site control is turned off in settings.","Sayt boshqaruvi sozlamalarda o'chirilgan.")};
-    var _tg=(typeof getTGConfig==="function")?getTGConfig():{token:"",chat:""};
-    if(!_tg.token||!_tg.chat) return {ok:false,done:false,msg:ultronL("Telegram bot is not set up. Open Market Signals and save your Bot Token and Chat ID first.","Telegram bot sozlanmagan. Avval 'Bozor signallari' bo'limida Bot Token va Chat ID saqlang.")};
-    var _msg=p.message||p.text||p.signal||ultronBuildTgSignal(p);
-    try {
-      sendTelegramMessage(_msg).then(function(){ try{ if(typeof showToast==="function") showToast(ultronL("Sent to Telegram","Telegramga yuborildi"),"success"); }catch(e){} ultronChatPush("ultron", ultronL("Signal sent to Telegram.","Signal Telegramga yuborildi.")); ultronSpeak(ultronL("Signal sent to Telegram.","Signal Telegramga yuborildi.")); }).catch(function(e){ var em=ultronL("Telegram error: ","Telegram xatosi: ")+((e&&e.message)||""); try{ if(typeof showToast==="function") showToast(em,"error"); }catch(x){} ultronChatPush("ultron", em); });
-    } catch(e){ return {ok:false,done:false,msg:ultronL("Could not send to Telegram.","Telegramga yuborib bo'lmadi.")}; }
-    return {ok:true,done:true,msg:ultronL("Sending to Telegram...","Telegramga yuborilmoqda...")};
-  }
-  return {ok:true,done:false,msg:""};
 }
 
 function ultronInit(){
