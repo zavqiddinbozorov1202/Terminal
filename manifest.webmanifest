@@ -1,0 +1,50 @@
+{
+  "name": "TraderPro — Shaxsiy Trading Platforma",
+  "short_name": "TraderPro",
+  "description": "Shaxsiy trading jurnali, chuqur analitika, intizom nazorati va Ultron AI",
+  "lang": "uz",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "id": "traderpro",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "background_color": "#0B0E13",
+  "theme_color": "#0B0E13",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Yangi bitim",
+      "short_name": "Bitim",
+      "description": "Tezda yangi bitim qo'shish",
+      "url": ".?go=trade"
+    },
+    {
+      "name": "PRO Tahlil",
+      "short_name": "PRO",
+      "description": "Chuqur analitika va simulyator",
+      "url": ".?go=pro"
+    },
+    {
+      "name": "Ultron Nazorat",
+      "short_name": "Ultron",
+      "description": "AI nazoratchi paneli",
+      "url": ".?go=ultron"
+    }
+  ]
+}

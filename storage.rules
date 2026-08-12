@@ -1,0 +1,33 @@
+rules_version = '2';
+
+/*  TraderPro — Firebase Storage qoidalari
+ *  Firebase Console > Storage > Rules > shu matnni qo'ying > Publish
+ *  Skrinshotlar faqat admin tomonidan yuklanadi, kirgan foydalanuvchi ko'ra oladi.
+ */
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email == 'bozorovzavqiddin28@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    match /shots/{fileName} {
+      allow read:  if signedIn();
+      allow write: if isAdmin()
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

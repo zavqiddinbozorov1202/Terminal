@@ -1,0 +1,49 @@
+rules_version = '2';
+
+/*  TraderPro — Firestore xavfsizlik qoidalari
+ *  Firebase Console > Firestore Database > Rules > shu matnni qo'ying > Publish
+ *
+ *  Mantiq:
+ *   - Faqat tizimga kirgan foydalanuvchi o'qiy oladi (viewer rejimi).
+ *   - Faqat admin (siz) yoza oladi.
+ *   - Hujjatni o'chirish umuman taqiqlangan.
+ *   - Boshqa hamma kolleksiyalar yopiq.
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email == 'bozorovzavqiddin28@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    // Asosiy hujjat: traderpro/main
+    match /traderpro/{docId} {
+      allow read:   if signedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Kelajakdagi mentor izohlari uchun tayyor namuna
+    match /comments/{commentId} {
+      allow read:   if signedIn();
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly(['text', 'author', 'tradeId', 'createdAt'])
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() < 2000;
+      allow update, delete: if isAdmin();
+    }
+
+    // Qolgan hamma narsa yopiq
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
