@@ -20657,7 +20657,8 @@ function uxStyle() {
   s.id = "ux-style";
   s.textContent = [
     /* qatlamlar */
-    ".main,.sidebar{position:relative;z-index:1}",
+    ".main{position:relative;z-index:1}",
+    ".sidebar{z-index:1}",
     "#ux-wall{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.9;transition:opacity .8s}",
     "html.ux-no-wall #ux-wall{opacity:0}",
     "#ux-grain{position:fixed;inset:0;z-index:9998;pointer-events:none;opacity:0;transition:opacity .6s;",
@@ -20708,11 +20709,11 @@ function uxStyle() {
     "@keyframes uxBreath{0%,100%{opacity:.55}50%{opacity:1}}",
 
     /* dizayn paneli */
-    "#ux-fab{position:fixed;left:18px;bottom:18px;z-index:99990;width:46px;height:46px;border-radius:50%;cursor:pointer;",
+    "#ux-fab{position:fixed;left:244px;bottom:18px;z-index:99990;width:46px;height:46px;border-radius:50%;cursor:pointer;",
     "border:1px solid var(--border-bright);background:linear-gradient(145deg,rgba(255,176,0,.2),rgba(0,0,0,.6));color:var(--gold);",
     "font-size:19px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);box-shadow:0 10px 26px rgba(0,0,0,.6)}",
     "#ux-fab:hover{transform:scale(1.08) rotate(12deg)}",
-    "#ux-panel{position:fixed;left:18px;bottom:74px;z-index:99991;width:310px;max-height:76vh;overflow:auto;display:none;",
+    "#ux-panel{position:fixed;left:244px;bottom:74px;z-index:99991;width:310px;max-height:76vh;overflow:auto;display:none;",
     "background:rgba(12,12,15,.94);border:1px solid var(--border);border-radius:16px;padding:16px;backdrop-filter:blur(18px);box-shadow:0 24px 60px rgba(0,0,0,.75)}",
     "#ux-panel.open{display:block;animation:uxIn .3s ease}",
     "#ux-panel h4{margin:0 0 10px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-muted)}",
@@ -20730,12 +20731,13 @@ function uxStyle() {
     ".ux-empty .ux-emoji{font-size:38px;display:block;margin-bottom:10px;animation:uxFloat 3.4s ease-in-out infinite}",
     "@keyframes uxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}",
 
-    /* topbar: sarlavha maydoni siqilib, matn ko'p qatorga bo'linib ketmasligi uchun */
-    "#top-title,#top-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-    "@media (min-width:901px){.topbar>div:first-child{flex:0 0 auto;min-width:168px;max-width:34%}",
-    ".topbar>div:first-child>div{min-width:0}.topbar-right{min-width:0;flex-wrap:nowrap}.topbar-right>*{flex-shrink:0}}",
-    "@media (max-width:1500px){.topbar-right .topbar-btn[title*='Ctrl+K'] span,",
-    ".topbar-right .topbar-btn[title*='Ctrl+P'] span{display:none}}",
+    /* topbar: hech qanday kenglik MAJBURLANMAYDI. Keng ekranda header asl
+       holicha bitta qatorda; tor ekranda tugmalar kesilmasdan pastki qatorga
+       o'tadi. Sahifa hech qachon gorizontal cho'zilmaydi. */
+    "#app-main,.main,.content{min-width:0}",
+    ".topbar>div:first-child{min-width:0}",
+    "@media (max-width:1435px){.topbar-right{flex-wrap:wrap;row-gap:8px;min-width:0}}",
+    "@media (max-width:900px){#ux-fab,#ux-panel{left:16px}}",
 
     "@media (prefers-reduced-motion:reduce){html.ux-morph .page.active,html.ux-morph .page.active .card{animation:none!important}",
     "#ux-grain::after{animation:none!important}}"
@@ -21142,7 +21144,7 @@ function uxbStyle() {
     "#uxb-skip{position:absolute;right:22px;bottom:20px;background:none;border:1px solid rgba(255,255,255,.18);color:#7A7670;",
     "border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;letter-spacing:.1em}",
 
-    "#uxb-greet{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-18px);z-index:99992;opacity:0;",
+    "#uxb-greet{position:fixed;top:140px;left:50%;pointer-events:none;transform:translateX(-50%) translateY(-18px);z-index:99992;opacity:0;",
     "max-width:min(760px,92vw);padding:12px 20px;border-radius:14px;pointer-events:none;",
     "background:rgba(10,10,13,.86);border:1px solid var(--border-bright,rgba(255,176,0,.4));backdrop-filter:blur(16px);",
     "box-shadow:0 18px 50px rgba(0,0,0,.6);transition:opacity .6s,transform .6s}",
