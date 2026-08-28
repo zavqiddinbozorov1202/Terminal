@@ -29104,7 +29104,11 @@ window.pstRefresh = pstRefresh;
     auto: 1, gate: 0.95, minSample: 12, mtf: 1, tgAuto: 1, dry: 0,
     tfs: ["15s", "1m", "5m", "15m", "1h", "4h", "1D"],
     syms: ["XAUUSD", "BTCUSDT", "ETHUSDT", "EURUSD"],
-    maxPerHour: 20, cooldownSec: 45, sound: 1, mode: "balanced"
+    maxPerHour: 20, cooldownSec: 45, sound: 1, mode: "balanced",
+    pipsMin: 100, pipsGate: 0.95, pipsAuto: 1, pipsOpen: 0.35,
+    pipsMode: "acc", pipsRisk: 0.5,
+    pipsSyms: ["XAUUSD", "BTCUSDT", "US30", "EURUSD"],
+    pipsTfs: ["5m", "15m", "1h", "4h", "12h", "1D", "1W"]
   };
   var CFG = (function () {
     var c = loadJSON(SIG.LS.cfg, {});
@@ -29423,6 +29427,7 @@ window.pstRefresh = pstRefresh;
         }
       }
     }
+    sent += nz(safe(function () { return pipsAutoTick(force); }, 0), 0);
     AUTO_STATE.runs++;
     AUTO_STATE.sent += sent;
     AUTO_STATE.lastAt = nowMs();
@@ -29451,6 +29456,935 @@ window.pstRefresh = pstRefresh;
   }
 
   /* ---- 2-qism eksporti ---- */
+
+  /* ============================================================
+     PIPS MASTER v2 — "eng kami 100 pips" maxsus signallar
+     Har bir (instrument, timeframe) juftligi uchun 768 kombinatsiya sinaladi:
+       kirish turi (2) × stop (8, TP ga nisbatan) × ball ostonasi (6)
+       × ushlash muddati (4) × trend filtri (2)
+     TP1 masofasi QAT'IY: eng kami N pips (standart 100).
+     Ikki rejim ajratiladi:
+       ACC  — aniqlik rejimi: fit LB >= 95% VA holdout LB >= 95%
+       PRO  — risk rejimi: 1R ga kutilma (expR) maksimal, R:R keng
+     Ikkalasi ham: kutilma > 0, ochiq qolish <= chegara, namuna >= 90 + 80.
+     ============================================================ */
+  var PIPS_VER = "p3";
+  var PIP_LS = "tp-sig-pips";
+  var PIP_SL_MULT = [1, 1.5, 2.5, 4, 6, 9, 13, 19];   /* stop = k × TP masofa */
+  var PIP_THR_GRID = [0.14, 0.22, 0.30, 0.40, 0.52, 0.64];
+  var PIP_OFF_GRID = [0, 0.3];                        /* ATR da chekinish */
+  var PIP_FILL_WIN = 10;
+  var PIP_TTL = 6 * 3600 * 1000;
+  var PIP_LOTS = { XAUUSD: 100, BTCUSDT: 1, ETHUSDT: 1, EURUSD: 100000, GBPUSD: 100000, USDJPY: 100000, US30: 1, USOIL: 1000 };
+  var PIP_MEM = {};
+  var PIP_CAL = {};
+  var PIP_DISK = loadJSON(PIP_LS, {});
+  var PIP_SIGC = {};
+  var PIP_NEXT = {};
+  var PIP_QUEUE = [];
+  var PIP_WORKING = false;
+  var PIP_DONE_CB = null;
+  var PIP_PROG = { done: 0, total: 0, cur: "", at: 0 };
+
+  function pipUnit(symId) { return nz(symById(symId).pip, 0.0001); }
+  function pipMin() { return clamp(Math.round(nz(CFG.pipsMin, 100)), 10, 20000); }
+  function pipGate() { return clamp(nz(CFG.pipsGate, 0.95), 0.5, 0.999); }
+  function pipOpenCap() { return clamp(nz(CFG.pipsOpen, 0.35), 0.05, 0.9); }
+  var PIP_PRO_MINEXPR = 0.08;
+  var PIP_PRO_MAXMULT = 4;
+  var PIP_ERRS = [];
+  var PIP_WD = { at: 0, fails: 0, timer: 0, deb: 0, busy: 0 };
+  function pipGuard(fn, label) {
+    try { return fn(); } catch (e) {
+      PIP_ERRS.push({ at: nowMs(), label: label, err: e && e.message ? e.message : String(e), stack: e && e.stack ? String(e.stack).slice(0, 240) : "" });
+      if (PIP_ERRS.length > 40) PIP_ERRS.shift();
+      return null;
+    }
+  }
+  function pipMode() { return CFG.pipsMode === "pro" ? "pro" : "acc"; }
+  function pipRiskPct() { return clamp(nz(CFG.pipsRisk, 0.5), 0.05, 5); }
+  function pipBalance() { return Math.max(100, nz(loadJSON("tp-settings", {}).balance, 10000)); }
+  function pipKey(symId, tfId) {
+    return PIPS_VER + ":" + symId + ":" + tfId + ":" + pipMin() + ":" + Math.round(pipGate() * 1000);
+  }
+  function pipDur(sec) {
+    sec = Math.max(0, Math.round(nz(sec, 0)));
+    if (sec < 90) return sec + " sek";
+    var m = sec / 60;
+    if (m < 90) return Math.round(m) + " daq";
+    var h = m / 60;
+    if (h < 48) return (h < 10 ? h.toFixed(1) : Math.round(h)) + " soat";
+    var d = h / 24;
+    if (d < 21) return (d < 10 ? d.toFixed(1) : Math.round(d)) + " kun";
+    return Math.round(d / 7) + " hafta";
+  }
+  function pipHorizonCap(tfId) {
+    var T = tfById(tfId);
+    var days = T.sec >= 3600 ? 90 : 7;
+    return Math.max(6, Math.ceil(days * 86400 / T.sec));
+  }
+  /* risk bo'yicha pozitsiya hajmi */
+  function pipSize(symId, stopPrice) {
+    var risk = pipBalance() * pipRiskPct() / 100;
+    if (!(stopPrice > 0)) return { risk: risk, units: 0, lots: 0 };
+    var units = risk / stopPrice;
+    var lot = nz(PIP_LOTS[symId], 1);
+    return { risk: risk, units: units, lots: units / lot };
+  }
+
+  function pipLongBars(symId, tfId) {
+    var T = tfById(tfId);
+    if (seriesSource(symId, tfId) === "LIVE") return seriesSync(symId, tfId);
+    var n = clamp(T.bars * 4, 1500, 3000);
+    var ck = "bars:" + symId + "@" + tfId + "@" + n;
+    var slot = PIP_MEM[ck];
+    if (slot && nowMs() - slot.at < 600000) return slot.bars;
+    var bars = genSeries(symId, tfId, n, Math.floor(nowMs() / (T.sec * 1000 * 12)));
+    PIP_MEM[ck] = { bars: bars, at: nowMs() };
+    return bars;
+  }
+
+  /* ---- savdo yozuvlari: TP1/TP2/TP3 va 8 stop darajasi (TP ga nisbatan) ---- */
+  function pipsTrades(symId, tfId) {
+    var mk = "tr:" + pipKey(symId, tfId);
+    var got = PIP_MEM[mk];
+    if (got && nowMs() - got.at < 600000) return got.val;
+    var bars = pipLongBars(symId, tfId);
+    if (!bars || bars.length < 320) return null;
+    var K = IND(bars);
+    var atr = K.atr(14), e50 = K.ema(50), e200 = K.ema(200);
+    var maxH = Math.min(pipHorizonCap(tfId), Math.max(24, Math.round(bars.length * 0.25)));
+    var startI = 210;
+    var endI = bars.length - maxH - 1;
+    if (endI - startI < 200) {
+      maxH = Math.max(6, Math.floor((bars.length - startI) * 0.35));
+      endI = bars.length - maxH - 1;
+    }
+    if (endI - startI < 60) return null;
+    var step = (endI - startI) > 1600 ? 2 : 1;
+    var minPips = pipMin(), unit = pipUnit(symId), NS = PIP_SL_MULT.length;
+    var recs = [], scanned = 0;
+    for (var i = startI; i <= endI; i += step) {
+      scanned++;
+      var a = nz(atr[i], 0);
+      if (a <= 0) continue;
+      var ens = ensembleAt(K, i);
+      if (!ens.dir || !ens.count) continue;
+      var req = (minPips * unit) / a;          /* TP masofasi ATR da */
+      if (!isFinite(req) || req <= 0) continue;
+      var dir = ens.dir, px = bars[i].c;
+      var rec = {
+        dir: dir, score: Math.abs(ens.score), agree: ens.agree, reg: ens.regime.id,
+        a: a, req: req, t: bars[i].t,
+        trend: (sgn(nz(e50[i], 0) - nz(e200[i], 0)) === dir) ? 1 : 0,
+        fill: [], tp1: [], tp2: [], tp3: [], sl: [], mfe: [], mae: []
+      };
+      for (var o = 0; o < PIP_OFF_GRID.length; o++) {
+        var off = PIP_OFF_GRID[o];
+        var eP = dir > 0 ? px - off * a : px + off * a;
+        var fill = -1, j, k;
+        if (off === 0) fill = 0;
+        else {
+          for (j = i + 1; j <= i + PIP_FILL_WIN && j < bars.length; j++) {
+            if (dir > 0 ? (bars[j].l <= eP) : (bars[j].h >= eP)) { fill = j - i; break; }
+          }
+        }
+        var slArr = new Array(NS);
+        for (k = 0; k < NS; k++) slArr[k] = -1;
+        var t1 = -1, t2 = -1, t3 = -1, mfe = 0, mae = 0, maeToTp = 0;
+        if (fill >= 0) {
+          var lim = Math.min(i + maxH, bars.length - 1);
+          for (j = i + fill + 1; j <= lim; j++) {
+            var favA = (dir > 0 ? (bars[j].h - eP) : (eP - bars[j].l)) / a;
+            var advA = (dir > 0 ? (eP - bars[j].l) : (bars[j].h - eP)) / a;
+            if (favA > mfe) mfe = favA;
+            if (advA > mae) mae = advA;
+            if (t1 < 0) maeToTp = mae;
+            if (t1 < 0 && favA >= req) t1 = j - i;
+            if (t2 < 0 && favA >= req * 1.6) t2 = j - i;
+            if (t3 < 0 && favA >= req * 2.6) t3 = j - i;
+            for (k = 0; k < NS; k++) if (slArr[k] < 0 && advA >= PIP_SL_MULT[k] * req) slArr[k] = j - i;
+            if (t3 >= 0 && slArr[NS - 1] >= 0) break;
+          }
+        }
+        rec.fill.push(fill); rec.tp1.push(t1); rec.tp2.push(t2); rec.tp3.push(t3);
+        rec.sl.push(slArr); rec.mfe.push(mfe); rec.mae.push(maeToTp);
+      }
+      recs.push(rec);
+    }
+    var val = {
+      recs: recs, maxH: maxH, bars: bars.length, step: step, scanned: scanned,
+      src: seriesSource(symId, tfId), minPips: minPips, unit: unit, tfSec: tfById(tfId).sec
+    };
+    PIP_MEM[mk] = { val: val, at: nowMs() };
+    return val;
+  }
+
+  /* ---- bitta kombinatsiyani o'lchash ---- */
+  function pipEval(recs, from, to, o, k, thr, H, minPips, trendOnly, tfSec, step) {
+    var wins = 0, losses = 0, open = 0, unfilled = 0, sig = 0;
+    var pipsSum = 0, rSum = 0, tsum = 0, tn = 0, w2 = 0, w3 = 0;
+    var maeSum = 0, mfeSum = 0, cnt = 0, streak = 0, maxStreak = 0;
+    var slMult = PIP_SL_MULT[k], slPips = slMult * minPips;
+    for (var i = from; i < to; i++) {
+      var r = recs[i];
+      if (r.score < thr) continue;
+      if (trendOnly && !r.trend) continue;
+      sig++;
+      var f = r.fill[o];
+      if (f < 0) { unfilled++; continue; }
+      cnt++;
+      maeSum += r.mae[o] / r.req * minPips;      /* MAE ni pipsga: (ATR) / req * minPips */
+      mfeSum += r.mfe[o] / r.req * minPips;
+      var tp = r.tp1[o], sl = r.sl[o][k];
+      var okTp = tp >= 0 && tp <= H;
+      var okSl = sl >= 0 && sl <= H;
+      if (okTp && (!okSl || sl > tp)) {
+        wins++; pipsSum += minPips; rSum += 1 / slMult; tsum += tp; tn++; streak = 0;
+        if (r.tp2[o] >= 0 && r.tp2[o] <= H && (!okSl || sl > r.tp2[o])) w2++;
+        if (r.tp3[o] >= 0 && r.tp3[o] <= H && (!okSl || sl > r.tp3[o])) w3++;
+      } else if (okSl && (!okTp || sl < tp)) {
+        losses++; pipsSum -= slPips; rSum -= 1; streak++;
+        if (streak > maxStreak) maxStreak = streak;
+      } else open++;
+    }
+    var n = wins + losses;
+    var closed = n + open;
+    var span = Math.max(1, to - from);
+    var weeks = (span * step * tfSec) / 604800;
+    return {
+      n: n, wins: wins, losses: losses, open: open, unfilled: unfilled, sig: sig,
+      hit: n ? wins / n : 0, lb: wilsonLower(wins, n),
+      openShare: closed ? open / closed : 1,
+      fillRate: sig ? (sig - unfilled) / sig : 0,
+      cov: sig / span,
+      slMult: slMult, slPips: slPips, rr: 1 / slMult,
+      expPips: n ? pipsSum / n : 0,
+      expR: n ? rSum / n : 0,
+      avgBars: tn ? tsum / tn : 0,
+      tp2Rate: wins ? w2 / wins : 0,
+      tp3Rate: wins ? w3 / wins : 0,
+      maePips: cnt ? maeSum / cnt : 0,
+      mfePips: cnt ? mfeSum / cnt : 0,
+      maxLossStreak: maxStreak,
+      perWeek: weeks > 0 ? n / weeks : 0
+    };
+  }
+
+  /* ---- yechuvchi: ACC (aniqlik) + PRO (risk) ---- */
+  function pipsCalibrate(symId, tfId, opts) {
+    opts = opts || {};
+    var key = pipKey(symId, tfId);
+    if (!opts.force) {
+      var m0 = PIP_CAL[key];
+      if (m0 && nowMs() - nz(m0.at, 0) < PIP_TTL) return m0;
+      var d0 = PIP_DISK[key];
+      if (d0 && nowMs() - nz(d0.at, 0) < PIP_TTL) { PIP_CAL[key] = d0; return d0; }
+    }
+    var TR = pipsTrades(symId, tfId);
+    if (!TR || TR.recs.length < 80) return null;
+    var recs = TR.recs, cut = Math.floor(recs.length * 0.6);
+    var minPips = TR.minPips, tfSec = TR.tfSec, step = TR.step;
+    var gate = pipGate(), openCap = pipOpenCap(), minFit = 90, minVal = 80;
+    var mh = TR.maxH, Hs = [], hRaw = [
+      Math.max(3, Math.round(mh * 0.2)), Math.max(4, Math.round(mh * 0.45)),
+      Math.max(5, Math.round(mh * 0.7)), mh
+    ], q;
+    for (q = 0; q < hRaw.length; q++) if (Hs.indexOf(hRaw[q]) < 0) Hs.push(hRaw[q]);
+
+    var accC = [], proC = [], bestAny = null, o, k, ti, hi, fl;
+    for (o = 0; o < PIP_OFF_GRID.length; o++) {
+      for (k = 0; k < PIP_SL_MULT.length; k++) {
+        for (ti = 0; ti < PIP_THR_GRID.length; ti++) {
+          for (hi = 0; hi < Hs.length; hi++) {
+            for (fl = 0; fl < 2; fl++) {
+              var f = pipEval(recs, 0, cut, o, k, PIP_THR_GRID[ti], Hs[hi], minPips, fl, tfSec, step);
+              var cfg = {
+                off: PIP_OFF_GRID[o], oi: o, ki: k, slMult: PIP_SL_MULT[k], slPips: f.slPips,
+                thr: PIP_THR_GRID[ti], H: Hs[hi], trendOnly: !!fl, rr: f.rr
+              };
+              if (f.n >= 40) {
+                var sc = f.lb + (f.expR > 0 ? 0.02 : 0) + Math.min(0.02, f.n / 20000);
+                if (!bestAny || sc > bestAny.sc) bestAny = { cfg: cfg, fit: f, sc: sc };
+              }
+              if (f.n < minFit || f.openShare > openCap) continue;
+              if (f.lb >= gate && f.expPips > 0 && f.expR > 0) accC.push({ cfg: cfg, fit: f });
+              if (f.expR >= PIP_PRO_MINEXPR && f.lb >= 0.3 && PIP_SL_MULT[cfg.ki] <= PIP_PRO_MAXMULT) proC.push({ cfg: cfg, fit: f });
+            }
+          }
+        }
+      }
+    }
+    function holdout(cc) {
+      return pipEval(recs, cut, recs.length, cc.cfg.oi, cc.cfg.ki, cc.cfg.thr, cc.cfg.H, minPips, cc.cfg.trendOnly ? 1 : 0, tfSec, step);
+    }
+    function stratify(cands, lim) {
+      cands.sort(function (a, b) { return b.fit.expR - a.fit.expR; });
+      var seen = {}, cnt = {}, out = [], i, k;
+      for (i = 0; i < cands.length; i++) {
+        k = cands[i].cfg.ki;
+        cnt[k] = nz(cnt[k], 0);
+        if (cnt[k] < 50) { cnt[k]++; seen[i] = 1; out.push(cands[i]); }
+      }
+      for (i = 0; i < cands.length && out.length < lim; i++) if (!seen[i]) { seen[i] = 1; out.push(cands[i]); }
+      return out;
+    }
+    function pickAcc() {
+      var cs = stratify(accC, 400), best = null;
+      for (var c = 0; c < cs.length; c++) {
+        var cc = cs[c], v = holdout(cc);
+        if (v.n < minVal || v.lb < gate || v.expPips <= 0 || v.openShare > openCap) continue;
+        var rank = Math.min(cc.fit.expR, v.expR);
+        if (!best || rank > best.rank) best = { cfg: cc.cfg, fit: cc.fit, val: v, rank: rank };
+      }
+      return best;
+    }
+    function pickPro() {
+      var cs = stratify(proC, 400), best = null;
+      for (var c = 0; c < cs.length; c++) {
+        var cc = cs[c], v = holdout(cc);
+        if (v.n < minVal || v.expR < PIP_PRO_MINEXPR || v.openShare > openCap || v.lb < 0.3) continue;
+        var rank = Math.min(cc.fit.expR, v.expR);
+        if (!best || rank > best.rank) best = { cfg: cc.cfg, fit: cc.fit, val: v, rank: rank };
+      }
+      return best;
+    }
+    var accTested = Math.min(accC.length, 400), proTested = Math.min(proC.length, 400);
+    var acc = pickAcc(), pro = pickPro();
+    var meta = {
+      recs: recs.length, scanned: TR.scanned, maxH: TR.maxH, bars: TR.bars, step: TR.step,
+      src: TR.src, cut: cut, accCands: accC.length, proCands: proC.length,
+      accTested: accTested, proTested: proTested,
+      combos: PIP_OFF_GRID.length * PIP_SL_MULT.length * PIP_THR_GRID.length * Hs.length * 2
+    };
+    var res;
+    if (acc) {
+      res = {
+        ok: 1, status: "nashr", at: nowMs(), sym: symId, tf: tfId, minPips: minPips, gate: gate,
+        acc: { cfg: acc.cfg, fit: acc.fit, val: acc.val },
+        pro: pro ? { cfg: pro.cfg, fit: pro.fit, val: pro.val } : null,
+        cfg: acc.cfg, fit: acc.fit, val: acc.val, meta: meta, reason: ""
+      };
+    } else {
+      var b = bestAny, vb = b ? holdout(b) : null, why = "darvoza bajarilmadi";
+      if (accC.length) {
+        why = "fit darvozasidan o'tgan " + accC.length + " konfiguratsiya mustaqil holdoutda tasdiqlanmadi (moslashuv xavfi)";
+      } else if (b) {
+        if (b.fit.openShare > openCap) why = "savdolar muddat ichida yopilmaydi (" + fmtPct(b.fit.openShare, 0) + " ochiq) \u2014 " + fmtN(minPips, 0) + " pips bu TF uchun juda katta masofa";
+        else if (b.fit.lb < gate) why = "o'lchangan aniqlik " + fmtPct(b.fit.lb, 1) + " — " + fmtPct(gate, 0) + " darvozadan past";
+        else if (vb && vb.n < minVal) why = "holdout namunasi kichik (" + vb.n + " savdo)";
+        else if (vb && vb.lb < gate) why = "holdout " + fmtPct(vb.lb, 1) + " — darvozadan past";
+        else why = "kutilma manfiy — stop juda keng";
+      }
+      res = {
+        ok: 0, status: "kuzatuv", at: nowMs(), sym: symId, tf: tfId, minPips: minPips, gate: gate,
+        acc: null, pro: pro ? { cfg: pro.cfg, fit: pro.fit, val: pro.val } : null,
+        cfg: b ? b.cfg : null, fit: b ? b.fit : null, val: vb, meta: meta, reason: why
+      };
+    }
+    PIP_CAL[key] = res;
+    PIP_DISK[key] = res;
+    var keys = [];
+    for (var kk in PIP_DISK) keys.push(kk);
+    if (keys.length > 300) for (var z = 0; z < keys.length - 300; z++) delete PIP_DISK[keys[z]];
+    saveJSON(PIP_LS, PIP_DISK);
+    return res;
+  }
+
+  function pipCached(symId, tfId) {
+    var key = pipKey(symId, tfId);
+    var m = PIP_CAL[key] || PIP_DISK[key];
+    return (m && nowMs() - nz(m.at, 0) < PIP_TTL) ? m : null;
+  }
+
+  /* ---- jonli signal ---- */
+  function pipsSignal(symId, tfId, opts) {
+    opts = opts || {};
+    var mode = opts.mode || pipMode();
+    var cal = opts.cal || pipCached(symId, tfId);
+    if (!cal && opts.calc) cal = pipsCalibrate(symId, tfId);
+    if (!cal) return null;
+    var pack = mode === "pro" ? cal.pro : cal.acc;
+    var usedMode = mode, isQual = !!pack;
+    if (!pack) pack = { cfg: cal.cfg, fit: cal.fit, val: cal.val };
+    if (!pack || !pack.cfg) return null;
+    var ck = "sg:" + pipKey(symId, tfId) + ":" + usedMode;
+    var sc = PIP_SIGC[ck];
+    if (sc && nowMs() - sc.at < 20000 && !opts.force) return sc.sig;
+    var bars = seriesSync(symId, tfId);
+    if (!bars || bars.length < 150) return null;
+    var K = IND(bars), n = K.n - 1;
+    var a = nz(K.atr(14)[n], 0);
+    if (a <= 0) return null;
+    var ens = ensembleAt(K, n);
+    var dir = ens.dir;
+    if (!dir) return null;
+    var S = symById(symId), T = tfById(tfId);
+    var unit = pipUnit(symId), minPips = nz(cal.minPips, pipMin());
+    var e50 = K.ema(50), e200 = K.ema(200);
+    var trendOk = sgn(nz(e50[n], 0) - nz(e200[n], 0)) === dir;
+    var cfg = pack.cfg, F = pack.fit || {}, V = pack.val || pack.fit || {};
+    var strong = Math.abs(ens.score) >= cfg.thr && (!cfg.trendOnly || trendOk);
+    var px = bars[n].c;
+    var entry = cfg.off ? (dir > 0 ? px - cfg.off * a : px + cfg.off * a) : px;
+    var tpD = minPips * unit, slD = cfg.slMult * tpD;
+    var sl = dir > 0 ? entry - slD : entry + slD;
+    var tp1 = dir > 0 ? entry + tpD : entry - tpD;
+    var tp2 = dir > 0 ? entry + tpD * 1.6 : entry - tpD * 1.6;
+    var tp3 = dir > 0 ? entry + tpD * 2.6 : entry - tpD * 2.6;
+    var lbMin = Math.min(nz(F.lb, 0), nz(V.lb, 0));
+    var mt = CFG.mtf ? mtfBias(symId, tfId) : { align: 0, list: [] };
+    var size = pipSize(symId, slD);
+    var qualified = isQual;
+    var conf = clamp(Math.abs(ens.score) * 0.5 + ens.agree * 0.3 + (trendOk ? 0.12 : 0) + clamp(ens.count / 60, 0, 0.15), 0, 0.99);
+    var sig = {
+      id: "P|" + usedMode + "|" + symId + "|" + tfId + "|" + bars[n].t + "|" + dir + "|" + minPips,
+      kind: "pips", mode: usedMode, sym: symId, symName: S.name, tf: tfId, tfLab: T.lab,
+      dir: dir, dirLab: dir > 0 ? "BUY" : "SELL",
+      qualified: qualified, strong: strong,
+      status: (qualified && strong) ? "nashr" : "kuzatuv",
+      reason: qualified ? (strong ? "" : "hozir ball ostonadan past (kutish)")
+        : (mode === "pro" ? "PRO rejimida musbat kutilmali konfiguratsiya topilmadi" : cal.reason),
+      entry: entry, entryType: cfg.off ? "limit" : "bozor", entryOffPips: (cfg.off * a) / unit,
+      last: px, sl: sl, tp1: tp1, tp2: tp2, tp3: tp3,
+      pipsTp: minPips, pipsTp2: minPips * 1.6, pipsTp3: minPips * 2.6,
+      pipsSl: cfg.slMult * minPips, slMult: cfg.slMult, rr: 1 / cfg.slMult,
+      atr: a, atrPips: a / unit, tpAtr: tpD / a, slAtr: slD / a, thr: cfg.thr, trendOnly: !!cfg.trendOnly,
+      holdBars: cfg.H, holdSec: cfg.H * T.sec,
+      precision: nz(V.hit, nz(F.hit, 0)), precisionLb: lbMin,
+      hitFit: nz(F.hit, 0), lbFit: nz(F.lb, 0), nFit: nz(F.n, 0),
+      hitVal: nz(V.hit, 0), lbVal: nz(V.lb, 0), nVal: nz(V.n, 0),
+      sample: nz(F.n, 0) + nz(V.n, 0), cov: nz(V.cov, nz(F.cov, 0)),
+      openShare: nz(V.openShare, nz(F.openShare, 0)),
+      expPips: nz(V.expPips, nz(F.expPips, 0)), expRUnit: nz(V.expR, nz(F.expR, 0)),
+      expR: nz(V.expR, nz(F.expR, 0)),
+      tp2Rate: nz(V.tp2Rate, 0), tp3Rate: nz(V.tp3Rate, 0),
+      maePips: nz(V.maePips, nz(F.maePips, 0)), mfePips: nz(V.mfePips, nz(F.mfePips, 0)),
+      maxLossStreak: Math.max(nz(F.maxLossStreak, 0), nz(V.maxLossStreak, 0)),
+      perWeek: nz(V.perWeek, nz(F.perWeek, 0)),
+      etaSec: Math.round(nz(V.avgBars, nz(F.avgBars, 0)) * T.sec), avgBars: nz(V.avgBars, 0),
+      riskMoney: size.risk, posUnits: size.units, posLots: size.lots, riskPct: pipRiskPct(),
+      score: ens.score, agree: ens.agree, fired: ens.count, conf: conf,
+      regime: ens.regime.id, regimeLab: ens.regime.lab, session: ens.regime.ses.lab,
+      trendOk: trendOk, mtf: mt.list, mtfAlign: mt.align,
+      strats: ens.fired.slice().sort(function (x, y) { return (y.str * y.w) - (x.str * x.w); }).slice(0, 8),
+      dp: S.dp, source: seriesSource(symId, tfId), at: nowMs(), barTime: bars[n].t,
+      expirySec: cfg.H * T.sec, gate: nz(cal.gate, pipGate()),
+      calSrc: cal.meta ? cal.meta.src : "SIM", calRecs: cal.meta ? cal.meta.recs : 0,
+      combos: cal.meta ? cal.meta.combos : 0,
+      hasAcc: !!cal.acc, hasPro: !!cal.pro
+    };
+    PIP_SIGC[ck] = { sig: sig, at: nowMs() };
+    return sig;
+  }
+
+  function pipsPairs(full) {
+    var syms = full ? SYMS.map(function (s) { return s.id; }) : (CFG.pipsSyms || ["XAUUSD"]);
+    var tfs = full ? TFS.map(function (t) { return t.id; }) : (CFG.pipsTfs || ["1h"]);
+    var out = [];
+    for (var s = 0; s < syms.length; s++) for (var t = 0; t < tfs.length; t++) out.push({ sym: syms[s], tf: tfs[t] });
+    return out;
+  }
+
+  /* ---- fon navbati ---- */
+  function pipsPush(pairs, done) {
+    for (var i = 0; i < pairs.length; i++) {
+      var p = pairs[i], dup = 0;
+      for (var j = 0; j < PIP_QUEUE.length; j++) if (PIP_QUEUE[j].sym === p.sym && PIP_QUEUE[j].tf === p.tf) { dup = 1; break; }
+      if (!dup) PIP_QUEUE.push({ sym: p.sym, tf: p.tf });
+    }
+    PIP_PROG.total = PIP_PROG.done + PIP_QUEUE.length;
+    if (done) PIP_DONE_CB = done;
+    pipsWork();
+    return PIP_QUEUE.length;
+  }
+  function pipsWork() {
+    if (PIP_WORKING || !PIP_QUEUE.length) return;
+    PIP_WORKING = true;
+    window.setTimeout(function () {
+      PIP_WORKING = false;
+      if (!PIP_QUEUE.length) return;
+      var item = PIP_QUEUE.shift();
+      PIP_PROG.cur = item.sym + " " + item.tf;
+      PIP_PROG.at = nowMs();
+      safe(function () { pipsCalibrate(item.sym, item.tf); });
+      PIP_PROG.done++;
+      if (!PIP_QUEUE.length) {
+        PIP_PROG.cur = "";
+        var cb = PIP_DONE_CB; PIP_DONE_CB = null;
+        safe(function () { pipsRefreshCard(); });
+        if (cb) safe(cb);
+      } else {
+        if (PIP_PROG.done % 4 === 0) safe(function () { pipsRefreshCard(); });
+        pipsWork();
+      }
+    }, 30);
+  }
+
+  function pipsList(opts) {
+    opts = opts || {};
+    var pairs = opts.pairs || pipsPairs(!!opts.full);
+    var mode = opts.mode || pipMode();
+    var have = [], miss = [], i;
+    for (i = 0; i < pairs.length; i++) {
+      var cal = pipCached(pairs[i].sym, pairs[i].tf);
+      if (cal) have.push({ p: pairs[i], cal: cal }); else miss.push(pairs[i]);
+    }
+    if (miss.length && !opts.noQueue) pipsPush(miss, opts.done);
+    var out = [];
+    for (i = 0; i < have.length; i++) {
+      var s = safe(function () { return pipsSignal(have[i].p.sym, have[i].p.tf, { cal: have[i].cal, mode: mode }); }, null);
+      if (s) out.push(s);
+    }
+    out.sort(function (a, b) {
+      var ap = (a.qualified ? 2 : 0) + (a.strong ? 1 : 0), bp = (b.qualified ? 2 : 0) + (b.strong ? 1 : 0);
+      if (bp !== ap) return bp - ap;
+      if (b.expRUnit !== a.expRUnit) return b.expRUnit - a.expRUnit;
+      return b.precisionLb - a.precisionLb;
+    });
+    return { list: out, missing: miss.length, total: pairs.length, mode: mode };
+  }
+  function pipsPublishable(list) {
+    return (list || pipsList({}).list).filter(function (s) { return s.qualified && s.strong; });
+  }
+
+  /* ---- Telegram ---- */
+  function pipsTgFormat(sig) {
+    var dp = sig.dp, P = function (v) { return (v >= 0 ? "+" : "\u2212") + fmtN(Math.abs(v), 0); };
+    var head = sig.qualified
+      ? "<b>\uD83D\uDC8E " + fmtN(sig.pipsTp, 0) + "+ PIPS MAXSUS SIGNAL</b>"
+      : "<b>\uD83D\uDC41 KUZATUV \u2014 darvozadan o'tmagan, nashr emas</b>";
+    var lines = [
+      head,
+      "<b>" + (sig.dir > 0 ? "\uD83D\uDFE2 BUY" : "\uD83D\uDD34 SELL") + " " + esc(sig.sym) + "</b>  <i>" + esc(sig.tfLab) + "</i>  \u00B7  rejim: " + (sig.mode === "pro" ? "PRO (R)" : "ANIQLIK") + "",
+      "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+      "\uD83C\uDFAF Kirish (" + esc(sig.entryType) + "): <b>" + fmtN(sig.entry, dp) + "</b>",
+      "\uD83D\uDED1 Stop: <b>" + fmtN(sig.sl, dp) + "</b>  (" + fmtN(sig.pipsSl, 0) + " pips)",
+      "\u2705 TP1: <b>" + fmtN(sig.tp1, dp) + "</b>  (" + P(sig.pipsTp) + " pips)",
+      "\u2705 TP2: " + fmtN(sig.tp2, dp) + "  (" + P(sig.pipsTp2) + " pips)",
+      "\u2705 TP3: " + fmtN(sig.tp3, dp) + "  (" + P(sig.pipsTp3) + " pips)",
+      "\u2696\uFE0F R:R = 1 : " + sig.rr.toFixed(2) + "  \u00B7  stop = " + sig.slMult + "\u00D7 TP",
+      "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+      "\uD83D\uDCCA TP1 aniqligi: <b>" + fmtPct(sig.hitVal, 1) + "</b> (holdout" + (sig.qualified ? "" : ", tasdiqlanmagan nomzod") + ")",
+      "\uD83D\uDD12 95% ishonch pastki chegarasi: <b>" + fmtPct(sig.precisionLb, 1) + "</b>",
+      "\uD83E\uDDEA Namuna: " + sig.nFit + " moslash + " + sig.nVal + " holdout savdo",
+      "\uD83D\uDCB0 Kutilma: <b>" + P(sig.expPips) + " pips</b> (" + (sig.expRUnit >= 0 ? "+" : "\u2212") + Math.abs(sig.expRUnit).toFixed(3) + "R) / savdo",
+      "\uD83D\uDCC9 O'rtacha chekinish (MAE): " + fmtN(sig.maePips, 0) + " pips  \u00B7  maks. ketma-ket zarar: " + sig.maxLossStreak,
+      "\uD83D\uDCD0 Pozitsiya (" + sig.riskPct + "% risk, $" + fmtN(sig.riskMoney, 0) + "): " + fmtN(sig.posUnits, 4) + " birlik \u2248 " + fmtN(sig.posLots, 3) + " lot",
+      "\u23F1 O'rtacha yetish: " + pipDur(sig.etaSec) + "  \u00B7  muddat: " + pipDur(sig.holdSec),
+      "\uD83D\uDCC8 Qamrov: " + fmtPct(sig.cov, 0) + "  \u00B7  ochiq qolish: " + fmtPct(sig.openShare, 0) + "  \u00B7  \u2248" + sig.perWeek.toFixed(1) + " savdo/hafta",
+      "\uD83E\uDD16 Kelishuv: " + Math.round(sig.agree * 100) + "% (" + sig.fired + " strategiya)",
+      "\uD83C\uDF10 Rejim: " + esc(sig.regimeLab) + " \u00B7 " + esc(sig.session),
+      "\uD83D\uDD0E Manba: " + (sig.source === "LIVE" ? "jonli ma'lumot" : "simulyatsiya")
+    ];
+    if (!sig.qualified) lines.push("\u26A0\uFE0F Sabab: " + esc(sig.reason || "darvoza bajarilmadi"));
+    lines.push("");
+    lines.push("<i>Ta'lim maqsadida. Risk boshqaruvisiz savdo qilmang.</i>");
+    return lines.join("\n");
+  }
+  function pipsSend(sig, opts) {
+    opts = opts || {};
+    if (!sig) return { ok: false, reason: "signal yo'q" };
+    if (!sig.qualified && !opts.force) return { ok: false, reason: "darvozadan o'tmagan" };
+    if (!opts.force) {
+      if (TG_SENT[sig.id]) return { ok: false, reason: "takroriy" };
+      if (!tgRateOk()) return { ok: false, reason: "soatlik chegara" };
+      var lastAt = TG_SENT["__pip:" + sig.sym + sig.tf] || 0;
+      if (nowMs() - lastAt < nz(CFG.cooldownSec, 45) * 1000) return { ok: false, reason: "sovish davri" };
+    }
+    TG_SENT[sig.id] = nowMs();
+    TG_SENT["__pip:" + sig.sym + sig.tf] = nowMs();
+    TG_QUEUE.push({ text: pipsTgFormat(sig), id: sig.id });
+    tgDrain();
+    return { ok: true, queued: TG_QUEUE.length };
+  }
+
+  /* ---- avtopilot ---- */
+  function pipsAutoTick(force) {
+    if (!CFG.pipsAuto && !force) return 0;
+    var pairs = pipsPairs(false), sent = 0, mode = pipMode();
+    for (var i = 0; i < pairs.length; i++) {
+      var p = pairs[i], cal = pipCached(p.sym, p.tf);
+      if (!cal) continue;
+      if (mode === "pro" ? !cal.pro : !cal.acc) continue;
+      var kk = p.sym + "|" + p.tf;
+      var T = tfById(p.tf);
+      var period = Math.max(15000, Math.min(T.sec * 1000, 600000));
+      if (!force && PIP_NEXT[kk] && nowMs() < PIP_NEXT[kk]) continue;
+      PIP_NEXT[kk] = nowMs() + period;
+      var sig = safe(function () { return pipsSignal(p.sym, p.tf, { cal: cal, mode: mode }); }, null);
+      if (!sig || !sig.qualified || !sig.strong) continue;
+      if (!histAdd(sig)) continue;
+      if (pipsSend(sig).ok) sent++;
+    }
+    return sent;
+  }
+
+  /* ---- UI ---- */
+  function pipsRowsHtml(list) {
+    var out = ['<div class="sg-scroll"><table class="sg-tf"><thead><tr>',
+      "<th>Instrument</th><th>TF</th><th>Yo'nalish</th><th>Kirish</th><th>Stop</th><th>TP1</th><th>R:R</th>",
+      "<th>Aniqlik</th><th>LB</th><th>Namuna</th><th>Kutilma</th><th>1R</th><th>MAE</th><th>Ketma-ket</th>",
+      "<th>Qamrov</th><th>Ochiq</th><th>Vaqt</th><th>Holat</th><th></th></tr></thead><tbody>"];
+    if (!list.length) out.push('<tr><td colspan="19" class="sg-mut">Hisoblanmoqda\u2026</td></tr>');
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      var ok = s.qualified && s.strong;
+      var badge = ok ? '<span class="sg-badge live">nashr</span>'
+        : (s.qualified ? '<span class="sg-badge">tayyor \u00B7 kutilmoqda</span>'
+          : '<span class="sg-badge sim">kuzatuv</span>');
+      out.push('<tr' + (ok ? ' style="background:rgba(56,189,124,.07)"' : '') + ">");
+      out.push("<td><b>" + esc(s.sym) + "</b></td><td>" + esc(s.tf) + "</td>");
+      out.push('<td class="' + (s.dir > 0 ? "sg-up" : "sg-dn") + '"><b>' + s.dirLab + "</b></td>");
+      out.push("<td>" + fmtN(s.entry, s.dp) + '<span class="sg-mut"> ' + esc(s.entryType) + "</span></td>");
+      out.push('<td class="sg-dn">' + fmtN(s.pipsSl, 0) + " p</td>");
+      out.push('<td class="sg-up"><b>' + fmtN(s.pipsTp, 0) + " p</b></td>");
+      out.push("<td>1:" + s.rr.toFixed(2) + "</td>");
+      out.push("<td>" + fmtPct(s.hitVal, 1) + "</td>");
+      out.push("<td><b>" + fmtPct(s.precisionLb, 1) + "</b></td>");
+      out.push("<td>" + s.nFit + "+" + s.nVal + "</td>");
+      out.push('<td class="' + (s.expPips > 0 ? "sg-up" : "sg-dn") + '"><b>' + (s.expPips >= 0 ? "+" : "\u2212") + fmtN(Math.abs(s.expPips), 0) + " p</b></td>");
+      out.push('<td class="' + (s.expRUnit > 0 ? "sg-up" : "sg-dn") + '">' + (s.expRUnit >= 0 ? "+" : "\u2212") + Math.abs(s.expRUnit).toFixed(3) + "</td>");
+      out.push("<td>" + fmtN(s.maePips, 0) + " p</td>");
+      out.push("<td>" + s.maxLossStreak + "</td>");
+      out.push("<td>" + fmtPct(s.cov, 0) + "</td>");
+      out.push("<td>" + fmtPct(s.openShare, 0) + "</td>");
+      out.push("<td>" + pipDur(s.etaSec) + "</td>");
+      out.push("<td>" + badge + "</td>");
+      out.push('<td><button class="sg-btn' + (ok ? " gold" : "") + '" onclick="pipsSendOne(\'' + esc(s.sym) + "','" + esc(s.tf) + '\')">\uD83D\uDCE8</button></td></tr>');
+      if (!s.qualified && s.reason) {
+        out.push('<tr><td colspan="19" class="sg-mut" style="font-size:9.5px;padding-top:0">\u21B3 ' + esc(s.sym + " " + s.tf + ": " + s.reason) + "</td></tr>");
+      }
+    }
+    out.push("</tbody></table></div>");
+    return out.join("");
+  }
+
+  function pipsDetailHtml(s) {
+    var dp = s.dp, cls = s.dir > 0 ? "buy" : "sell";
+    var out = ['<div class="sg-sig ' + cls + '">', '<div class="sg-sig-h">'];
+    out.push('<span class="sg-dir ' + cls + '">' + s.dirLab + "</span>");
+    out.push('<span class="sg-title" style="font-size:12.5px">' + esc(s.sym) + "</span>");
+    out.push('<span class="sg-badge">' + esc(s.tfLab) + "</span>");
+    out.push('<span class="sg-badge" style="background:linear-gradient(90deg,#c9a227,#f2d375);color:#1a1406;font-weight:800">' + fmtN(s.pipsTp, 0) + " pips maqsad</span>");
+    out.push('<span class="sg-badge gate">LB ' + fmtPct(s.precisionLb, 1) + "</span>");
+    out.push('<span class="sg-badge">' + (s.mode === "pro" ? "PRO (R) rejimi" : "aniqlik rejimi") + "</span>");
+    out.push('<span class="sg-badge ' + (s.source === "LIVE" ? "live" : "sim") + '">' + (s.source === "LIVE" ? "jonli" : "simulyatsiya") + "</span>");
+    out.push('<span class="sg-spacer"></span>');
+    out.push('<button class="sg-btn gold" onclick="pipsSendOne(\'' + esc(s.sym) + "','" + esc(s.tf) + '\')">\uD83D\uDCE8 Telegram</button></div>');
+    out.push('<div class="sg-lv">');
+    out.push('<div><span class="sg-kpi-l">Kirish (' + esc(s.entryType) + ")</span><b>" + fmtN(s.entry, dp) + "</b></div>");
+    out.push('<div><span class="sg-kpi-l">Stop</span><b class="sg-dn">' + fmtN(s.sl, dp) + " \u00B7 " + fmtN(s.pipsSl, 0) + " p</b></div>");
+    out.push('<div><span class="sg-kpi-l">TP1</span><b class="sg-up">' + fmtN(s.tp1, dp) + " \u00B7 " + fmtN(s.pipsTp, 0) + " p</b></div>");
+    out.push('<div><span class="sg-kpi-l">TP2 / TP3</span><b>' + fmtN(s.tp2, dp) + " / " + fmtN(s.tp3, dp) + "</b></div>");
+    out.push('<div><span class="sg-kpi-l">R:R</span><b>1 : ' + s.rr.toFixed(2) + "</b></div>");
+    out.push('<div><span class="sg-kpi-l">Kutilma</span><b class="' + (s.expPips > 0 ? "sg-up" : "sg-dn") + '">' + (s.expPips >= 0 ? "+" : "\u2212") + fmtN(Math.abs(s.expPips), 0) + " p \u00B7 " + (s.expRUnit >= 0 ? "+" : "\u2212") + Math.abs(s.expRUnit).toFixed(3) + "R</b></div>");
+    out.push('<div><span class="sg-kpi-l">Pozitsiya (' + s.riskPct + "% risk)</span><b>" + fmtN(s.posUnits, 4) + " birlik \u00B7 " + fmtN(s.posLots, 3) + " lot</b></div>");
+    out.push('<div><span class="sg-kpi-l">O\'rtacha chekinish (MAE)</span><b>' + fmtN(s.maePips, 0) + " p</b></div>");
+    out.push('<div><span class="sg-kpi-l">Maks. ketma-ket zarar</span><b>' + s.maxLossStreak + "</b></div>");
+    out.push('<div><span class="sg-kpi-l">Yetish / muddat</span><b>' + pipDur(s.etaSec) + " / " + pipDur(s.holdSec) + "</b></div>");
+    out.push('<div><span class="sg-kpi-l">Chastota</span><b>\u2248' + s.perWeek.toFixed(1) + " savdo/hafta</b></div>");
+    out.push('<div><span class="sg-kpi-l">TP2 ga davom</span><b>' + fmtPct(s.tp2Rate, 0) + "</b></div>");
+    out.push("</div>");
+    var chips = [];
+    for (var i = 0; i < Math.min(6, s.strats.length); i++) chips.push('<span class="sg-chip">' + esc(s.strats[i].name) + "</span>");
+    out.push('<div class="sg-head-row" style="margin-top:6px">' + chips.join("") + "</div>");
+    out.push('<div class="sg-mut" style="font-size:9.5px;margin-top:5px">Moslash ' + fmtPct(s.lbFit, 1) + " LB (" + s.nFit + " savdo) \u00B7 holdout " + fmtPct(s.lbVal, 1) + " LB (" + s.nVal + " savdo) \u00B7 stop " + s.slMult + "\u00D7TP \u00B7 osona " + s.thr.toFixed(2) + (s.trendOnly ? " \u00B7 faqat trend" : "") + " \u00B7 " + s.combos + " kombinatsiyadan tanlandi \u00B7 rejim " + esc(s.regimeLab) + "</div></div>");
+    return out.join("");
+  }
+
+  function pipsBodyHtml() {
+    var r = pipGuard(pipsBodyBuild, "body");
+    if (r) return r;
+    var mode = pipMode(), o = [];
+    o.push('<div class="sg-head-row" style="gap:8px;flex-wrap:wrap">');
+    o.push('<span class="sg-mut" style="font-size:10.5px">Eng kami maqsad</span>');
+    o.push('<input id="sg-pip-min" class="sg-in" style="width:80px" type="number" min="10" max="20000" step="10" value="' + pipMin() + '" onchange="pipsMinSet(this.value)">');
+    o.push('<button class="sg-btn' + (mode === "acc" ? " on" : "") + '" onclick="pipsMode(&#39;acc&#39;)">\uD83C\uDFAF Aniqlik ' + fmtPct(pipGate(), 0) + "</button>");
+    o.push('<button class="sg-btn' + (mode === "pro" ? " on" : "") + '" onclick="pipsMode(&#39;pro&#39;)">\uD83D\uDCC8 PRO (maks. R)</button>');
+    o.push('<button class="sg-btn gold" onclick="pipsRecalc()">\uD83D\uDD04 Qayta hisoblash</button>');
+    o.push('<span class="sg-spacer"></span><span class="sg-badge">qayta hisoblanmoqda');
+    o.push(PIP_QUEUE.length ? " \u00B7 " + PIP_QUEUE.length + " juftlik navbatda" : "");
+    o.push('</span></div>');
+    o.push('<div class="sg-mut" style="font-size:11px;margin:8px 0">Jadval bir zumda qayta quriladi\u2026</div>');
+    return o.join("");
+  }
+
+  function pipsBodyBuild() {
+    var mode = pipMode();
+    var r = pipsList({ mode: mode });
+    var list = r.list, pub = pipsPublishable(list), i;
+    var qual = 0, bestLb = 0, sumExp = 0, sumR = 0, nExp = 0, accN = 0, proN = 0;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].hasAcc) accN++;
+      if (list[i].hasPro) proN++;
+      if (list[i].qualified) {
+        qual++;
+        if (list[i].precisionLb > bestLb) bestLb = list[i].precisionLb;
+        sumExp += list[i].expPips; sumR += list[i].expRUnit; nExp++;
+      }
+    }
+    var out = [];
+    out.push('<div class="sg-head-row" style="gap:8px;flex-wrap:wrap">');
+    out.push('<span class="sg-mut" style="font-size:10.5px">Eng kami maqsad</span>');
+    out.push('<input id="sg-pip-min" class="sg-in" style="width:80px" type="number" min="10" max="20000" step="10" value="' + pipMin() + '" onchange="pipsMinSet(this.value)">');
+    out.push('<span class="sg-mut" style="font-size:10.5px">pips</span>');
+    out.push('<button class="sg-btn' + (mode === "acc" ? " on" : "") + '" onclick="pipsMode(\'acc\')">\uD83C\uDFAF Aniqlik ' + fmtPct(pipGate(), 0) + "</button>");
+    out.push('<button class="sg-btn' + (mode === "pro" ? " on" : "") + '" onclick="pipsMode(\'pro\')">\uD83D\uDCC8 PRO (maks. R)</button>');
+    out.push('<button class="sg-btn gold" onclick="pipsRecalc()">\uD83D\uDD04 Qayta hisoblash</button>');
+    out.push('<button class="sg-btn" onclick="pipsFullScan()">\u26A1 To\'liq skan (8\u00D716)</button>');
+    out.push('<button class="sg-btn' + (CFG.pipsAuto ? " on" : "") + '" onclick="pipsToggle()">\uD83E\uDD16 Avto Telegram: ' + (CFG.pipsAuto ? "yoniq" : "o'chiq") + "</button>");
+    out.push('<span class="sg-spacer"></span>');
+    if (PIP_QUEUE.length || PIP_PROG.cur) {
+      out.push('<span class="sg-badge">hisoblanmoqda ' + PIP_PROG.done + "/" + Math.max(PIP_PROG.total, PIP_PROG.done + PIP_QUEUE.length) + (PIP_PROG.cur ? " \u00B7 " + esc(PIP_PROG.cur) : "") + "</span>");
+    }
+    out.push("</div>");
+    out.push('<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">');
+    out.push(kpiHtml("Darvozadan o'tgan", qual + " / " + r.total, qual ? "sg-up" : ""));
+    out.push(kpiHtml("Hozir nashrga tayyor", String(pub.length), pub.length ? "sg-up" : ""));
+    out.push(kpiHtml("Eng yuqori LB", fmtPct(bestLb, 1), "sg-up"));
+    out.push(kpiHtml("O'rtacha kutilma", (nExp ? (sumExp / nExp >= 0 ? "+" : "\u2212") + fmtN(Math.abs(sumExp / nExp), 0) : "0") + " p", nExp && sumExp > 0 ? "sg-up" : ""));
+    out.push(kpiHtml("O'rtacha 1R kutilma", (nExp ? (sumR / nExp >= 0 ? "+" : "\u2212") + Math.abs(sumR / nExp).toFixed(3) : "0") + "R", nExp && sumR > 0 ? "sg-up" : ""));
+    out.push(kpiHtml("Maqsad", fmtN(pipMin(), 0) + " pips", ""));
+    out.push("</div>");
+    if (pub.length) {
+      out.push('<div class="sg-mut" style="font-size:10px;margin:4px 0 6px">\uD83D\uDD25 Eng kuchli ' + Math.min(3, pub.length) + " ta:</div>");
+      for (i = 0; i < Math.min(3, pub.length); i++) out.push(pipsDetailHtml(pub[i]));
+    }
+    out.push(pipsRowsHtml(list));
+    out.push('<div class="sg-mut" style="font-size:9.5px;margin-top:7px">');
+    out.push("<b>Qanday ishlaydi:</b> har bir juftlik uchun " + (PIP_OFF_GRID.length * PIP_SL_MULT.length * PIP_THR_GRID.length * 4 * 2) + " kombinatsiya (kirish turi \u00D7 stop " + PIP_SL_MULT[0] + "\u2013" + PIP_SL_MULT[PIP_SL_MULT.length - 1] + "\u00D7TP \u00D7 ball ostonasi \u00D7 muddat \u00D7 trend filtri) 100 strategiya ansambli ustida o'lchanadi. Ma'lumot 60% moslash / 40% mustaqil holdout ga bo'linadi. ");
+    out.push("<b>Aniqlik rejimi</b> \u2014 faqat fit LB \u2265 " + fmtPct(pipGate(), 0) + " VA holdout LB \u2265 " + fmtPct(pipGate(), 0) + ", kutilma > 0, ochiq qolish \u2264 " + fmtPct(pipOpenCap(), 0) + ", namuna \u2265 90+80 savdo bo'lganda nashr etiladi. ");
+    out.push("<b>PRO rejimi</b> \u2014 1R ga kutilma (expR) maksimal bo'lgan konfiguratsiya: aniqlik pastroq, lekin R:R keng. ");
+    out.push("<b>Muhim:</b> " + fmtPct(pipGate(), 0) + " aniqlik matematik jihatdan stopni TP dan kengroq talab qiladi (tasodifiy yurishda P(TP) \u2248 stop/(stop+TP)) \u2014 shuning uchun aniqlik rejimida R:R kichik, ammo kutilma musbat va pozitsiya hajmi risk bo'yicha (" + pipRiskPct() + "%) hisoblanadi. Ikkala rejim ham bir xil " + fmtN(pipMin(), 0) + " pips maqsadni saqlaydi.");
+    out.push("<br>Pip o'lchovi: XAUUSD 0.1 (100 pips = $10) \u00B7 BTCUSDT 1.0 ($100) \u00B7 ETHUSDT 0.1 ($10) \u00B7 EURUSD/GBPUSD 0.0001 (10 pip = 1 katak) \u00B7 USDJPY 0.01 \u00B7 US30 1.0 (100 punkt) \u00B7 USOIL 0.01. \u201Ckuzatuv\u201D \u2014 shu juftlikda " + fmtN(pipMin(), 0) + " pips uchun darvoza bajarilmadi (sabab qatorda ko'rsatilgan); yolg'on signal chiqarilmaydi.");
+    out.push("</div>");
+    return out.join("");
+  }
+
+  function pipsCardHtml() {
+    var r = pipGuard(pipsCardBuild, "card");
+    if (r) return r;
+    return '<div class="sg-card" id="sg-pips"><div class="sg-head"><div class="sg-title">\uD83D\uDC8E ' + fmtN(pipMin(), 0) + '+ pips maxsus signallar</div><span class="sg-badge gate">darvoza ' + fmtPct(pipGate(), 0) + '</span></div><div id="sg-pips-body">' + pipsBodyHtml() + "</div></div>";
+  }
+
+  function pipsCardBuild() {
+    var out = ['<div class="sg-card" id="sg-pips">'];
+    out.push('<div class="sg-head"><div class="sg-title">\uD83D\uDC8E ' + fmtN(pipMin(), 0) + "+ pips maxsus signallar</div>");
+    out.push('<span class="sg-badge gate">darvoza ' + fmtPct(pipGate(), 0) + " (fit + holdout)</span>");
+    out.push('<span class="sg-badge">' + (CFG.pipsSyms || []).length + " instrument \u00D7 " + (CFG.pipsTfs || []).length + " TF</span>");
+    out.push('<span class="sg-badge">' + (PIP_OFF_GRID.length * PIP_SL_MULT.length * PIP_THR_GRID.length * 4 * 2) + " kombinatsiya/juftlik</span>");
+    out.push('</div><div id="sg-pips-body">' + pipsBodyHtml() + "</div></div>");
+    return out.join("");
+  }
+
+  function pipsPageVisible() {
+    var pg = el("page-market-signals");
+    if (!pg) return false;
+    if (pg.offsetParent === null && (pg.className || "").indexOf("active") < 0) return false;
+    return true;
+  }
+
+  function pipsWatchdog() {
+    if (!pipsPageVisible()) return false;
+    var center = el("sg-center");
+    var cards = center ? center.querySelectorAll(".sg-card").length : 0;
+    if (cards >= 2 && el("sg-pips")) { PIP_WD.fails = 0; return false; }
+    if (nowMs() - PIP_WD.at < 2000) return false;
+    PIP_WD.at = nowMs();
+    if (++PIP_WD.fails > 15) return false;
+    PIP_WD.busy = 1;
+    safe(function () { sigRender(); }, null);
+    PIP_WD.busy = 0;
+    if (!el("sg-pips")) safe(function () { return pipsRefreshCard(); }, null);
+    return true;
+  }
+
+  function pipsStyleInject() {
+    if (typeof document === "undefined" || el("pip-style")) return 0;
+    var css = [
+      "#sg-center{overflow-x:clip}",
+      "#sg-center>.sg-card{display:block;min-width:0;max-width:100%;box-sizing:border-box}",
+      "#sg-center .sg-kpis{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}",
+      "#sg-center .sg-kpi-v{overflow:hidden;text-overflow:ellipsis}",
+      "#sg-pips,#sg-pips-body{min-width:0;max-width:100%;box-sizing:border-box}",
+      "#sg-pips .sg-scroll{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden}",
+      "#sg-pips{overflow-x:clip}",
+      "#sg-pips-body{overflow-x:clip;min-width:0;max-width:100%}",
+      "#sg-pips .sg-head-row{display:flex;flex-wrap:wrap;min-width:0;max-width:100%;white-space:normal}",
+      "#sg-pips .sg-head-row>*{flex:0 1 auto;min-width:0;max-width:100%}",
+      "#sg-pips .sg-sig{min-width:0;max-width:100%;box-sizing:border-box;white-space:normal;overflow-x:clip}",
+      "#sg-pips .sg-sig .sg-kpis{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}",
+      "#sg-pips .sg-ind{flex-wrap:wrap;min-width:0;max-width:100%}",
+      "#sg-pips .sg-sig-h{flex-wrap:wrap;min-width:0;max-width:100%}",
+      "@media (max-width:900px){#sg-center .sg-kpis{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}}"
+    ].join("");
+    var st = document.createElement("style");
+    st.id = "pip-style";
+    st.textContent = css;
+    (document.head || document.documentElement).appendChild(st);
+    return 1;
+  }
+
+  function pipsWatchStart() {
+    safe(pipsStyleInject, null);
+    if (PIP_WD.timer || typeof window === "undefined") return 0;
+    PIP_WD.timer = setInterval(function () { safe(pipsWatchdog, null); }, 900);
+    if (window.addEventListener) {
+      window.addEventListener("resize", function () {
+        clearTimeout(PIP_WD.deb);
+        PIP_WD.deb = setTimeout(function () { PIP_WD.at = 0; safe(pipsWatchdog, null); }, 180);
+      });
+    }
+    return 1;
+  }
+
+  function pipsRefreshCard() {
+    var host = el("sg-pips-body");
+    if (!host) {
+      if (!PIP_WD.busy) {
+        PIP_WD.busy = 1;
+        safe(function () { sigRender(); }, null);
+        PIP_WD.busy = 0;
+        host = el("sg-pips-body");
+        if (host) { host.innerHTML = pipsBodyHtml(); return true; }
+      }
+      var box = el("sg-center") || el("page-market-signals");
+      if (!box || typeof document === "undefined") return false;
+      var oldc = el("sg-pips"), wrap = document.createElement("div");
+      wrap.innerHTML = pipGuard(pipsCardHtml, "heal") || "";
+      var card = wrap.firstChild;
+      if (!card) return false;
+      if (oldc && oldc.parentNode) oldc.parentNode.replaceChild(card, oldc);
+      else box.insertBefore(card, box.firstChild);
+      return true;
+    }
+    host.innerHTML = pipsBodyHtml();
+    var t = el("sg-pips");
+    if (t) {
+      var ttl = t.querySelector(".sg-title");
+      if (ttl) ttl.innerHTML = "\uD83D\uDC8E " + fmtN(pipMin(), 0) + "+ pips maxsus signallar";
+    }
+    return true;
+  }
+
+  function pipsSelfTest() {
+    var pairs = pipsPairs(false);
+    var r = pipsList({ noQueue: true });
+    var qual = 0, strong = 0, minLb = 1, worst = "", minTp = 1e9, accN = 0, proN = 0, minR = 1e9, i;
+    for (i = 0; i < r.list.length; i++) {
+      var s = r.list[i];
+      if (s.hasAcc) accN++;
+      if (s.hasPro) proN++;
+      if (s.pipsTp < minTp) minTp = s.pipsTp;
+      if (s.qualified) {
+        qual++;
+        if (s.strong) strong++;
+        if (s.precisionLb < minLb) { minLb = s.precisionLb; worst = s.sym + " " + s.tf; }
+        if (s.expRUnit < minR) minR = s.expRUnit;
+      }
+    }
+    return {
+      ok: 1, pairs: pairs.length, cached: r.list.length, missing: r.missing,
+      qualified: qual, publishable: strong, accPairs: accN, proPairs: proN,
+      minLb: qual ? minLb : 0, worst: worst, minExpR: qual ? minR : 0,
+      minTpPips: r.list.length ? minTp : 0, mode: pipMode(),
+      minPips: pipMin(), gate: pipGate(), queue: PIP_QUEUE.length,
+      combos: PIP_OFF_GRID.length * PIP_SL_MULT.length * PIP_THR_GRID.length * 4 * 2
+    };
+  }
+
+  /* ---- eksport ---- */
+  window.pipsList = function (a) { return pipsList(a && typeof a === "object" ? a : { full: !!a }); };
+  window.pipsErrors = function () { return PIP_ERRS.slice(); };
+  window.pipsHeal = function () { return pipsRefreshCard(); };
+  window.pipsWatch = function () { return pipsWatchdog(); };
+  window.pipsStyle = function () { return pipsStyleInject(); };
+  window.pipsWatchState = function () { return { fails: PIP_WD.fails, timer: !!PIP_WD.timer }; };
+  safe(pipsWatchStart, null);
+  window.pipsCal = function (sym, tf, force) { return pipsCalibrate(sym, tf, { force: !!force }); };
+  window.pipsSignalOf = function (sym, tf, mode) { return pipsSignal(sym, tf, { calc: true, mode: mode, force: true }); };
+  window.pipsSelfTest = pipsSelfTest;
+  window.pipsRefresh = pipsRefreshCard;
+  window.pipsAutoTick = pipsAutoTick;
+  window.pipsQueue = function () { return { queue: PIP_QUEUE.length, prog: PIP_PROG }; };
+  window.pipsTgPreview = function (sym, tf, mode) {
+    var s = pipsSignal(sym, tf, { calc: true, mode: mode, force: true });
+    return s ? pipsTgFormat(s) : "";
+  };
+  window.pipsMode = function (m) {
+    sigSet("pipsMode", m === "pro" ? "pro" : "acc");
+    PIP_SIGC = {};
+    pipsRefreshCard();
+    return CFG.pipsMode;
+  };
+  window.pipsMinSet = function (v) {
+    var n = clamp(Math.round(nz(v, 100)), 10, 20000);
+    sigSet("pipsMin", n);
+    PIP_SIGC = {};
+    PIP_PROG.done = 0;
+    pipsRefreshCard();
+    pipsPush(pipsPairs(false), function () { pipsRefreshCard(); });
+    return n;
+  };
+  window.pipsRiskSet = function (v) {
+    var n = clamp(nz(v, 0.5), 0.05, 5);
+    sigSet("pipsRisk", n);
+    PIP_SIGC = {};
+    pipsRefreshCard();
+    return n;
+  };
+  window.pipsRecalc = function () {
+    var pairs = pipsPairs(false), i;
+    for (i = 0; i < pairs.length; i++) {
+      var key = pipKey(pairs[i].sym, pairs[i].tf);
+      delete PIP_CAL[key]; delete PIP_DISK[key]; delete PIP_MEM["tr:" + key];
+    }
+    saveJSON(PIP_LS, PIP_DISK);
+    PIP_SIGC = {};
+    PIP_PROG.done = 0; PIP_PROG.total = pairs.length;
+    pipsRefreshCard();
+    pipsPush(pairs, function () { pipsRefreshCard(); });
+    return pairs.length;
+  };
+  window.pipsFullScan = function () {
+    var pairs = pipsPairs(true);
+    PIP_PROG.total = PIP_PROG.done + pairs.length;
+    pipsPush(pairs, function () { pipsRefreshCard(); });
+    pipsRefreshCard();
+    return pairs.length;
+  };
+  window.pipsToggle = function () {
+    sigSet("pipsAuto", CFG.pipsAuto ? 0 : 1);
+    pipsRefreshCard();
+    return CFG.pipsAuto;
+  };
+  window.pipsSendOne = function (sym, tf, mode) {
+    var sig = pipsSignal(sym, tf, { calc: true, mode: mode, force: true });
+    if (!sig) return { ok: false, reason: "signal yo'q" };
+    return pipsSend(sig, { force: true });
+  };
+
+  SIG.pipsCalibrate = pipsCalibrate;
+  SIG.pipsTrades = pipsTrades;
+  SIG.pipEval = pipEval;
+  SIG.pipsSignal = pipsSignal;
+  SIG.pipsList = pipsList;
+  SIG.pipsPublishable = pipsPublishable;
+  SIG.pipsPairs = pipsPairs;
+  SIG.pipsTgFormat = pipsTgFormat;
+  SIG.pipsSend = pipsSend;
+  SIG.pipsAutoTick = pipsAutoTick;
+  SIG.pipsSelfTest = pipsSelfTest;
+  SIG.pipsCardHtml = pipsCardHtml;
+  SIG.pipsBodyHtml = pipsBodyHtml;
+  SIG.pipsRefreshCard = pipsRefreshCard;
+  SIG.pipSize = pipSize;
+  SIG.pipUnit = pipUnit;
+  SIG.pipMin = pipMin;
+  SIG.PIP_SL_MULT = PIP_SL_MULT;
+  SIG.PIP_THR_GRID = PIP_THR_GRID;
+
   SIG.viewAt = viewAt;
   SIG.detectRegime = detectRegime;
   SIG.ensembleAt = ensembleAt;
@@ -29855,6 +30789,9 @@ window.pstRefresh = pstRefresh;
       out.push('<span class="sg-badge">' + STRATS.length + " ta · 10 oila</span></div>");
       out.push(leaderboardHtml());
       out.push("</div>");
+
+      /* --- 5b) 100+ pips maxsus signallar --- */
+      out.push(safe(function () { return pipsCardHtml(); }, ""));
 
       /* --- 6) telegram --- */
       out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83D\uDCE8 Telegram avtomatikasi</div>');
