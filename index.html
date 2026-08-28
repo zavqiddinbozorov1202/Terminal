@@ -27422,6 +27422,3135 @@ window.pstRefresh = pstRefresh;
   }
 })();
 
+
+/* ===== SIG ULTIMATE MAX (addon_sig.js) ===== */
+/* ============================================================
+   SIG ULTIMATE MAX v1 - 1-QISM
+   Ma'lumot qatlami + indikatorlar + 1-50 strategiyalar
+   ============================================================ */
+(function () {
+  "use strict";
+  if (window.__sigBooted) return;
+  window.__sigBooted = true;
+
+  /* ---------------- yordamchilar ---------------- */
+  function safe(fn, d) { try { return fn(); } catch (e) { return d; } }
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
+  }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function nz(v, d) { v = +v; return isFinite(v) ? v : (d === undefined ? 0 : d); }
+  function last(a) { return a && a.length ? a[a.length - 1] : undefined; }
+  function fmtN(v, dp) {
+    v = nz(v, 0);
+    if (dp === undefined) dp = Math.abs(v) >= 1000 ? 1 : (Math.abs(v) >= 10 ? 2 : 4);
+    return v.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  }
+  function fmtPct(v, dp) { return (nz(v, 0) * 100).toFixed(dp === undefined ? 1 : dp) + "%"; }
+  function nowMs() { return Date.now(); }
+
+  /* ---------------- timeframelar: 15 sekunddan 1 haftaga ---------------- */
+  var TFS = [
+    { id: "15s", sec: 15, lab: "15 sekund", grp: "Mikro", bars: 720 },
+    { id: "30s", sec: 30, lab: "30 sekund", grp: "Mikro", bars: 720 },
+    { id: "1m", sec: 60, lab: "1 daqiqa", grp: "Mikro", bars: 720 },
+    { id: "2m", sec: 120, lab: "2 daqiqa", grp: "Skalping", bars: 600 },
+    { id: "3m", sec: 180, lab: "3 daqiqa", grp: "Skalping", bars: 600 },
+    { id: "5m", sec: 300, lab: "5 daqiqa", grp: "Skalping", bars: 600 },
+    { id: "10m", sec: 600, lab: "10 daqiqa", grp: "Skalping", bars: 540 },
+    { id: "15m", sec: 900, lab: "15 daqiqa", grp: "Intraday", bars: 540 },
+    { id: "30m", sec: 1800, lab: "30 daqiqa", grp: "Intraday", bars: 540 },
+    { id: "1h", sec: 3600, lab: "1 soat", grp: "Intraday", bars: 480 },
+    { id: "2h", sec: 7200, lab: "2 soat", grp: "Swing", bars: 480 },
+    { id: "4h", sec: 14400, lab: "4 soat", grp: "Swing", bars: 420 },
+    { id: "8h", sec: 28800, lab: "8 soat", grp: "Swing", bars: 400 },
+    { id: "12h", sec: 43200, lab: "12 soat", grp: "Pozitsiya", bars: 400 },
+    { id: "1D", sec: 86400, lab: "1 kun", grp: "Pozitsiya", bars: 400 },
+    { id: "1W", sec: 604800, lab: "1 hafta", grp: "Pozitsiya", bars: 320 }
+  ];
+  function tfById(id) { for (var i = 0; i < TFS.length; i++) if (TFS[i].id === id) return TFS[i]; return TFS[5]; }
+  function tfIndex(id) { for (var i = 0; i < TFS.length; i++) if (TFS[i].id === id) return i; return -1; }
+
+  /* ---------------- instrumentlar ---------------- */
+  var SYMS = [
+    { id: "XAUUSD", name: "Oltin", px: 2410, vol: 0.0072, dp: 2, kind: "metal", bn: "PAXGUSDT", pip: 0.1 },
+    { id: "BTCUSDT", name: "Bitcoin", px: 64200, vol: 0.021, dp: 1, kind: "crypto", bn: "BTCUSDT", pip: 1 },
+    { id: "ETHUSDT", name: "Ethereum", px: 3180, vol: 0.025, dp: 2, kind: "crypto", bn: "ETHUSDT", pip: 0.1 },
+    { id: "EURUSD", name: "Evro / Dollar", px: 1.0865, vol: 0.0041, dp: 5, kind: "fx", bn: "EURUSDT", pip: 0.0001 },
+    { id: "GBPUSD", name: "Funt / Dollar", px: 1.2712, vol: 0.0047, dp: 5, kind: "fx", bn: "", pip: 0.0001 },
+    { id: "USDJPY", name: "Dollar / Yen", px: 157.25, vol: 0.0049, dp: 3, kind: "fx", bn: "", pip: 0.01 },
+    { id: "US30", name: "Dow Jones 30", px: 39250, vol: 0.0088, dp: 1, kind: "index", bn: "", pip: 1 },
+    { id: "USOIL", name: "Neft WTI", px: 78.4, vol: 0.017, dp: 2, kind: "energy", bn: "", pip: 0.01 }
+  ];
+  function symById(id) { for (var i = 0; i < SYMS.length; i++) if (SYMS[i].id === id) return SYMS[i]; return SYMS[0]; }
+
+  /* ---------------- determinlashgan tasodifiy generator ---------------- */
+  function hash32(str) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function mulberry(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gaussFrom(r) {
+    var u = 0, v = 0;
+    while (u === 0) u = r();
+    while (v === 0) v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  /* ---------------- sessiya va volatillik profili ---------------- */
+  function sessionOf(ms) {
+    var h = new Date(ms).getUTCHours();
+    if (h >= 0 && h < 7) return { id: "asia", lab: "Osiyo", vol: 0.72 };
+    if (h >= 7 && h < 12) return { id: "london", lab: "London", vol: 1.18 };
+    if (h >= 12 && h < 17) return { id: "overlap", lab: "London+NY", vol: 1.42 };
+    if (h >= 17 && h < 21) return { id: "ny", lab: "Nyu-York", vol: 1.05 };
+    return { id: "late", lab: "Kech sessiya", vol: 0.66 };
+  }
+
+  /* ---------------- shamlar generatori (oflayn / simulyatsiya) ----------------
+     Rejim almashinuvi bilan: trend / diapazon / volatil / sokin.
+     Bir xil urug' -> bir xil natija (test uchun determinlashgan).            */
+  function genSeries(symId, tfId, n, epoch) {
+    var S = symById(symId), T = tfById(tfId);
+    n = n || T.bars;
+    var seed = hash32(symId + "|" + tfId + "|" + (epoch || 0));
+    var r = mulberry(seed);
+    var stepVol = S.vol * Math.sqrt(T.sec / 86400);
+    var endT = Math.floor(nowMs() / (T.sec * 1000)) * T.sec * 1000;
+    var bars = [];
+    var px = S.px * (0.94 + r() * 0.12);
+    var regime = 0, regLeft = 0, drift = 0, volMul = 1;
+    for (var i = 0; i < n; i++) {
+      if (regLeft <= 0) {
+        var pick = r();
+        regime = pick < 0.3 ? 1 : (pick < 0.6 ? -1 : (pick < 0.82 ? 0 : 2));
+        regLeft = 18 + Math.floor(r() * 60);
+        drift = regime === 1 ? stepVol * (0.28 + r() * 0.34)
+          : regime === -1 ? -stepVol * (0.28 + r() * 0.34)
+            : (regime === 2 ? stepVol * (r() - 0.5) * 0.5 : 0);
+        volMul = regime === 2 ? 1.9 + r() * 1.2 : (regime === 0 ? 0.62 + r() * 0.3 : 0.95 + r() * 0.4);
+      }
+      regLeft--;
+      var t = endT - (n - 1 - i) * T.sec * 1000;
+      var sv = stepVol * volMul * sessionOf(t).vol;
+      var o = px;
+      var shock = (r() < 0.014 ? (r() < 0.5 ? -1 : 1) * (2.4 + r() * 3.2) : 0);
+      var ret = drift + gaussFrom(r) * sv + shock * sv;
+      var c = o * (1 + ret);
+      var wick = Math.abs(gaussFrom(r)) * sv * 0.85 + sv * 0.18;
+      var h = Math.max(o, c) * (1 + wick * (0.4 + r() * 0.9));
+      var l = Math.min(o, c) * (1 - wick * (0.4 + r() * 0.9));
+      var baseV = 1000 + r() * 800;
+      var v = baseV * (1 + Math.abs(ret) / (sv || 1) * 0.55) * (regime === 2 ? 1.8 : 1) * sessionOf(t).vol;
+      bars.push({ t: t, o: o, h: h, l: l, c: c, v: Math.round(v) });
+      px = c;
+      if (px <= 0) px = S.px * 0.5;
+    }
+    // oxirgi narxni joriy narxga bog'lash (barcha TF bir xil narxda tugaydi)
+    var target = livePrice(symId);
+    var lastC = bars[bars.length - 1].c;
+    var k = target / (lastC || 1);
+    for (var j = 0; j < bars.length; j++) {
+      var b = bars[j];
+      var w = 0.35 + 0.65 * (j / (bars.length - 1 || 1));
+      var kk = 1 + (k - 1) * w;
+      b.o *= kk; b.h *= kk; b.l *= kk; b.c *= kk;
+    }
+    bars[bars.length - 1].c = target;
+    if (bars[bars.length - 1].h < target) bars[bars.length - 1].h = target;
+    if (bars[bars.length - 1].l > target) bars[bars.length - 1].l = target;
+    return bars;
+  }
+
+  /* joriy narx: kunlik determinlashgan siljish (barcha TF uchun umumiy) */
+  function livePrice(symId) {
+    var S = symById(symId);
+    var dayIdx = Math.floor(nowMs() / 86400000);
+    var minIdx = Math.floor(nowMs() / 60000);
+    var rd = mulberry(hash32(symId + "|day|" + dayIdx));
+    var rm = mulberry(hash32(symId + "|min|" + minIdx));
+    var dayMove = (rd() - 0.5) * 2 * S.vol * 1.4;
+    var minMove = (rm() - 0.5) * 2 * S.vol * 0.08;
+    return S.px * (1 + dayMove + minMove);
+  }
+
+  /* ---------------- shamlarni yuqori TF ga yig'ish ---------------- */
+  function aggregate(bars, factor) {
+    if (factor <= 1) return bars.slice();
+    var out = [];
+    for (var i = 0; i < bars.length; i += factor) {
+      var grp = bars.slice(i, i + factor);
+      if (!grp.length) continue;
+      var h = -Infinity, l = Infinity, v = 0;
+      for (var j = 0; j < grp.length; j++) {
+        if (grp[j].h > h) h = grp[j].h;
+        if (grp[j].l < l) l = grp[j].l;
+        v += grp[j].v;
+      }
+      out.push({ t: grp[0].t, o: grp[0].o, h: h, l: l, c: grp[grp.length - 1].c, v: v });
+    }
+    return out;
+  }
+
+  /* ---------------- haqiqiy ma'lumot (internet bo'lsa) ---------------- */
+  var BN_TF = { "1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "2h": "2h", "4h": "4h", "8h": "8h", "12h": "12h", "1D": "1d", "1W": "1w" };
+  var SUB_TF = { "15s": { iv: "1s", f: 15 }, "30s": { iv: "1s", f: 30 }, "2m": { iv: "1m", f: 2 }, "10m": { iv: "5m", f: 2 } };
+  function fetchReal(symId, tfId, limit) {
+    var S = symById(symId);
+    if (!S.bn) return Promise.resolve(null);
+    var iv = BN_TF[tfId], factor = 1;
+    if (!iv && SUB_TF[tfId]) { iv = SUB_TF[tfId].iv; factor = SUB_TF[tfId].f; }
+    if (!iv) return Promise.resolve(null);
+    var need = Math.min(1000, (limit || 400) * factor);
+    var url = "https://api.binance.com/api/v3/klines?symbol=" + S.bn + "&interval=" + iv + "&limit=" + need;
+    return new Promise(function (resolve) {
+      var done = false;
+      var to = setTimeout(function () { if (!done) { done = true; resolve(null); } }, 4000);
+      safe(function () {
+        fetch(url, { cache: "no-store" }).then(function (res) {
+          if (!res.ok) throw new Error("http " + res.status);
+          return res.json();
+        }).then(function (arr) {
+          if (done) return;
+          done = true; clearTimeout(to);
+          if (!arr || !arr.length) { resolve(null); return; }
+          var bars = arr.map(function (k) {
+            return { t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] };
+          });
+          resolve(factor > 1 ? aggregate(bars, factor) : bars);
+        })["catch"](function () { if (!done) { done = true; clearTimeout(to); resolve(null); } });
+      }, null);
+      if (typeof fetch !== "function") { done = true; clearTimeout(to); resolve(null); }
+    });
+  }
+
+  /* ---------------- kesh ---------------- */
+  var CACHE = {};
+  function cacheKey(symId, tfId) { return symId + "@" + tfId; }
+  function seriesSync(symId, tfId, n) {
+    var key = cacheKey(symId, tfId);
+    var T = tfById(tfId);
+    var slot = CACHE[key];
+    var fresh = slot && (nowMs() - slot.at) < Math.max(4000, T.sec * 400);
+    if (fresh && slot.bars && slot.bars.length) return slot.bars;
+    var bars = genSeries(symId, tfId, n || T.bars, Math.floor(nowMs() / (T.sec * 1000 * 12)));
+    CACHE[key] = { bars: bars, at: nowMs(), src: slot && slot.src === "LIVE" ? "LIVE" : "SIM" };
+    return bars;
+  }
+  function seriesSource(symId, tfId) {
+    var slot = CACHE[cacheKey(symId, tfId)];
+    return slot && slot.src ? slot.src : "SIM";
+  }
+  function refreshReal(symId, tfId) {
+    return fetchReal(symId, tfId, tfById(tfId).bars).then(function (bars) {
+      if (bars && bars.length > 60) {
+        CACHE[cacheKey(symId, tfId)] = { bars: bars, at: nowMs(), src: "LIVE" };
+        return true;
+      }
+      return false;
+    })["catch"](function () { return false; });
+  }
+
+  /* ============================================================
+     INDIKATORLAR KUTUBXONASI
+     ============================================================ */
+  function smaArr(a, p) {
+    var out = [], sum = 0;
+    for (var i = 0; i < a.length; i++) {
+      sum += a[i];
+      if (i >= p) sum -= a[i - p];
+      out.push(i >= p - 1 ? sum / p : NaN);
+    }
+    return out;
+  }
+  function emaArr(a, p) {
+    var out = [], k = 2 / (p + 1), prev = NaN;
+    for (var i = 0; i < a.length; i++) {
+      if (!isFinite(prev)) {
+        if (i >= p - 1) {
+          var s = 0;
+          for (var j = i - p + 1; j <= i; j++) s += a[j];
+          prev = s / p;
+        }
+        out.push(prev);
+      } else {
+        prev = a[i] * k + prev * (1 - k);
+        out.push(prev);
+      }
+    }
+    return out;
+  }
+  function wmaArr(a, p) {
+    var out = [], den = p * (p + 1) / 2;
+    for (var i = 0; i < a.length; i++) {
+      if (i < p - 1) { out.push(NaN); continue; }
+      var s = 0;
+      for (var j = 0; j < p; j++) s += a[i - p + 1 + j] * (j + 1);
+      out.push(s / den);
+    }
+    return out;
+  }
+  function hmaArr(a, p) {
+    var half = Math.max(2, Math.round(p / 2));
+    var w1 = wmaArr(a, half), w2 = wmaArr(a, p), raw = [];
+    for (var i = 0; i < a.length; i++) raw.push(2 * w1[i] - w2[i]);
+    return wmaArr(raw, Math.max(2, Math.round(Math.sqrt(p))));
+  }
+  function stdevArr(a, p) {
+    var out = [];
+    for (var i = 0; i < a.length; i++) {
+      if (i < p - 1) { out.push(NaN); continue; }
+      var m = 0, s = 0, j;
+      for (j = i - p + 1; j <= i; j++) m += a[j];
+      m /= p;
+      for (j = i - p + 1; j <= i; j++) s += (a[j] - m) * (a[j] - m);
+      out.push(Math.sqrt(s / p));
+    }
+    return out;
+  }
+  function rsiArr(C, p) {
+    var out = [], up = 0, dn = 0;
+    for (var i = 0; i < C.length; i++) {
+      if (i === 0) { out.push(NaN); continue; }
+      var ch = C[i] - C[i - 1];
+      var g = ch > 0 ? ch : 0, l = ch < 0 ? -ch : 0;
+      if (i <= p) {
+        up += g / p; dn += l / p;
+        out.push(i === p ? 100 - 100 / (1 + up / (dn || 1e-9)) : NaN);
+      } else {
+        up = (up * (p - 1) + g) / p;
+        dn = (dn * (p - 1) + l) / p;
+        out.push(100 - 100 / (1 + up / (dn || 1e-9)));
+      }
+    }
+    return out;
+  }
+  function trArr(H, L, C) {
+    var out = [NaN];
+    for (var i = 1; i < C.length; i++) {
+      out.push(Math.max(H[i] - L[i], Math.abs(H[i] - C[i - 1]), Math.abs(L[i] - C[i - 1])));
+    }
+    return out;
+  }
+  function atrArr(H, L, C, p) {
+    var tr = trArr(H, L, C), out = [], prev = NaN;
+    for (var i = 0; i < tr.length; i++) {
+      if (i < p) { out.push(NaN); if (i === p - 1) { var s = 0; for (var j = 1; j < p; j++) s += tr[j]; prev = s / (p - 1); } continue; }
+      prev = isFinite(prev) ? (prev * (p - 1) + tr[i]) / p : tr[i];
+      out.push(prev);
+    }
+    return out;
+  }
+  function adxArr(H, L, C, p) {
+    var tr = trArr(H, L, C), pdm = [NaN], mdm = [NaN], i;
+    for (i = 1; i < C.length; i++) {
+      var up = H[i] - H[i - 1], dw = L[i - 1] - L[i];
+      pdm.push(up > dw && up > 0 ? up : 0);
+      mdm.push(dw > up && dw > 0 ? dw : 0);
+    }
+    var str = emaArr(tr.map(function (x) { return isFinite(x) ? x : 0; }), p);
+    var sp = emaArr(pdm.map(function (x) { return isFinite(x) ? x : 0; }), p);
+    var sm = emaArr(mdm.map(function (x) { return isFinite(x) ? x : 0; }), p);
+    var pdi = [], mdi = [], dx = [];
+    for (i = 0; i < C.length; i++) {
+      var t = str[i] || 1e-9;
+      var a = 100 * (sp[i] || 0) / t, b = 100 * (sm[i] || 0) / t;
+      pdi.push(a); mdi.push(b);
+      dx.push(100 * Math.abs(a - b) / ((a + b) || 1e-9));
+    }
+    return { adx: emaArr(dx, p), pdi: pdi, mdi: mdi };
+  }
+  function macdArr(C, f, s, g) {
+    var ef = emaArr(C, f), es = emaArr(C, s), m = [];
+    for (var i = 0; i < C.length; i++) m.push((ef[i] || NaN) - (es[i] || NaN));
+    var sig = emaArr(m.map(function (x) { return isFinite(x) ? x : 0; }), g), hist = [];
+    for (var j = 0; j < m.length; j++) hist.push(m[j] - sig[j]);
+    return { macd: m, sig: sig, hist: hist };
+  }
+  function stochArr(H, L, C, p, kS, dS) {
+    var k = [];
+    for (var i = 0; i < C.length; i++) {
+      if (i < p - 1) { k.push(NaN); continue; }
+      var hh = -Infinity, ll = Infinity;
+      for (var j = i - p + 1; j <= i; j++) { if (H[j] > hh) hh = H[j]; if (L[j] < ll) ll = L[j]; }
+      k.push(100 * (C[i] - ll) / ((hh - ll) || 1e-9));
+    }
+    var kk = smaArr(k.map(function (x) { return isFinite(x) ? x : 50; }), kS || 3);
+    return { k: kk, d: smaArr(kk.map(function (x) { return isFinite(x) ? x : 50; }), dS || 3) };
+  }
+  function stochRsiArr(C, p, kS, dS) {
+    var r = rsiArr(C, p), k = [];
+    for (var i = 0; i < r.length; i++) {
+      if (i < p * 2) { k.push(NaN); continue; }
+      var hh = -Infinity, ll = Infinity;
+      for (var j = i - p + 1; j <= i; j++) {
+        var v = r[j]; if (!isFinite(v)) continue;
+        if (v > hh) hh = v; if (v < ll) ll = v;
+      }
+      k.push(100 * (r[i] - ll) / ((hh - ll) || 1e-9));
+    }
+    var kk = smaArr(k.map(function (x) { return isFinite(x) ? x : 50; }), kS || 3);
+    return { k: kk, d: smaArr(kk.map(function (x) { return isFinite(x) ? x : 50; }), dS || 3), rsi: r };
+  }
+  function bbArr(C, p, mult) {
+    var mid = smaArr(C, p), sd = stdevArr(C, p), up = [], dn = [], w = [];
+    for (var i = 0; i < C.length; i++) {
+      up.push(mid[i] + mult * sd[i]);
+      dn.push(mid[i] - mult * sd[i]);
+      w.push((2 * mult * sd[i]) / (mid[i] || 1e-9));
+    }
+    return { mid: mid, up: up, dn: dn, w: w, sd: sd };
+  }
+  function keltnerArr(C, H, L, p, mult) {
+    var mid = emaArr(C, p), at = atrArr(H, L, C, p), up = [], dn = [];
+    for (var i = 0; i < C.length; i++) { up.push(mid[i] + mult * at[i]); dn.push(mid[i] - mult * at[i]); }
+    return { mid: mid, up: up, dn: dn, atr: at };
+  }
+  function donchianArr(H, L, p) {
+    var up = [], dn = [], mid = [];
+    for (var i = 0; i < H.length; i++) {
+      if (i < p - 1) { up.push(NaN); dn.push(NaN); mid.push(NaN); continue; }
+      var hh = -Infinity, ll = Infinity;
+      for (var j = i - p + 1; j <= i; j++) { if (H[j] > hh) hh = H[j]; if (L[j] < ll) ll = L[j]; }
+      up.push(hh); dn.push(ll); mid.push((hh + ll) / 2);
+    }
+    return { up: up, dn: dn, mid: mid };
+  }
+  function vwapArr(H, L, C, V, p) {
+    var out = [];
+    for (var i = 0; i < C.length; i++) {
+      if (i < p - 1) { out.push(NaN); continue; }
+      var pv = 0, vv = 0;
+      for (var j = i - p + 1; j <= i; j++) {
+        var tp = (H[j] + L[j] + C[j]) / 3;
+        pv += tp * V[j]; vv += V[j];
+      }
+      out.push(pv / (vv || 1e-9));
+    }
+    return out;
+  }
+  function obvArr(C, V) {
+    var out = [0];
+    for (var i = 1; i < C.length; i++) out.push(out[i - 1] + (C[i] > C[i - 1] ? V[i] : (C[i] < C[i - 1] ? -V[i] : 0)));
+    return out;
+  }
+  function mfiArr(H, L, C, V, p) {
+    var out = [];
+    for (var i = 0; i < C.length; i++) {
+      if (i < p) { out.push(NaN); continue; }
+      var pos = 0, neg = 0;
+      for (var j = i - p + 1; j <= i; j++) {
+        var tp = (H[j] + L[j] + C[j]) / 3, tpp = (H[j - 1] + L[j - 1] + C[j - 1]) / 3;
+        if (tp > tpp) pos += tp * V[j]; else neg += tp * V[j];
+      }
+      out.push(100 - 100 / (1 + pos / (neg || 1e-9)));
+    }
+    return out;
+  }
+  function cciArr(H, L, C, p) {
+    var tp = [], out = [];
+    for (var i = 0; i < C.length; i++) tp.push((H[i] + L[i] + C[i]) / 3);
+    var m = smaArr(tp, p);
+    for (var k = 0; k < C.length; k++) {
+      if (k < p - 1) { out.push(NaN); continue; }
+      var md = 0;
+      for (var j = k - p + 1; j <= k; j++) md += Math.abs(tp[j] - m[k]);
+      md /= p;
+      out.push((tp[k] - m[k]) / (0.015 * (md || 1e-9)));
+    }
+    return out;
+  }
+  function willrArr(H, L, C, p) {
+    var out = [];
+    for (var i = 0; i < C.length; i++) {
+      if (i < p - 1) { out.push(NaN); continue; }
+      var hh = -Infinity, ll = Infinity;
+      for (var j = i - p + 1; j <= i; j++) { if (H[j] > hh) hh = H[j]; if (L[j] < ll) ll = L[j]; }
+      out.push(-100 * (hh - C[i]) / ((hh - ll) || 1e-9));
+    }
+    return out;
+  }
+  function supertrendArr(H, L, C, p, mult) {
+    var at = atrArr(H, L, C, p), st = [], dir = [], prevSt = NaN, prevDir = 1;
+    for (var i = 0; i < C.length; i++) {
+      if (!isFinite(at[i])) { st.push(NaN); dir.push(1); continue; }
+      var mid = (H[i] + L[i]) / 2;
+      var upB = mid + mult * at[i], dnB = mid - mult * at[i];
+      var d = prevDir, s;
+      if (!isFinite(prevSt)) { s = dnB; d = 1; }
+      else {
+        if (prevDir === 1) {
+          s = Math.max(dnB, prevSt);
+          if (C[i] < s) { d = -1; s = upB; }
+        } else {
+          s = Math.min(upB, prevSt);
+          if (C[i] > s) { d = 1; s = dnB; }
+        }
+      }
+      st.push(s); dir.push(d);
+      prevSt = s; prevDir = d;
+    }
+    return { st: st, dir: dir, atr: at };
+  }
+  function psarArr(H, L, step, maxAf) {
+    step = step || 0.02; maxAf = maxAf || 0.2;
+    var out = [], af = step, ep = L[0], sar = L[0], up = true;
+    for (var i = 0; i < H.length; i++) {
+      if (i === 0) { out.push(sar); continue; }
+      sar = sar + af * (ep - sar);
+      if (up) {
+        if (H[i] > ep) { ep = H[i]; af = Math.min(maxAf, af + step); }
+        if (L[i] < sar) { up = false; sar = ep; ep = L[i]; af = step; }
+      } else {
+        if (L[i] < ep) { ep = L[i]; af = Math.min(maxAf, af + step); }
+        if (H[i] > sar) { up = true; sar = ep; ep = H[i]; af = step; }
+      }
+      out.push(sar);
+    }
+    return out;
+  }
+  function linregArr(C, p) {
+    var slope = [], val = [], dev = [];
+    for (var i = 0; i < C.length; i++) {
+      if (i < p - 1) { slope.push(NaN); val.push(NaN); dev.push(NaN); continue; }
+      var sx = 0, sy = 0, sxy = 0, sxx = 0, j, x;
+      for (j = 0; j < p; j++) { x = j; sx += x; sy += C[i - p + 1 + j]; sxy += x * C[i - p + 1 + j]; sxx += x * x; }
+      var b = (p * sxy - sx * sy) / ((p * sxx - sx * sx) || 1e-9);
+      var a = (sy - b * sx) / p;
+      var v = a + b * (p - 1), sd = 0;
+      for (j = 0; j < p; j++) { var fitted = a + b * j; sd += Math.pow(C[i - p + 1 + j] - fitted, 2); }
+      slope.push(b); val.push(v); dev.push(Math.sqrt(sd / p));
+    }
+    return { slope: slope, val: val, dev: dev };
+  }
+  function zscoreArr(C, p) {
+    var m = smaArr(C, p), s = stdevArr(C, p), out = [];
+    for (var i = 0; i < C.length; i++) out.push((C[i] - m[i]) / (s[i] || 1e-9));
+    return out;
+  }
+  function chopArr(H, L, C, p) {
+    var tr = trArr(H, L, C), out = [];
+    for (var i = 0; i < C.length; i++) {
+      if (i < p) { out.push(NaN); continue; }
+      var s = 0, hh = -Infinity, ll = Infinity;
+      for (var j = i - p + 1; j <= i; j++) {
+        s += isFinite(tr[j]) ? tr[j] : 0;
+        if (H[j] > hh) hh = H[j];
+        if (L[j] < ll) ll = L[j];
+      }
+      out.push(100 * Math.log10(s / ((hh - ll) || 1e-9)) / Math.log10(p));
+    }
+    return out;
+  }
+  function tsiArr(C, lng, shrt) {
+    var m = [0], am = [0], i;
+    for (i = 1; i < C.length; i++) { m.push(C[i] - C[i - 1]); am.push(Math.abs(C[i] - C[i - 1])); }
+    var e1 = emaArr(m, lng), e2 = emaArr(e1.map(function (x) { return isFinite(x) ? x : 0; }), shrt);
+    var a1 = emaArr(am, lng), a2 = emaArr(a1.map(function (x) { return isFinite(x) ? x : 0; }), shrt);
+    var out = [];
+    for (i = 0; i < C.length; i++) out.push(100 * (e2[i] || 0) / ((a2[i] || 1e-9)));
+    return out;
+  }
+  function vortexArr(H, L, C, p) {
+    var tr = trArr(H, L, C), vp = [NaN], vm = [NaN], i;
+    for (i = 1; i < C.length; i++) { vp.push(Math.abs(H[i] - L[i - 1])); vm.push(Math.abs(L[i] - H[i - 1])); }
+    var vip = [], vim = [];
+    for (i = 0; i < C.length; i++) {
+      if (i < p) { vip.push(NaN); vim.push(NaN); continue; }
+      var st = 0, sp = 0, sm = 0;
+      for (var j = i - p + 1; j <= i; j++) {
+        st += isFinite(tr[j]) ? tr[j] : 0;
+        sp += isFinite(vp[j]) ? vp[j] : 0;
+        sm += isFinite(vm[j]) ? vm[j] : 0;
+      }
+      vip.push(sp / (st || 1e-9)); vim.push(sm / (st || 1e-9));
+    }
+    return { vip: vip, vim: vim };
+  }
+  function hurstAt(C, p) {
+    if (C.length < p + 2) return 0.5;
+    var seg = C.slice(C.length - p), rets = [], i;
+    for (i = 1; i < seg.length; i++) rets.push(Math.log(seg[i] / (seg[i - 1] || 1e-9)));
+    var m = rets.reduce(function (a, b) { return a + b; }, 0) / (rets.length || 1);
+    var cum = 0, mn = Infinity, mx = -Infinity, sd = 0;
+    for (i = 0; i < rets.length; i++) {
+      cum += rets[i] - m;
+      if (cum < mn) mn = cum;
+      if (cum > mx) mx = cum;
+      sd += Math.pow(rets[i] - m, 2);
+    }
+    sd = Math.sqrt(sd / (rets.length || 1));
+    var rs = (mx - mn) / (sd || 1e-9);
+    return clamp(Math.log(rs || 1e-9) / Math.log(rets.length || 2), 0.05, 0.95);
+  }
+  function fractals(H, L, w) {
+    w = w || 2;
+    var hi = [], lo = [];
+    for (var i = 0; i < H.length; i++) {
+      var isH = i >= w && i < H.length - w, isL = isH;
+      for (var j = 1; j <= w && isH; j++) if (H[i] <= H[i - j] || H[i] <= H[i + j]) isH = false;
+      for (var k = 1; k <= w && isL; k++) if (L[i] >= L[i - k] || L[i] >= L[i + k]) isL = false;
+      if (isH) hi.push({ i: i, p: H[i] });
+      if (isL) lo.push({ i: i, p: L[i] });
+    }
+    return { hi: hi, lo: lo };
+  }
+  function volProfile(bars, look, buckets) {
+    var n = bars.length, from = Math.max(0, n - look);
+    var hi = -Infinity, lo = Infinity, i;
+    for (i = from; i < n; i++) { if (bars[i].h > hi) hi = bars[i].h; if (bars[i].l < lo) lo = bars[i].l; }
+    var span = (hi - lo) || 1e-9, bins = new Array(buckets);
+    for (i = 0; i < buckets; i++) bins[i] = 0;
+    for (i = from; i < n; i++) {
+      var mid = (bars[i].h + bars[i].l) / 2;
+      var b = clamp(Math.floor((mid - lo) / span * buckets), 0, buckets - 1);
+      bins[b] += bars[i].v;
+    }
+    var best = 0;
+    for (i = 1; i < buckets; i++) if (bins[i] > bins[best]) best = i;
+    return { poc: lo + (best + 0.5) * span / buckets, hi: hi, lo: lo, bins: bins };
+  }
+
+  /* ---------------- indikator keshi ---------------- */
+  function IND(bars) {
+    var O = [], H = [], L = [], C = [], V = [];
+    for (var i = 0; i < bars.length; i++) {
+      O.push(bars[i].o); H.push(bars[i].h); L.push(bars[i].l); C.push(bars[i].c); V.push(bars[i].v);
+    }
+    var memo = {};
+    function m(k, fn) { if (!(k in memo)) memo[k] = fn(); return memo[k]; }
+    return {
+      bars: bars, n: bars.length, o: O, h: H, l: L, c: C, v: V,
+      i: bars.length - 1,
+      sma: function (p) { return m("sma" + p, function () { return smaArr(C, p); }); },
+      ema: function (p) { return m("ema" + p, function () { return emaArr(C, p); }); },
+      hma: function (p) { return m("hma" + p, function () { return hmaArr(C, p); }); },
+      wma: function (p) { return m("wma" + p, function () { return wmaArr(C, p); }); },
+      rsi: function (p) { return m("rsi" + p, function () { return rsiArr(C, p); }); },
+      atr: function (p) { return m("atr" + p, function () { return atrArr(H, L, C, p); }); },
+      adx: function (p) { return m("adx" + p, function () { return adxArr(H, L, C, p); }); },
+      macd: function (f, s, g) { return m("macd" + f + "_" + s + "_" + g, function () { return macdArr(C, f, s, g); }); },
+      stoch: function (p, k, d) { return m("st" + p + k + d, function () { return stochArr(H, L, C, p, k, d); }); },
+      srsi: function (p, k, d) { return m("srsi" + p + k + d, function () { return stochRsiArr(C, p, k, d); }); },
+      bb: function (p, k) { return m("bb" + p + "_" + k, function () { return bbArr(C, p, k); }); },
+      kc: function (p, k) { return m("kc" + p + "_" + k, function () { return keltnerArr(C, H, L, p, k); }); },
+      dc: function (p) { return m("dc" + p, function () { return donchianArr(H, L, p); }); },
+      vwap: function (p) { return m("vwap" + p, function () { return vwapArr(H, L, C, V, p); }); },
+      obv: function () { return m("obv", function () { return obvArr(C, V); }); },
+      mfi: function (p) { return m("mfi" + p, function () { return mfiArr(H, L, C, V, p); }); },
+      cci: function (p) { return m("cci" + p, function () { return cciArr(H, L, C, p); }); },
+      willr: function (p) { return m("wr" + p, function () { return willrArr(H, L, C, p); }); },
+      supertrend: function (p, k) { return m("stx" + p + "_" + k, function () { return supertrendArr(H, L, C, p, k); }); },
+      psar: function () { return m("psar", function () { return psarArr(H, L); }); },
+      linreg: function (p) { return m("lr" + p, function () { return linregArr(C, p); }); },
+      zsc: function (p) { return m("z" + p, function () { return zscoreArr(C, p); }); },
+      chop: function (p) { return m("ch" + p, function () { return chopArr(H, L, C, p); }); },
+      tsi: function (a, b) { return m("tsi" + a + "_" + b, function () { return tsiArr(C, a, b); }); },
+      vortex: function (p) { return m("vx" + p, function () { return vortexArr(H, L, C, p); }); },
+      hurst: function (p) { return m("hu" + p, function () { return hurstAt(C, p); }); },
+      frac: function (w) { return m("fr" + w, function () { return fractals(H, L, w); }); },
+      vp: function (look, b) { return m("vp" + look + "_" + b, function () { return volProfile(bars, look, b); }); },
+      stdev: function (p) { return m("sd" + p, function () { return stdevArr(C, p); }); }
+    };
+  }
+
+  /* ============================================================
+     STRATEGIYALAR REESTRI (100 ta)
+     Har biri: { dir: 1|-1, str: 0..1, why } yoki null
+     ============================================================ */
+  var STRATS = [];
+  function reg(id, name, fam, fn) { STRATS.push({ id: id, name: name, fam: fam, fn: fn }); }
+  function sgn(x) { return x > 0 ? 1 : (x < 0 ? -1 : 0); }
+
+  /* --- 1-oila: TREND (MA kesishuvlari va tartibi) - 10 ta --- */
+  [[5, 20], [8, 21], [9, 26], [10, 30], [12, 26], [13, 34], [20, 50], [21, 55], [34, 89], [50, 200]].forEach(function (p, idx) {
+    reg("tr" + (idx + 1), "EMA " + p[0] + "/" + p[1] + " kesishuvi", "Trend", function (K) {
+      var n = K.i;
+      if (n < p[1] + 3) return null;
+      var f = K.ema(p[0]), s = K.ema(p[1]), at = K.atr(14);
+      if (!isFinite(f[n]) || !isFinite(s[n])) return null;
+      var d = f[n] - s[n], dp = f[n - 1] - s[n - 1];
+      var norm = Math.abs(d) / (at[n] || 1e-9);
+      if (d > 0 && dp <= 0) return { dir: 1, str: 0.92, why: "EMA" + p[0] + " EMA" + p[1] + " ni yuqoriga kesdi" };
+      if (d < 0 && dp >= 0) return { dir: -1, str: 0.92, why: "EMA" + p[0] + " EMA" + p[1] + " ni pastga kesdi" };
+      if (Math.abs(norm) < 0.08) return null;
+      return { dir: sgn(d), str: clamp(0.3 + norm * 0.22, 0.2, 0.78), why: "EMA tartibi " + (d > 0 ? "yuqoriga" : "pastga") };
+    });
+  });
+
+  /* --- 2-oila: MOMENTUM (RSI, StochRSI, TSI, CCI, W%R) - 10 ta --- */
+  [7, 14, 21].forEach(function (p, i) {
+    reg("mo" + (i + 1), "RSI " + p + " momentum", "Momentum", function (K) {
+      var n = K.i, r = K.rsi(p);
+      if (!isFinite(r[n]) || !isFinite(r[n - 2])) return null;
+      var sl = r[n] - r[n - 2];
+      if (r[n] > 52 && sl > 1.5) return { dir: 1, str: clamp(0.35 + (r[n] - 52) / 60, 0.25, 0.85), why: "RSI" + p + " " + r[n].toFixed(0) + " yuqoriga" };
+      if (r[n] < 48 && sl < -1.5) return { dir: -1, str: clamp(0.35 + (48 - r[n]) / 60, 0.25, 0.85), why: "RSI" + p + " " + r[n].toFixed(0) + " pastga" };
+      return null;
+    });
+  });
+  [[14, 3, 3], [21, 5, 5]].forEach(function (p, i) {
+    reg("mo" + (4 + i), "StochRSI " + p[0] + " kesishuv", "Momentum", function (K) {
+      var n = K.i, s = K.srsi(p[0], p[1], p[2]);
+      if (!isFinite(s.k[n]) || !isFinite(s.d[n - 1])) return null;
+      var up = s.k[n] > s.d[n] && s.k[n - 1] <= s.d[n - 1];
+      var dn = s.k[n] < s.d[n] && s.k[n - 1] >= s.d[n - 1];
+      if (up && s.k[n] < 72) return { dir: 1, str: 0.72, why: "StochRSI yuqoriga kesishuv" };
+      if (dn && s.k[n] > 28) return { dir: -1, str: 0.72, why: "StochRSI pastga kesishuv" };
+      return null;
+    });
+  });
+  reg("mo6", "TSI momentum", "Momentum", function (K) {
+    var n = K.i, t = K.tsi(25, 13);
+    if (!isFinite(t[n]) || !isFinite(t[n - 2])) return null;
+    var d = t[n] - t[n - 2];
+    if (Math.abs(t[n]) < 3 && Math.abs(d) < 1) return null;
+    return { dir: sgn(t[n]) || sgn(d), str: clamp(0.3 + Math.abs(t[n]) / 55, 0.22, 0.8), why: "TSI " + t[n].toFixed(1) };
+  });
+  [14, 20].forEach(function (p, i) {
+    reg("mo" + (7 + i), "CCI " + p, "Momentum", function (K) {
+      var n = K.i, c = K.cci(p);
+      if (!isFinite(c[n]) || !isFinite(c[n - 1])) return null;
+      if (c[n] > 100 && c[n - 1] <= 100) return { dir: 1, str: 0.7, why: "CCI " + p + " +100 dan o'tdi" };
+      if (c[n] < -100 && c[n - 1] >= -100) return { dir: -1, str: 0.7, why: "CCI " + p + " -100 dan o'tdi" };
+      if (Math.abs(c[n]) > 40) return { dir: sgn(c[n]), str: clamp(0.25 + Math.abs(c[n]) / 400, 0.2, 0.62), why: "CCI " + c[n].toFixed(0) };
+      return null;
+    });
+  });
+  reg("mo9", "Williams %R kesishuv", "Momentum", function (K) {
+    var n = K.i, w = K.willr(14);
+    if (!isFinite(w[n]) || !isFinite(w[n - 1])) return null;
+    if (w[n] > -50 && w[n - 1] <= -50) return { dir: 1, str: 0.66, why: "%R -50 dan yuqoriga" };
+    if (w[n] < -50 && w[n - 1] >= -50) return { dir: -1, str: 0.66, why: "%R -50 dan pastga" };
+    return null;
+  });
+  reg("mo10", "Stochastic 14 kesishuv", "Momentum", function (K) {
+    var n = K.i, s = K.stoch(14, 3, 3);
+    if (!isFinite(s.k[n]) || !isFinite(s.d[n - 1])) return null;
+    if (s.k[n] > s.d[n] && s.k[n - 1] <= s.d[n - 1] && s.k[n] < 78) return { dir: 1, str: 0.68, why: "Stoch yuqoriga kesdi" };
+    if (s.k[n] < s.d[n] && s.k[n - 1] >= s.d[n - 1] && s.k[n] > 22) return { dir: -1, str: 0.68, why: "Stoch pastga kesdi" };
+    return null;
+  });
+
+  /* --- 3-oila: MACD - 10 ta --- */
+  [[12, 26, 9], [8, 17, 9], [5, 35, 5], [19, 39, 9], [3, 10, 16]].forEach(function (p, i) {
+    reg("md" + (i + 1), "MACD " + p.join("/") + " kesishuv", "MACD", function (K) {
+      var n = K.i, m = K.macd(p[0], p[1], p[2]);
+      if (!isFinite(m.hist[n]) || !isFinite(m.hist[n - 1])) return null;
+      if (m.hist[n] > 0 && m.hist[n - 1] <= 0) return { dir: 1, str: 0.86, why: "MACD gistogramma plyusga o'tdi" };
+      if (m.hist[n] < 0 && m.hist[n - 1] >= 0) return { dir: -1, str: 0.86, why: "MACD gistogramma minusga o'tdi" };
+      return null;
+    });
+    reg("md" + (6 + i), "MACD " + p.join("/") + " gistogramma tezligi", "MACD", function (K) {
+      var n = K.i, m = K.macd(p[0], p[1], p[2]), at = K.atr(14);
+      if (!isFinite(m.hist[n]) || !isFinite(m.hist[n - 3])) return null;
+      var acc = (m.hist[n] - m.hist[n - 1]) - (m.hist[n - 1] - m.hist[n - 2]);
+      var nrm = Math.abs(m.hist[n]) / (at[n] || 1e-9);
+      if (nrm < 0.02) return null;
+      if (m.hist[n] > 0 && acc > 0) return { dir: 1, str: clamp(0.3 + nrm * 1.6, 0.22, 0.8), why: "MACD tezlashmoqda (o'sish)" };
+      if (m.hist[n] < 0 && acc < 0) return { dir: -1, str: clamp(0.3 + nrm * 1.6, 0.22, 0.8), why: "MACD tezlashmoqda (pasayish)" };
+      return null;
+    });
+  });
+
+  /* --- 4-oila: MEAN REVERSION - 10 ta --- */
+  [[20, 2], [20, 2.5], [14, 2]].forEach(function (p, i) {
+    reg("mr" + (i + 1), "Bollinger " + p[0] + "/" + p[1] + " qaytish", "Qaytish", function (K) {
+      var n = K.i, b = K.bb(p[0], p[1]), C = K.c, ad = K.adx(14);
+      if (!isFinite(b.up[n])) return null;
+      if (ad.adx[n] > 32) return null;
+      if (C[n] < b.dn[n]) return { dir: 1, str: clamp(0.5 + (b.dn[n] - C[n]) / (b.sd[n] || 1e-9) * 0.2, 0.3, 0.88), why: "Narx BB pastki chizig'idan chiqdi" };
+      if (C[n] > b.up[n]) return { dir: -1, str: clamp(0.5 + (C[n] - b.up[n]) / (b.sd[n] || 1e-9) * 0.2, 0.3, 0.88), why: "Narx BB yuqori chizig'idan chiqdi" };
+      return null;
+    });
+  });
+  reg("mr4", "Keltner 20/2 qaytish", "Qaytish", function (K) {
+    var n = K.i, k = K.kc(20, 2), C = K.c, ad = K.adx(14);
+    if (!isFinite(k.up[n]) || ad.adx[n] > 30) return null;
+    if (C[n] < k.dn[n]) return { dir: 1, str: 0.7, why: "Keltner pastki kanalidan qaytish" };
+    if (C[n] > k.up[n]) return { dir: -1, str: 0.7, why: "Keltner yuqori kanalidan qaytish" };
+    return null;
+  });
+  [[20, 2], [40, 2.5]].forEach(function (p, i) {
+    reg("mr" + (5 + i), "Z-ball " + p[0] + " (" + p[1] + ") qaytish", "Qaytish", function (K) {
+      var n = K.i, z = K.zsc(p[0]);
+      if (!isFinite(z[n])) return null;
+      if (z[n] < -p[1]) return { dir: 1, str: clamp(0.45 + (Math.abs(z[n]) - p[1]) * 0.18, 0.3, 0.9), why: "Z-ball " + z[n].toFixed(2) + " (haddan past)" };
+      if (z[n] > p[1]) return { dir: -1, str: clamp(0.45 + (z[n] - p[1]) * 0.18, 0.3, 0.9), why: "Z-ball " + z[n].toFixed(2) + " (haddan yuqori)" };
+      return null;
+    });
+  });
+  reg("mr7", "RSI ekstremumdan qaytish", "Qaytish", function (K) {
+    var n = K.i, r = K.rsi(14), ad = K.adx(14);
+    if (!isFinite(r[n]) || !isFinite(r[n - 1])) return null;
+    if (ad.adx[n] > 34) return null;
+    if (r[n - 1] < 28 && r[n] > r[n - 1]) return { dir: 1, str: 0.78, why: "RSI 28 dan yuqoriga qaytdi" };
+    if (r[n - 1] > 72 && r[n] < r[n - 1]) return { dir: -1, str: 0.78, why: "RSI 72 dan pastga qaytdi" };
+    return null;
+  });
+  reg("mr8", "VWAP ga qaytish", "Qaytish", function (K) {
+    var n = K.i, vw = K.vwap(60), C = K.c, at = K.atr(14);
+    if (!isFinite(vw[n])) return null;
+    var d = (C[n] - vw[n]) / (at[n] || 1e-9);
+    if (d < -1.6) return { dir: 1, str: clamp(0.4 + Math.abs(d) * 0.12, 0.28, 0.82), why: "Narx VWAP dan " + Math.abs(d).toFixed(1) + " ATR past" };
+    if (d > 1.6) return { dir: -1, str: clamp(0.4 + d * 0.12, 0.28, 0.82), why: "Narx VWAP dan " + d.toFixed(1) + " ATR yuqori" };
+    return null;
+  });
+  reg("mr9", "Donchian chetidan qaytish", "Qaytish", function (K) {
+    var n = K.i, d = K.dc(20), C = K.c, ch = K.chop(14);
+    if (!isFinite(d.up[n]) || !isFinite(ch[n]) || ch[n] < 52) return null;
+    var span = (d.up[n] - d.dn[n]) || 1e-9;
+    if ((C[n] - d.dn[n]) / span < 0.12) return { dir: 1, str: 0.66, why: "Diapazon pastida (chop " + ch[n].toFixed(0) + ")" };
+    if ((d.up[n] - C[n]) / span < 0.12) return { dir: -1, str: 0.66, why: "Diapazon yuqorisida (chop " + ch[n].toFixed(0) + ")" };
+    return null;
+  });
+  reg("mr10", "Linreg kanalidan qaytish", "Qaytish", function (K) {
+    var n = K.i, lr = K.linreg(50), C = K.c;
+    if (!isFinite(lr.val[n]) || !isFinite(lr.dev[n])) return null;
+    var d = (C[n] - lr.val[n]) / (lr.dev[n] || 1e-9);
+    if (d < -1.9) return { dir: 1, str: 0.72, why: "Regressiya kanali pastidan qaytish" };
+    if (d > 1.9) return { dir: -1, str: 0.72, why: "Regressiya kanali tepasidan qaytish" };
+    return null;
+  });
+
+  /* --- 5-oila: BREAKOUT - 10 ta --- */
+  [20, 55].forEach(function (p, i) {
+    reg("bo" + (i + 1), "Donchian " + p + " chiqishi", "Chiqish", function (K) {
+      var n = K.i, d = K.dc(p), C = K.c, V = K.v, ad = K.adx(14);
+      if (!isFinite(d.up[n - 1])) return null;
+      var volOk = V[n] > (V[n - 1] + V[n - 2] + V[n - 3]) / 3 * 1.15;
+      if (C[n] > d.up[n - 1] && ad.adx[n] > 18) return { dir: 1, str: volOk ? 0.9 : 0.7, why: p + "-bar maksimumidan chiqish" };
+      if (C[n] < d.dn[n - 1] && ad.adx[n] > 18) return { dir: -1, str: volOk ? 0.9 : 0.7, why: p + "-bar minimumidan chiqish" };
+      return null;
+    });
+  });
+  reg("bo3", "ATR kengayishi bilan chiqish", "Chiqish", function (K) {
+    var n = K.i, at = K.atr(14), C = K.c, O = K.o;
+    if (!isFinite(at[n]) || !isFinite(at[n - 10])) return null;
+    if (at[n] < at[n - 10] * 1.35) return null;
+    var body = C[n] - O[n];
+    if (Math.abs(body) < at[n] * 0.55) return null;
+    return { dir: sgn(body), str: 0.8, why: "ATR kengaydi + kuchli tana" };
+  });
+  reg("bo4", "Bollinger siqilishidan chiqish", "Chiqish", function (K) {
+    var n = K.i, b = K.bb(20, 2), C = K.c;
+    if (!isFinite(b.w[n]) || n < 40) return null;
+    var mn = Infinity;
+    for (var j = n - 30; j < n; j++) if (isFinite(b.w[j]) && b.w[j] < mn) mn = b.w[j];
+    if (!(b.w[n - 1] <= mn * 1.08)) return null;
+    if (C[n] > b.up[n - 1]) return { dir: 1, str: 0.88, why: "Siqilishdan yuqoriga chiqish" };
+    if (C[n] < b.dn[n - 1]) return { dir: -1, str: 0.88, why: "Siqilishdan pastga chiqish" };
+    return null;
+  });
+  reg("bo5", "NR7 (eng tor bar) chiqishi", "Chiqish", function (K) {
+    var n = K.i, H = K.h, L = K.l, C = K.c;
+    if (n < 9) return null;
+    var rng = H[n - 1] - L[n - 1], narrow = true;
+    for (var j = n - 7; j < n - 1; j++) if (H[j] - L[j] <= rng) narrow = false;
+    if (!narrow) return null;
+    if (C[n] > H[n - 1]) return { dir: 1, str: 0.76, why: "NR7 dan yuqoriga chiqish" };
+    if (C[n] < L[n - 1]) return { dir: -1, str: 0.76, why: "NR7 dan pastga chiqish" };
+    return null;
+  });
+  reg("bo6", "Ichki bar chiqishi", "Chiqish", function (K) {
+    var n = K.i, H = K.h, L = K.l, C = K.c;
+    if (n < 3) return null;
+    var inside = H[n - 1] < H[n - 2] && L[n - 1] > L[n - 2];
+    if (!inside) return null;
+    if (C[n] > H[n - 1]) return { dir: 1, str: 0.72, why: "Ichki bar yuqoriga buzildi" };
+    if (C[n] < L[n - 1]) return { dir: -1, str: 0.72, why: "Ichki bar pastga buzildi" };
+    return null;
+  });
+  reg("bo7", "Hajm portlashi bilan chiqish", "Chiqish", function (K) {
+    var n = K.i, V = K.v, C = K.c, O = K.o, at = K.atr(14);
+    if (n < 25 || !isFinite(at[n])) return null;
+    var avg = 0;
+    for (var j = n - 20; j < n; j++) avg += V[j];
+    avg /= 20;
+    if (V[n] < avg * 2.1) return null;
+    var body = C[n] - O[n];
+    if (Math.abs(body) < at[n] * 0.4) return null;
+    return { dir: sgn(body), str: 0.84, why: "Hajm " + (V[n] / avg).toFixed(1) + "x portlash" };
+  });
+  reg("bo8", "Pivot darajasi buzilishi", "Chiqish", function (K) {
+    var n = K.i, fr = K.frac(3), C = K.c, at = K.atr(14);
+    if (!fr.hi.length || !fr.lo.length || !isFinite(at[n])) return null;
+    var lh = fr.hi[fr.hi.length - 1], ll = fr.lo[fr.lo.length - 1];
+    if (C[n] > lh.p && C[n - 1] <= lh.p) return { dir: 1, str: 0.82, why: "Oxirgi pivot maksimumi buzildi" };
+    if (C[n] < ll.p && C[n - 1] >= ll.p) return { dir: -1, str: 0.82, why: "Oxirgi pivot minimumi buzildi" };
+    return null;
+  });
+  reg("bo9", "Ochilish diapazoni (ORB)", "Chiqish", function (K) {
+    var n = K.i, H = K.h, L = K.l, C = K.c;
+    if (n < 14) return null;
+    var hh = -Infinity, ll = Infinity;
+    for (var j = n - 12; j < n - 2; j++) { if (H[j] > hh) hh = H[j]; if (L[j] < ll) ll = L[j]; }
+    if (C[n] > hh) return { dir: 1, str: 0.7, why: "Ochilish diapazoni yuqoriga" };
+    if (C[n] < ll) return { dir: -1, str: 0.7, why: "Ochilish diapazoni pastga" };
+    return null;
+  });
+  reg("bo10", "Vortex kesishuvi", "Chiqish", function (K) {
+    var n = K.i, vx = K.vortex(14);
+    if (!isFinite(vx.vip[n]) || !isFinite(vx.vim[n - 1])) return null;
+    if (vx.vip[n] > vx.vim[n] && vx.vip[n - 1] <= vx.vim[n - 1]) return { dir: 1, str: 0.74, why: "Vortex VI+ ustun bo'ldi" };
+    if (vx.vip[n] < vx.vim[n] && vx.vip[n - 1] >= vx.vim[n - 1]) return { dir: -1, str: 0.74, why: "Vortex VI- ustun bo'ldi" };
+    return null;
+  });
+
+  /* ---- 1-qism eksporti (ichki, 2-qism davom etadi) ---- */
+  var SIG = {
+    TFS: TFS, SYMS: SYMS, STRATS: STRATS,
+    tfById: tfById, tfIndex: tfIndex, symById: symById,
+    IND: IND, reg: reg, safe: safe, el: el, esc: esc, clamp: clamp, nz: nz, last: last,
+    fmtN: fmtN, fmtPct: fmtPct, sgn: sgn, hash32: hash32, mulberry: mulberry,
+    seriesSync: seriesSync, seriesSource: seriesSource, refreshReal: refreshReal,
+    genSeries: genSeries, livePrice: livePrice, aggregate: aggregate,
+    sessionOf: sessionOf, volProfile: volProfile, CACHE: CACHE,
+    LS: { cfg: "tp-sig", hist: "tp-sig-hist", w: "tp-sig-w", tg: "tp-sig-tg", log: "tp-sig-log", cal: "tp-sig-cal" }
+  };
+  window.__SIG = SIG;
+
+  /* ============================================================
+     SIG ULTIMATE MAX v1 - 2-QISM
+     51-100 strategiyalar + rejim + ansambl + 95% darvoza + Telegram
+     ============================================================ */
+
+  /* --- 6-oila: SUPERTREND / PSAR / ADX - 10 ta --- */
+  [[10, 3], [7, 2], [14, 2.5], [20, 4]].forEach(function (p, i) {
+    reg("st" + (i + 1), "Supertrend " + p[0] + "/" + p[1], "Supertrend", function (K) {
+      var n = K.i, s = K.supertrend(p[0], p[1]);
+      if (!isFinite(s.st[n]) || !isFinite(s.st[n - 1])) return null;
+      if (s.dir[n] === 1 && s.dir[n - 1] === -1) return { dir: 1, str: 0.9, why: "Supertrend yuqoriga burildi" };
+      if (s.dir[n] === -1 && s.dir[n - 1] === 1) return { dir: -1, str: 0.9, why: "Supertrend pastga burildi" };
+      var dist = Math.abs(K.c[n] - s.st[n]) / (s.atr[n] || 1e-9);
+      if (dist < 0.25) return null;
+      return { dir: s.dir[n], str: clamp(0.3 + dist * 0.12, 0.22, 0.72), why: "Supertrend " + (s.dir[n] === 1 ? "o'sish" : "pasayish") + " rejimi" };
+    });
+  });
+  reg("st5", "PSAR burilishi", "Supertrend", function (K) {
+    var n = K.i, ps = K.psar(), C = K.c;
+    if (!isFinite(ps[n]) || !isFinite(ps[n - 1])) return null;
+    var above = C[n] > ps[n], wasAbove = C[n - 1] > ps[n - 1];
+    if (above && !wasAbove) return { dir: 1, str: 0.8, why: "PSAR narx ostiga o'tdi" };
+    if (!above && wasAbove) return { dir: -1, str: 0.8, why: "PSAR narx ustiga o'tdi" };
+    return null;
+  });
+  [20, 28].forEach(function (th, i) {
+    reg("st" + (6 + i), "ADX " + th + " + DI ustunligi", "Supertrend", function (K) {
+      var n = K.i, a = K.adx(14);
+      if (!isFinite(a.adx[n]) || a.adx[n] < th) return null;
+      var d = a.pdi[n] - a.mdi[n];
+      if (Math.abs(d) < 4) return null;
+      return { dir: sgn(d), str: clamp(0.35 + a.adx[n] / 100 + Math.abs(d) / 120, 0.28, 0.86), why: "ADX " + a.adx[n].toFixed(0) + ", DI " + (d > 0 ? "+" : "-") + " ustun" };
+    });
+  });
+  reg("st8", "ADX o'sishi bilan trend", "Supertrend", function (K) {
+    var n = K.i, a = K.adx(14), e = K.ema(21);
+    if (!isFinite(a.adx[n]) || !isFinite(a.adx[n - 5]) || !isFinite(e[n])) return null;
+    if (a.adx[n] <= a.adx[n - 5] + 2) return null;
+    var d = K.c[n] - e[n];
+    if (Math.abs(d) < 1e-9) return null;
+    return { dir: sgn(d), str: 0.7, why: "ADX kuchayib bormoqda" };
+  });
+  reg("st9", "HMA 21 burilishi", "Supertrend", function (K) {
+    var n = K.i, h = K.hma(21);
+    if (!isFinite(h[n]) || !isFinite(h[n - 2])) return null;
+    var s1 = h[n] - h[n - 1], s2 = h[n - 1] - h[n - 2];
+    if (s1 > 0 && s2 <= 0) return { dir: 1, str: 0.76, why: "HMA21 yuqoriga burildi" };
+    if (s1 < 0 && s2 >= 0) return { dir: -1, str: 0.76, why: "HMA21 pastga burildi" };
+    return null;
+  });
+  reg("st10", "Uch EMA fani (8/21/55)", "Supertrend", function (K) {
+    var n = K.i, a = K.ema(8), b = K.ema(21), c = K.ema(55);
+    if (!isFinite(a[n]) || !isFinite(c[n])) return null;
+    if (a[n] > b[n] && b[n] > c[n]) return { dir: 1, str: 0.68, why: "EMA fan tartibi to'liq yuqoriga" };
+    if (a[n] < b[n] && b[n] < c[n]) return { dir: -1, str: 0.68, why: "EMA fan tartibi to'liq pastga" };
+    return null;
+  });
+
+  /* --- 7-oila: HAJM VA OQIM - 10 ta --- */
+  reg("vo1", "OBV divergensiyasi", "Hajm", function (K) {
+    var n = K.i, ob = K.obv(), C = K.c;
+    if (n < 25) return null;
+    var pxCh = (C[n] - C[n - 20]) / (C[n - 20] || 1e-9);
+    var obCh = (ob[n] - ob[n - 20]) / (Math.abs(ob[n - 20]) || 1e-9);
+    if (pxCh < -0.001 && obCh > 0.02) return { dir: 1, str: 0.78, why: "Narx tushdi, OBV o'sdi (bullish divergensiya)" };
+    if (pxCh > 0.001 && obCh < -0.02) return { dir: -1, str: 0.78, why: "Narx o'sdi, OBV tushdi (bearish divergensiya)" };
+    return null;
+  });
+  [14, 21].forEach(function (p, i) {
+    reg("vo" + (2 + i), "MFI " + p + " ekstremumi", "Hajm", function (K) {
+      var n = K.i, mf = K.mfi(p);
+      if (!isFinite(mf[n]) || !isFinite(mf[n - 1])) return null;
+      if (mf[n - 1] < 22 && mf[n] > mf[n - 1]) return { dir: 1, str: 0.74, why: "MFI " + p + " past zonadan qaytdi" };
+      if (mf[n - 1] > 78 && mf[n] < mf[n - 1]) return { dir: -1, str: 0.74, why: "MFI " + p + " yuqori zonadan qaytdi" };
+      return null;
+    });
+  });
+  reg("vo4", "Hajm klimaksi (tugash)", "Hajm", function (K) {
+    var n = K.i, V = K.v, C = K.c, O = K.o, H = K.h, L = K.l;
+    if (n < 25) return null;
+    var avg = 0;
+    for (var j = n - 20; j < n; j++) avg += V[j];
+    avg /= 20;
+    if (V[n] < avg * 2.6) return null;
+    var rng = (H[n] - L[n]) || 1e-9, body = Math.abs(C[n] - O[n]);
+    if (body / rng > 0.45) return null;
+    var upperW = H[n] - Math.max(O[n], C[n]), lowerW = Math.min(O[n], C[n]) - L[n];
+    return { dir: lowerW > upperW ? 1 : -1, str: 0.8, why: "Katta hajm + uzun fitil (klimaks)" };
+  });
+  reg("vo5", "VWAP qaytarib olish", "Hajm", function (K) {
+    var n = K.i, vw = K.vwap(60), C = K.c;
+    if (!isFinite(vw[n]) || !isFinite(vw[n - 1])) return null;
+    if (C[n] > vw[n] && C[n - 1] <= vw[n - 1]) return { dir: 1, str: 0.76, why: "VWAP ustiga qaytib chiqdi" };
+    if (C[n] < vw[n] && C[n - 1] >= vw[n - 1]) return { dir: -1, str: 0.76, why: "VWAP ostiga tushdi" };
+    return null;
+  });
+  reg("vo6", "POC dan rad etish", "Hajm", function (K) {
+    var n = K.i, vp = K.vp(120, 24), C = K.c, at = K.atr(14);
+    if (!vp || !isFinite(at[n])) return null;
+    var d = (C[n] - vp.poc) / (at[n] || 1e-9);
+    if (Math.abs(d) < 0.35 || Math.abs(d) > 2.4) return null;
+    return { dir: sgn(d), str: clamp(0.3 + Math.abs(d) * 0.15, 0.24, 0.7), why: "POC dan " + d.toFixed(1) + " ATR uzoqlashdi" };
+  });
+  reg("vo7", "Hajm bilan tasdiqlangan tana", "Hajm", function (K) {
+    var n = K.i, V = K.v, C = K.c, O = K.o, at = K.atr(14);
+    if (n < 15 || !isFinite(at[n])) return null;
+    var avg = 0;
+    for (var j = n - 10; j < n; j++) avg += V[j];
+    avg /= 10;
+    var body = C[n] - O[n];
+    if (V[n] < avg * 1.5 || Math.abs(body) < at[n] * 0.5) return null;
+    return { dir: sgn(body), str: 0.72, why: "Kuchli tana + hajm tasdig'i" };
+  });
+  reg("vo8", "Hajm quruqligi (qaytish)", "Hajm", function (K) {
+    var n = K.i, V = K.v, C = K.c, e = K.ema(20);
+    if (n < 25 || !isFinite(e[n])) return null;
+    var avg = 0;
+    for (var j = n - 20; j < n; j++) avg += V[j];
+    avg /= 20;
+    if (V[n] > avg * 0.55) return null;
+    var d = C[n] - e[n];
+    if (Math.abs(d) < 1e-9) return null;
+    return { dir: -sgn(d), str: 0.58, why: "Hajm quridi, harakat charchadi" };
+  });
+  reg("vo9", "OBV trend chizig'i", "Hajm", function (K) {
+    var n = K.i, ob = K.obv();
+    if (n < 12) return null;
+    var s = (ob[n] - ob[n - 10]) / (Math.abs(ob[n - 10]) || 1e-9);
+    if (Math.abs(s) < 0.015) return null;
+    return { dir: sgn(s), str: clamp(0.28 + Math.abs(s) * 4, 0.22, 0.7), why: "OBV trendi " + (s > 0 ? "o'sish" : "pasayish") };
+  });
+  reg("vo10", "Hajm profili chetlari", "Hajm", function (K) {
+    var n = K.i, vp = K.vp(150, 26), C = K.c;
+    if (!vp) return null;
+    var span = (vp.hi - vp.lo) || 1e-9;
+    var pos = (C[n] - vp.lo) / span;
+    if (pos < 0.1) return { dir: 1, str: 0.64, why: "Hajm profili pastida (arzon zona)" };
+    if (pos > 0.9) return { dir: -1, str: 0.64, why: "Hajm profili tepasida (qimmat zona)" };
+    return null;
+  });
+
+  /* --- 8-oila: SHAM NAQSHLARI - 10 ta --- */
+  function body(K, i) { return K.c[i] - K.o[i]; }
+  function rng(K, i) { return (K.h[i] - K.l[i]) || 1e-9; }
+  reg("cd1", "Yutuvchi sham (engulfing)", "Naqsh", function (K) {
+    var n = K.i;
+    if (n < 2) return null;
+    var b1 = body(K, n - 1), b0 = body(K, n);
+    if (b1 < 0 && b0 > 0 && K.c[n] > K.o[n - 1] && K.o[n] < K.c[n - 1] && Math.abs(b0) > Math.abs(b1) * 1.1)
+      return { dir: 1, str: 0.8, why: "Bullish engulfing" };
+    if (b1 > 0 && b0 < 0 && K.c[n] < K.o[n - 1] && K.o[n] > K.c[n - 1] && Math.abs(b0) > Math.abs(b1) * 1.1)
+      return { dir: -1, str: 0.8, why: "Bearish engulfing" };
+    return null;
+  });
+  reg("cd2", "Pin bar (fitil)", "Naqsh", function (K) {
+    var n = K.i, r = rng(K, n);
+    var up = K.h[n] - Math.max(K.o[n], K.c[n]), dn = Math.min(K.o[n], K.c[n]) - K.l[n];
+    if (dn > r * 0.62 && Math.abs(body(K, n)) < r * 0.3) return { dir: 1, str: 0.76, why: "Pastdan uzun fitil (bullish pin)" };
+    if (up > r * 0.62 && Math.abs(body(K, n)) < r * 0.3) return { dir: -1, str: 0.76, why: "Yuqoridan uzun fitil (bearish pin)" };
+    return null;
+  });
+  reg("cd3", "Bolg'a / Shooting star", "Naqsh", function (K) {
+    var n = K.i, r = rng(K, n), e = K.ema(20);
+    if (!isFinite(e[n])) return null;
+    var up = K.h[n] - Math.max(K.o[n], K.c[n]), dn = Math.min(K.o[n], K.c[n]) - K.l[n];
+    if (dn > r * 0.55 && K.c[n] < e[n]) return { dir: 1, str: 0.74, why: "Bolg'a (trend ostida)" };
+    if (up > r * 0.55 && K.c[n] > e[n]) return { dir: -1, str: 0.74, why: "Shooting star (trend ustida)" };
+    return null;
+  });
+  reg("cd4", "Ertalabki / kechki yulduz", "Naqsh", function (K) {
+    var n = K.i;
+    if (n < 3) return null;
+    var b2 = body(K, n - 2), b1 = body(K, n - 1), b0 = body(K, n);
+    var small = Math.abs(b1) < rng(K, n - 1) * 0.35;
+    if (b2 < 0 && small && b0 > 0 && K.c[n] > (K.o[n - 2] + K.c[n - 2]) / 2) return { dir: 1, str: 0.82, why: "Ertalabki yulduz" };
+    if (b2 > 0 && small && b0 < 0 && K.c[n] < (K.o[n - 2] + K.c[n - 2]) / 2) return { dir: -1, str: 0.82, why: "Kechki yulduz" };
+    return null;
+  });
+  reg("cd5", "Uch askar / uch qarg'a", "Naqsh", function (K) {
+    var n = K.i;
+    if (n < 4) return null;
+    var a = body(K, n - 2), b = body(K, n - 1), c = body(K, n);
+    if (a > 0 && b > 0 && c > 0 && K.c[n] > K.c[n - 1] && K.c[n - 1] > K.c[n - 2]) return { dir: 1, str: 0.78, why: "Uch oq askar" };
+    if (a < 0 && b < 0 && c < 0 && K.c[n] < K.c[n - 1] && K.c[n - 1] < K.c[n - 2]) return { dir: -1, str: 0.78, why: "Uch qora qarg'a" };
+    return null;
+  });
+  reg("cd6", "Harami (ichki tana)", "Naqsh", function (K) {
+    var n = K.i;
+    if (n < 2) return null;
+    var b1 = body(K, n - 1), b0 = body(K, n);
+    var inside = Math.max(K.o[n], K.c[n]) < Math.max(K.o[n - 1], K.c[n - 1]) && Math.min(K.o[n], K.c[n]) > Math.min(K.o[n - 1], K.c[n - 1]);
+    if (!inside) return null;
+    if (b1 < 0) return { dir: 1, str: 0.62, why: "Bullish harami" };
+    if (b1 > 0) return { dir: -1, str: 0.62, why: "Bearish harami" };
+    return null;
+  });
+  reg("cd7", "Marubozu (to'liq tana)", "Naqsh", function (K) {
+    var n = K.i, r = rng(K, n), b = body(K, n);
+    if (Math.abs(b) < r * 0.86) return null;
+    return { dir: sgn(b), str: 0.7, why: "Marubozu " + (b > 0 ? "yuqoriga" : "pastga") };
+  });
+  reg("cd8", "Tweezer (juft cho'qqi/tub)", "Naqsh", function (K) {
+    var n = K.i, at = K.atr(14);
+    if (n < 2 || !isFinite(at[n])) return null;
+    var tol = at[n] * 0.12;
+    if (Math.abs(K.l[n] - K.l[n - 1]) < tol && body(K, n) > 0 && body(K, n - 1) < 0) return { dir: 1, str: 0.68, why: "Juft tub (tweezer bottom)" };
+    if (Math.abs(K.h[n] - K.h[n - 1]) < tol && body(K, n) < 0 && body(K, n - 1) > 0) return { dir: -1, str: 0.68, why: "Juft cho'qqi (tweezer top)" };
+    return null;
+  });
+  reg("cd9", "Doji + trend konteksti", "Naqsh", function (K) {
+    var n = K.i, r = rng(K, n), lr = K.linreg(30);
+    if (!isFinite(lr.slope[n])) return null;
+    if (Math.abs(body(K, n)) > r * 0.12) return null;
+    return { dir: -sgn(lr.slope[n]), str: 0.56, why: "Doji: trend to'xtash ehtimoli" };
+  });
+  reg("cd10", "Gap / bo'shliq to'lishi", "Naqsh", function (K) {
+    var n = K.i, at = K.atr(14);
+    if (n < 2 || !isFinite(at[n])) return null;
+    var gapUp = K.l[n] - K.h[n - 1], gapDn = K.l[n - 1] - K.h[n];
+    if (gapUp > at[n] * 0.35) return { dir: -1, str: 0.66, why: "Yuqoriga bo'shliq (to'lish ehtimoli)" };
+    if (gapDn > at[n] * 0.35) return { dir: 1, str: 0.66, why: "Pastga bo'shliq (to'lish ehtimoli)" };
+    return null;
+  });
+
+  /* --- 9-oila: STATISTIK / MTF - 10 ta --- */
+  reg("sx1", "Hurst rejimi", "Statistik", function (K) {
+    var n = K.i, hu = K.hurst(90), lr = K.linreg(40);
+    if (!isFinite(lr.slope[n])) return null;
+    if (hu > 0.58) return { dir: sgn(lr.slope[n]), str: clamp(0.3 + (hu - 0.58) * 2.2, 0.24, 0.78), why: "Hurst " + hu.toFixed(2) + " (trend davom etadi)" };
+    if (hu < 0.42) return { dir: -sgn(lr.slope[n]), str: clamp(0.3 + (0.42 - hu) * 2.2, 0.24, 0.78), why: "Hurst " + hu.toFixed(2) + " (qaytish rejimi)" };
+    return null;
+  });
+  reg("sx2", "Avtokorrelyatsiya (lag-1)", "Statistik", function (K) {
+    var n = K.i, C = K.c;
+    if (n < 62) return null;
+    var rets = [], i;
+    for (i = n - 60; i <= n; i++) rets.push(Math.log(C[i] / (C[i - 1] || 1e-9)));
+    var m = rets.reduce(function (a, b) { return a + b; }, 0) / rets.length;
+    var num = 0, den = 0;
+    for (i = 1; i < rets.length; i++) num += (rets[i] - m) * (rets[i - 1] - m);
+    for (i = 0; i < rets.length; i++) den += Math.pow(rets[i] - m, 2);
+    var ac = num / (den || 1e-9);
+    var lastRet = rets[rets.length - 1];
+    if (Math.abs(ac) < 0.08) return null;
+    return { dir: ac > 0 ? sgn(lastRet) : -sgn(lastRet), str: clamp(0.26 + Math.abs(ac) * 1.2, 0.22, 0.72), why: "AC(1)=" + ac.toFixed(2) };
+  });
+  reg("sx3", "Sessiya moyilligi", "Statistik", function (K) {
+    var n = K.i, ses = sessionOf(K.bars[n].t), e = K.ema(34);
+    if (!isFinite(e[n])) return null;
+    if (ses.vol < 0.8) return null;
+    var d = K.c[n] - e[n];
+    if (Math.abs(d) < 1e-9) return null;
+    return { dir: sgn(d), str: clamp(0.28 + (ses.vol - 0.8) * 0.5, 0.22, 0.66), why: ses.lab + " sessiyasi kuchli" };
+  });
+  reg("sx4", "Qisqa muddatli Sharpe", "Statistik", function (K) {
+    var n = K.i, C = K.c;
+    if (n < 32) return null;
+    var rets = [], i;
+    for (i = n - 30; i <= n; i++) rets.push(C[i] / (C[i - 1] || 1e-9) - 1);
+    var m = rets.reduce(function (a, b) { return a + b; }, 0) / rets.length;
+    var sd = Math.sqrt(rets.reduce(function (a, b) { return a + Math.pow(b - m, 2); }, 0) / rets.length);
+    var sh = m / (sd || 1e-9);
+    if (Math.abs(sh) < 0.06) return null;
+    return { dir: sgn(sh), str: clamp(0.26 + Math.abs(sh) * 1.6, 0.22, 0.76), why: "Sharpe(30) " + sh.toFixed(2) };
+  });
+  reg("sx5", "Volatillik rejimi filtri", "Statistik", function (K) {
+    var n = K.i, at = K.atr(14), lr = K.linreg(30);
+    if (!isFinite(at[n]) || !isFinite(at[n - 30]) || !isFinite(lr.slope[n])) return null;
+    var ratio = at[n] / (at[n - 30] || 1e-9);
+    if (ratio > 1.25) return { dir: sgn(lr.slope[n]), str: 0.66, why: "Volatillik o'sdi, trend yo'nalishi" };
+    if (ratio < 0.78) return { dir: -sgn(lr.slope[n]), str: 0.58, why: "Volatillik siqildi, qaytish ehtimoli" };
+    return null;
+  });
+  reg("sx6", "O'rtachaga qaytish yarim davri", "Statistik", function (K) {
+    var n = K.i, z = K.zsc(60);
+    if (!isFinite(z[n]) || !isFinite(z[n - 3])) return null;
+    if (Math.abs(z[n]) < 1.2) return null;
+    var shrinking = Math.abs(z[n]) < Math.abs(z[n - 3]);
+    if (!shrinking) return null;
+    return { dir: -sgn(z[n]), str: clamp(0.3 + Math.abs(z[n]) * 0.14, 0.24, 0.74), why: "Z qaytish boshlandi (" + z[n].toFixed(2) + ")" };
+  });
+  reg("sx7", "Kalman-uslub silliq nishab", "Statistik", function (K) {
+    var n = K.i, C = K.c;
+    if (n < 40) return null;
+    var x = C[n - 35], v = 0, q = 0.0008, rr = 0.05;
+    for (var i = n - 34; i <= n; i++) {
+      var pred = x + v;
+      var k = (Math.abs(v) + q) / (Math.abs(v) + q + rr);
+      var resid = C[i] - pred;
+      var nx = pred + k * resid;
+      v = 0.82 * v + 0.18 * (nx - x);
+      x = nx;
+    }
+    var at = K.atr(14);
+    var nrm = v / (at[n] || 1e-9);
+    if (Math.abs(nrm) < 0.03) return null;
+    return { dir: sgn(nrm), str: clamp(0.3 + Math.abs(nrm) * 2.2, 0.24, 0.8), why: "Silliq nishab " + nrm.toFixed(2) + " ATR" };
+  });
+  reg("sx8", "Momentum z-balli", "Statistik", function (K) {
+    var n = K.i, C = K.c;
+    if (n < 45) return null;
+    var moms = [], i;
+    for (i = n - 40; i <= n; i++) moms.push(C[i] / (C[i - 5] || 1e-9) - 1);
+    var m = moms.reduce(function (a, b) { return a + b; }, 0) / moms.length;
+    var sd = Math.sqrt(moms.reduce(function (a, b) { return a + Math.pow(b - m, 2); }, 0) / moms.length);
+    var z = (moms[moms.length - 1] - m) / (sd || 1e-9);
+    if (Math.abs(z) < 1) return null;
+    return { dir: sgn(z), str: clamp(0.28 + Math.abs(z) * 0.16, 0.22, 0.78), why: "Momentum z " + z.toFixed(2) };
+  });
+  reg("sx9", "Choppiness filtri", "Statistik", function (K) {
+    var n = K.i, ch = K.chop(14), lr = K.linreg(24);
+    if (!isFinite(ch[n]) || !isFinite(lr.slope[n])) return null;
+    if (ch[n] < 38) return { dir: sgn(lr.slope[n]), str: 0.72, why: "Chop " + ch[n].toFixed(0) + " (aniq trend)" };
+    if (ch[n] > 62) return { dir: -sgn(lr.slope[n]), str: 0.54, why: "Chop " + ch[n].toFixed(0) + " (yon harakat)" };
+    return null;
+  });
+  reg("sx10", "Kengayish/qisqarish assimetriyasi", "Statistik", function (K) {
+    var n = K.i, H = K.h, L = K.l, C = K.c;
+    if (n < 22) return null;
+    var upR = 0, dnR = 0;
+    for (var j = n - 20; j <= n; j++) {
+      var mid = (H[j] + L[j]) / 2;
+      if (C[j] > mid) upR += H[j] - mid; else dnR += mid - L[j];
+    }
+    var tot = upR + dnR || 1e-9;
+    var bias = (upR - dnR) / tot;
+    if (Math.abs(bias) < 0.12) return null;
+    return { dir: sgn(bias), str: clamp(0.26 + Math.abs(bias) * 0.9, 0.22, 0.72), why: "Diapazon assimetriyasi " + (bias * 100).toFixed(0) + "%" };
+  });
+
+  /* --- 10-oila: STRUKTURA / SMC - 10 ta --- */
+  reg("sm1", "Struktura buzilishi (BOS)", "Struktura", function (K) {
+    var n = K.i, fr = K.frac(3), C = K.c;
+    if (fr.hi.length < 2 || fr.lo.length < 2) return null;
+    var h1 = fr.hi[fr.hi.length - 1], h2 = fr.hi[fr.hi.length - 2];
+    var l1 = fr.lo[fr.lo.length - 1], l2 = fr.lo[fr.lo.length - 2];
+    if (C[n] > h1.p && h1.p > h2.p) return { dir: 1, str: 0.86, why: "Yuqori maksimumlar + BOS" };
+    if (C[n] < l1.p && l1.p < l2.p) return { dir: -1, str: 0.86, why: "Pastroq minimumlar + BOS" };
+    return null;
+  });
+  reg("sm2", "Likvidlik supurishi (sweep)", "Struktura", function (K) {
+    var n = K.i, fr = K.frac(3), C = K.c, H = K.h, L = K.l;
+    if (!fr.hi.length || !fr.lo.length) return null;
+    var lh = fr.hi[fr.hi.length - 1].p, ll = fr.lo[fr.lo.length - 1].p;
+    if (H[n] > lh && C[n] < lh) return { dir: -1, str: 0.84, why: "Maksimum supurildi, qaytdi" };
+    if (L[n] < ll && C[n] > ll) return { dir: 1, str: 0.84, why: "Minimum supurildi, qaytdi" };
+    return null;
+  });
+  reg("sm3", "Fair value gap (FVG)", "Struktura", function (K) {
+    var n = K.i, H = K.h, L = K.l, C = K.c, at = K.atr(14);
+    if (n < 4 || !isFinite(at[n])) return null;
+    var gUp = L[n - 1] - H[n - 3], gDn = L[n - 3] - H[n - 1];
+    if (gUp > at[n] * 0.28 && C[n] <= L[n - 1] && C[n] >= H[n - 3]) return { dir: 1, str: 0.78, why: "Bullish FVG ichida qaytish" };
+    if (gDn > at[n] * 0.28 && C[n] >= L[n - 3] && C[n] <= H[n - 1]) return { dir: -1, str: 0.78, why: "Bearish FVG ichida qaytish" };
+    return null;
+  });
+  reg("sm4", "Order block qaytishi", "Struktura", function (K) {
+    var n = K.i, at = K.atr(14), C = K.c, O = K.o, H = K.h, L = K.l;
+    if (n < 8 || !isFinite(at[n])) return null;
+    for (var j = n - 6; j < n - 1; j++) {
+      var b = C[j] - O[j];
+      if (Math.abs(b) < at[n] * 0.9) continue;
+      var top = Math.max(O[j], C[j]), bot = Math.min(O[j], C[j]);
+      if (b > 0 && L[n] <= top && C[n] > bot) return { dir: 1, str: 0.76, why: "Bullish order block sinovi" };
+      if (b < 0 && H[n] >= bot && C[n] < top) return { dir: -1, str: 0.76, why: "Bearish order block sinovi" };
+    }
+    return null;
+  });
+  reg("sm5", "Fibonachchi 0.618 qaytishi", "Struktura", function (K) {
+    var n = K.i, fr = K.frac(3), C = K.c, at = K.atr(14);
+    if (!fr.hi.length || !fr.lo.length || !isFinite(at[n])) return null;
+    var hi = fr.hi[fr.hi.length - 1], lo = fr.lo[fr.lo.length - 1];
+    var span = hi.p - lo.p;
+    if (span <= 0) return null;
+    if (hi.i > lo.i) {
+      var lvl = hi.p - span * 0.618;
+      if (Math.abs(C[n] - lvl) < at[n] * 0.4) return { dir: 1, str: 0.74, why: "0.618 qaytish darajasida qo'llab-quvvatlash" };
+    } else {
+      var lvl2 = lo.p + span * 0.618;
+      if (Math.abs(C[n] - lvl2) < at[n] * 0.4) return { dir: -1, str: 0.74, why: "0.618 darajada qarshilik" };
+    }
+    return null;
+  });
+  reg("sm6", "Teng maksimum/minimumlar", "Struktura", function (K) {
+    var n = K.i, fr = K.frac(2), at = K.atr(14), C = K.c;
+    if (fr.hi.length < 2 || fr.lo.length < 2 || !isFinite(at[n])) return null;
+    var h1 = fr.hi[fr.hi.length - 1].p, h2 = fr.hi[fr.hi.length - 2].p;
+    var l1 = fr.lo[fr.lo.length - 1].p, l2 = fr.lo[fr.lo.length - 2].p;
+    if (Math.abs(h1 - h2) < at[n] * 0.18 && C[n] < h1) return { dir: 1, str: 0.62, why: "Teng maksimumlar (likvidlik tepada)" };
+    if (Math.abs(l1 - l2) < at[n] * 0.18 && C[n] > l1) return { dir: -1, str: 0.62, why: "Teng minimumlar (likvidlik pastda)" };
+    return null;
+  });
+  reg("sm7", "S/R zona sinovi", "Struktura", function (K) {
+    var n = K.i, dc = K.dc(60), C = K.c, at = K.atr(14);
+    if (!isFinite(dc.up[n]) || !isFinite(at[n])) return null;
+    if (Math.abs(C[n] - dc.dn[n]) < at[n] * 0.45) return { dir: 1, str: 0.7, why: "Kuchli qo'llab-quvvatlash sinovi" };
+    if (Math.abs(C[n] - dc.up[n]) < at[n] * 0.45) return { dir: -1, str: 0.7, why: "Kuchli qarshilik sinovi" };
+    return null;
+  });
+  reg("sm8", "Trend chizig'i nishabi buzilishi", "Struktura", function (K) {
+    var n = K.i, lr = K.linreg(40), C = K.c;
+    if (!isFinite(lr.val[n]) || !isFinite(lr.dev[n]) || !isFinite(lr.slope[n])) return null;
+    var d = C[n] - lr.val[n];
+    var brokeUp = lr.slope[n] < 0 && d > lr.dev[n] * 1.1;
+    var brokeDn = lr.slope[n] > 0 && d < -lr.dev[n] * 1.1;
+    if (brokeUp) return { dir: 1, str: 0.72, why: "Pasayish kanali yuqoriga buzildi" };
+    if (brokeDn) return { dir: -1, str: 0.72, why: "O'sish kanali pastga buzildi" };
+    return null;
+  });
+  reg("sm9", "Ikki tomonli siqilish (koil)", "Struktura", function (K) {
+    var n = K.i, dc = K.dc(20), at = K.atr(14), C = K.c;
+    if (!isFinite(dc.up[n]) || !isFinite(at[n])) return null;
+    var span = dc.up[n] - dc.dn[n];
+    if (span > at[n] * 2.6) return null;
+    var pos = (C[n] - dc.dn[n]) / (span || 1e-9);
+    if (pos > 0.62) return { dir: 1, str: 0.66, why: "Koil ichida yuqori bosim" };
+    if (pos < 0.38) return { dir: -1, str: 0.66, why: "Koil ichida past bosim" };
+    return null;
+  });
+  reg("sm10", "Premium/Discount zonasi", "Struktura", function (K) {
+    var n = K.i, dc = K.dc(90), C = K.c;
+    if (!isFinite(dc.up[n])) return null;
+    var span = (dc.up[n] - dc.dn[n]) || 1e-9;
+    var pos = (C[n] - dc.dn[n]) / span;
+    if (pos < 0.32) return { dir: 1, str: 0.68, why: "Discount zonasi (arzon)" };
+    if (pos > 0.68) return { dir: -1, str: 0.68, why: "Premium zonasi (qimmat)" };
+    return null;
+  });
+
+  /* ============================================================
+     KO'RINISH (lookahead'siz baholash)
+     ============================================================ */
+  function viewAt(K, i) {
+    var v = Object.create(K);
+    v.i = i;
+    var fcache = {}, vcache = {};
+    v.frac = function (w) {
+      var key = "f" + w;
+      if (!fcache[key]) {
+        var f = K.frac(w), lim = i - w;
+        fcache[key] = {
+          hi: f.hi.filter(function (x) { return x.i <= lim; }),
+          lo: f.lo.filter(function (x) { return x.i <= lim; })
+        };
+      }
+      return fcache[key];
+    };
+    v.vp = function (look, b) {
+      var key = "v" + look + "_" + b;
+      if (!vcache[key]) vcache[key] = volProfile(K.bars.slice(0, i + 1), look, b);
+      return vcache[key];
+    };
+    return v;
+  }
+
+  /* ============================================================
+     REJIM ANIQLASH
+     ============================================================ */
+  function detectRegime(K, i) {
+    var n = i === undefined ? K.i : i;
+    var ad = K.adx(14), ch = K.chop(14), at = K.atr(14), hu = K.hurst(90);
+    var adx = nz(ad.adx[n], 20), chop = nz(ch[n], 50);
+    var volNow = nz(at[n], 0), volPast = nz(at[Math.max(0, n - 30)], volNow || 1);
+    var expanding = volNow > volPast * 1.2;
+    var id = "range", lab = "Diapazon";
+    if (adx >= 25 && chop < 45) { id = "trend"; lab = "Trend"; }
+    else if (expanding && adx >= 20) { id = "volatile"; lab = "Volatil"; }
+    else if (chop > 60 && !expanding) { id = "quiet"; lab = "Sokin"; }
+    return {
+      id: id, lab: lab, adx: adx, chop: chop, hurst: hu,
+      expanding: expanding, ses: sessionOf(K.bars[n].t),
+      volRatio: volNow / (volPast || 1e-9)
+    };
+  }
+
+  /* rejimga mos oilalar (kontekst filtri) */
+  var FAM_FIT = {
+    trend: { Trend: 1.25, Momentum: 1.1, MACD: 1.15, Qaytish: 0.55, Chiqish: 1.2, Supertrend: 1.3, Hajm: 1, Naqsh: 0.9, Statistik: 1.05, Struktura: 1.15 },
+    range: { Trend: 0.7, Momentum: 0.95, MACD: 0.85, Qaytish: 1.35, Chiqish: 0.75, Supertrend: 0.7, Hajm: 1.05, Naqsh: 1.15, Statistik: 1.05, Struktura: 1.2 },
+    volatile: { Trend: 1.05, Momentum: 1, MACD: 1, Qaytish: 0.8, Chiqish: 1.35, Supertrend: 1.15, Hajm: 1.25, Naqsh: 1, Statistik: 1.1, Struktura: 1.05 },
+    quiet: { Trend: 0.8, Momentum: 0.85, MACD: 0.85, Qaytish: 1.25, Chiqish: 0.7, Supertrend: 0.8, Hajm: 0.9, Naqsh: 1.1, Statistik: 1, Struktura: 1.15 }
+  };
+
+  /* ============================================================
+     ADAPTIV OG'IRLIKLAR (o'rganish)
+     ============================================================ */
+  function loadJSON(key, dflt) {
+    return safe(function () {
+      var raw = localStorage.getItem(key);
+      if (!raw) return dflt;
+      var v = JSON.parse(raw);
+      return v == null ? dflt : v;
+    }, dflt);
+  }
+  function saveJSON(key, val) { safe(function () { localStorage.setItem(key, JSON.stringify(val)); }, null); }
+
+  var WEIGHTS = loadJSON(SIG.LS.w, {});
+  function wOf(sid) { var w = WEIGHTS[sid]; return isFinite(w) ? clamp(w, 0.15, 3) : 1; }
+  function learn(sid, won) {
+    var w = wOf(sid);
+    WEIGHTS[sid] = clamp(won ? w * 1.04 : w * 0.965, 0.15, 3);
+  }
+  function saveWeights() { saveJSON(SIG.LS.w, WEIGHTS); }
+
+  /* ============================================================
+     ANSAMBL BAHOSI
+     ============================================================ */
+  function ensembleAt(K, i, regime) {
+    var v = viewAt(K, i);
+    var reg2 = regime || detectRegime(K, i);
+    var fit = FAM_FIT[reg2.id] || FAM_FIT.range;
+    var sum = 0, wsum = 0, fired = [], up = 0, dn = 0;
+    for (var s = 0; s < STRATS.length; s++) {
+      var st = STRATS[s], r = null;
+      try { r = st.fn(v); } catch (e) { r = null; }
+      if (!r || !r.dir) continue;
+      var w = wOf(st.id) * (fit[st.fam] || 1);
+      var contrib = r.dir * clamp(nz(r.str, 0.4), 0, 1) * w;
+      sum += contrib;
+      wsum += w;
+      if (r.dir > 0) up++; else dn++;
+      fired.push({ id: st.id, name: st.name, fam: st.fam, dir: r.dir, str: nz(r.str, 0.4), w: w, why: r.why });
+    }
+    var score = wsum > 0 ? sum / wsum : 0;
+    var total = up + dn;
+    var agree = total > 0 ? Math.max(up, dn) / total : 0;
+    return {
+      score: score, dir: sgn(score), agree: agree, up: up, dn: dn,
+      fired: fired, count: total, regime: reg2
+    };
+  }
+
+  /* ko'p timeframe hamohangligi */
+  function mtfBias(symId, tfId) {
+    var idx = tfIndex(tfId), out = { align: 0, list: [] };
+    for (var k = 1; k <= 2; k++) {
+      var hi = TFS[Math.min(TFS.length - 1, idx + k * 2)];
+      if (!hi) continue;
+      var bars = seriesSync(symId, hi.id);
+      if (!bars || bars.length < 60) continue;
+      var K = IND(bars);
+      var e1 = K.ema(21), e2 = K.ema(55), n = K.n - 1;
+      var d = sgn(nz(e1[n], 0) - nz(e2[n], 0));
+      out.list.push({ tf: hi.id, dir: d });
+      out.align += d;
+    }
+    return out;
+  }
+
+  /* ============================================================
+     WILSON PASTKI CHEGARASI (95% ishonch)
+     ============================================================ */
+  function wilsonLower(wins, n, z) {
+    if (!n) return 0;
+    z = z || 1.959963985;
+    var p = wins / n;
+    var d = 1 + z * z / n;
+    var c = p + z * z / (2 * n);
+    var m = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+    return clamp((c - m) / d, 0, 1);
+  }
+
+  /* ============================================================
+     KALIBRLASH: walk-forward + TP/SL yechuvchi
+     Maqsad: har TF da o'lchangan aniqligi >= 95% bo'lgan konfiguratsiya topish
+     ============================================================ */
+  var TP_GRID = [0.05, 0.08, 0.12, 0.18, 0.25, 0.35, 0.5, 0.7, 1.0, 1.4];
+  var SL_GRID = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.5];
+  var SCORE_GRID = [0.18, 0.26, 0.34, 0.44, 0.56, 0.68];
+  var CAL_CACHE = {};        /* TF darajasidagi konfiguratsiya (xotira keshi) */
+  var SYM_CACHE = {};        /* instrument bo'yicha o'lchov */
+  var POOL_SYMS = ["XAUUSD", "BTCUSDT", "EURUSD"];
+  var CAL_VER = "v3";
+  var CAL_DISK = loadJSON(SIG.LS.cal, {});
+
+  function calKey(tfId, target) { return CAL_VER + ":" + tfId + ":" + Math.round(nz(target, 0.95) * 1000); }
+
+  function countAbove(list, thr) {
+    var c = 0;
+    for (var i = 0; i < list.length; i++) if (list[i].score >= thr) c++;
+    return c;
+  }
+
+  /* bitta (TP, SL, ball chegarasi) konfiguratsiyasini savdolar to'plamida baholash */
+  function evalGrid(list, ti, li, thr) {
+    var wins = 0, losses = 0, open = 0, used = 0;
+    for (var k = 0; k < list.length; k++) {
+      var t = list[k];
+      if (t.score < thr) continue;
+      used++;
+      var ft = t.fav[ti], ad = t.adv[li];
+      if (ft >= 0 && (ad < 0 || ft <= ad)) wins++;
+      else if (ad >= 0) losses++;
+      else open++;
+    }
+    var closed = wins + losses;
+    var hit = closed ? wins / closed : 0;
+    return {
+      wins: wins, losses: losses, open: open, used: used, n: closed,
+      hit: hit, lb: wilsonLower(wins, closed),
+      expR: hit * TP_GRID[ti] - (1 - hit) * SL_GRID[li]
+    };
+  }
+
+  /* bitta instrument/TF uchun walk-forward savdolar ro'yxati (lookahead yo'q) */
+  function tradesFor(symId, tfId) {
+    var bars = seriesSync(symId, tfId);
+    if (!bars || bars.length < 200) return null;
+    var K = IND(bars);
+    var horizon = clamp(Math.round(bars.length * 0.06), 10, 48);
+    var endI = bars.length - horizon - 1;
+    var atr = K.atr(14);
+    var trades = [];
+    for (var i = 100; i <= endI; i++) {
+      var ens = ensembleAt(K, i);
+      if (!ens.dir || !ens.count) continue;
+      var a = nz(atr[i], 0);
+      if (a <= 0) continue;
+      var entry = bars[i].c;
+      var favTouch = new Array(TP_GRID.length), advTouch = new Array(SL_GRID.length), g;
+      for (g = 0; g < TP_GRID.length; g++) favTouch[g] = -1;
+      for (g = 0; g < SL_GRID.length; g++) advTouch[g] = -1;
+      for (var j = i + 1; j <= i + horizon && j < bars.length; j++) {
+        var favA = (ens.dir > 0 ? (bars[j].h - entry) : (entry - bars[j].l)) / a;
+        var advA = (ens.dir > 0 ? (entry - bars[j].l) : (bars[j].h - entry)) / a;
+        for (g = 0; g < TP_GRID.length; g++) if (favTouch[g] < 0 && favA >= TP_GRID[g]) favTouch[g] = j - i;
+        for (g = 0; g < SL_GRID.length; g++) if (advTouch[g] < 0 && advA >= SL_GRID[g]) advTouch[g] = j - i;
+      }
+      trades.push({ dir: ens.dir, score: Math.abs(ens.score), agree: ens.agree, fav: favTouch, adv: advTouch, reg: ens.regime.id });
+    }
+    return { trades: trades, horizon: horizon, bars: bars.length };
+  }
+
+  /* TIMEFRAME darajasidagi kalibrlash: bir nechta instrument namunasi birlashtiriladi */
+  function calibrateTf(tfId, opts) {
+    opts = opts || {};
+    var target = nz(opts.target, CFG.gate);
+    var key = calKey(tfId, target);
+    if (!opts.force && CAL_CACHE[key]) return CAL_CACHE[key];
+    if (!opts.force) {
+      var disk = CAL_DISK[key];
+      if (disk && disk.cfg && (nowMs() - disk.at) < 21600000) {
+        CAL_CACHE[key] = disk;
+        return disk;
+      }
+    }
+
+    var fitAll = [], valAll = [], allAll = [], used = [], horizon = 0;
+    for (var s = 0; s < POOL_SYMS.length; s++) {
+      var r = safe(function () { return tradesFor(POOL_SYMS[s], tfId); }, null);
+      if (!r || r.trades.length < 60) continue;
+      horizon = Math.max(horizon, r.horizon);
+      var cut = Math.floor(r.trades.length * 0.6);
+      fitAll = fitAll.concat(r.trades.slice(0, cut));
+      valAll = valAll.concat(r.trades.slice(cut));
+      allAll = allAll.concat(r.trades);
+      used.push(POOL_SYMS[s]);
+    }
+    if (!used.length || valAll.length < 60) return null;
+
+    var strictC = [], fitC = [], best = null;
+    for (var si = 0; si < SCORE_GRID.length; si++) {
+      var thr = SCORE_GRID[si];
+      if (countAbove(fitAll, thr) < 60) continue;
+      var cov = allAll.length ? countAbove(allAll, thr) / allAll.length : 0;
+      for (var ti = 0; ti < TP_GRID.length; ti++) {
+        for (var li = 0; li < SL_GRID.length; li++) {
+          var f = evalGrid(fitAll, ti, li, thr);
+          if (f.n < 60) continue;
+          var v = evalGrid(valAll, ti, li, thr);
+          if (v.n < 40) continue;
+          var cand = {
+            thr: thr, tp: TP_GRID[ti], sl: SL_GRID[li], rr: TP_GRID[ti] / SL_GRID[li],
+            fit: { n: f.n, hit: f.hit, lb: f.lb, expR: f.expR, wins: f.wins },
+            val: { n: v.n, hit: v.hit, lb: v.lb, expR: v.expR, wins: v.wins },
+            cov: cov, hasVal: true,
+            lb: Math.min(f.lb, v.lb), hit: Math.min(f.hit, v.hit),
+            expR: f.expR * 0.5 + v.expR * 0.5, n: f.n + v.n
+          };
+          if (cand.lb >= target) strictC.push(cand);
+          else if (f.lb >= target) fitC.push(cand);
+          if (!best || cand.lb > best.lb || (Math.abs(cand.lb - best.lb) < 1e-9 && cand.expR > best.expR)) best = cand;
+        }
+      }
+    }
+
+    /* tanlov: darvozadan o'tganlar ichida eng keng qamrov, so'ng eng yuqori kutilma */
+    var chosen = null, mode = "eng-yaqin";
+    var pool = strictC.length ? strictC : (fitC.length ? fitC : null);
+    if (pool) {
+      mode = strictC.length ? "qat'iy (fit+holdout)" : "faqat fit";
+      pool.sort(function (a, b) {
+        if (a.thr !== b.thr) return a.thr - b.thr;
+        if (Math.abs(b.expR - a.expR) > 1e-9) return b.expR - a.expR;
+        return b.lb - a.lb;
+      });
+      chosen = pool[0];
+      var byExp = pool.slice().sort(function (a, b) { return b.expR - a.expR; })[0];
+      chosen.altExp = { tp: byExp.tp, sl: byExp.sl, thr: byExp.thr, expR: byExp.expR, lb: byExp.lb, cov: byExp.cov };
+    } else if (best) {
+      chosen = best;
+    }
+    if (!chosen) return null;
+    chosen.validated = !!(chosen.hasVal && chosen.val.lb >= target);
+    chosen.mode = mode;
+
+    var res = {
+      tfId: tfId, at: nowMs(), gate: target, cfg: chosen,
+      passed: chosen.lb >= target, validated: chosen.validated, mode: mode,
+      poolN: allAll.length, fitN: fitAll.length, valN: valAll.length,
+      horizon: horizon, syms: used, feasible: strictC.length,
+      source: seriesSource(used[0], tfId)
+    };
+    CAL_CACHE[key] = res;
+    CAL_DISK[key] = res;
+    safe(function () { saveJSON(SIG.LS.cal, CAL_DISK); });
+    return res;
+  }
+
+  /* INSTRUMENT + TF: TF konfiguratsiyasi + shu instrumentdagi o'lchov */
+  function calibrate(symId, tfId, opts) {
+    opts = opts || {};
+    var tf = calibrateTf(tfId, opts);
+    if (!tf || !tf.cfg) return null;
+    var skey = CAL_VER + ":" + symId + ":" + tfId + ":" + tf.cfg.thr + ":" + tf.cfg.tp + ":" + tf.cfg.sl;
+    var sm = SYM_CACHE[skey];
+    if (!sm || opts.force || (nowMs() - sm.at) > 600000) {
+      var r = safe(function () { return tradesFor(symId, tfId); }, null);
+      var ti = TP_GRID.indexOf(tf.cfg.tp), li = SL_GRID.indexOf(tf.cfg.sl);
+      var st = (r && r.trades.length >= 30 && ti >= 0 && li >= 0) ? evalGrid(r.trades, ti, li, tf.cfg.thr) : null;
+      sm = { at: nowMs(), st: st, n: r ? r.trades.length : 0, horizon: r ? r.horizon : tf.horizon };
+      SYM_CACHE[skey] = sm;
+    }
+
+    var cfg = {};
+    for (var k in tf.cfg) cfg[k] = tf.cfg[k];
+    if (sm.st) {
+      cfg.symHit = sm.st.hit;
+      cfg.symLb = sm.st.lb;
+      cfg.symN = sm.st.n;
+    }
+    return {
+      symId: symId, tfId: tfId, at: nowMs(), ok: true,
+      gate: tf.gate, passed: tf.passed, validated: tf.validated, mode: tf.mode,
+      cfg: cfg, n: tf.poolN, fitN: tf.fitN, valN: tf.valN,
+      horizon: sm.horizon || tf.horizon, feasible: tf.feasible,
+      poolSyms: tf.syms, source: seriesSource(symId, tfId), trades: tf.poolN, tfCal: tf
+    };
+  }
+
+  /* bosqichli kalibrlash: interfeys muzlamasligi uchun TF lar navbat bilan */
+  var CAL_RUNNING = false;
+  function calCached(tfId) { return !!CAL_CACHE[calKey(tfId, CFG.gate)]; }
+  function ensureCalibrated(tfList, done) {
+    var ids = (tfList && tfList.length ? tfList : TFS.map(function (t) { return t.id; }))
+      .filter(function (id) { return !calCached(id); });
+    if (!ids.length) { if (done) done(0); return false; }
+    if (CAL_RUNNING) return true;
+    CAL_RUNNING = true;
+    var i = 0;
+    function step() {
+      if (i >= ids.length) {
+        CAL_RUNNING = false;
+        if (done) safe(function () { done(ids.length); });
+        return;
+      }
+      safe(function () { calibrateTf(ids[i]); });
+      i++;
+      window.setTimeout(step, 25);
+    }
+    window.setTimeout(step, 20);
+    return true;
+  }
+
+  /* ============================================================
+     SIGNAL YARATISH
+     ============================================================ */
+  var DEF_CFG = {
+    auto: 1, gate: 0.95, minSample: 12, mtf: 1, tgAuto: 1, dry: 0,
+    tfs: ["15s", "1m", "5m", "15m", "1h", "4h", "1D"],
+    syms: ["XAUUSD", "BTCUSDT", "ETHUSDT", "EURUSD"],
+    maxPerHour: 20, cooldownSec: 45, sound: 1, mode: "balanced"
+  };
+  var CFG = (function () {
+    var c = loadJSON(SIG.LS.cfg, {});
+    var out = {};
+    for (var k in DEF_CFG) out[k] = (c && c[k] !== undefined) ? c[k] : DEF_CFG[k];
+    return out;
+  })();
+  function cfgSave() { saveJSON(SIG.LS.cfg, CFG); }
+  function sigSet(k, v) { CFG[k] = v; cfgSave(); return CFG[k]; }
+
+  function buildSignal(symId, tfId, opts) {
+    opts = opts || {};
+    var S = symById(symId), T = tfById(tfId);
+    var bars = seriesSync(symId, tfId);
+    if (!bars || bars.length < 120) return null;
+    var K = IND(bars);
+    var n = K.n - 1;
+    var cal = calibrate(symId, tfId, { target: nz(opts.gate, CFG.gate) });
+    if (!cal || !cal.cfg) return null;
+    var ens = ensembleAt(K, n);
+    var atr = nz(K.atr(14)[n], 0);
+    if (atr <= 0) return null;
+    var cfg = cal.cfg;
+    var entry = bars[n].c;
+    var mt = CFG.mtf ? mtfBias(symId, tfId) : { align: 0, list: [] };
+
+    var strong = Math.abs(ens.score) >= cfg.thr;
+    var dir = ens.dir;
+    if (!dir) return null;
+    // MTF qarama-qarshiligi kuchsizlantiradi
+    var mtfPenalty = (mt.align !== 0 && sgn(mt.align) !== dir) ? 0.82 : 1.06;
+    var conf = clamp(Math.abs(ens.score) * 0.55 + ens.agree * 0.3 + clamp(ens.count / 40, 0, 0.25), 0, 1) * mtfPenalty;
+    conf = clamp(conf, 0, 0.99);
+
+    var tpD = cfg.tp * atr, slD = cfg.sl * atr;
+    var sl = dir > 0 ? entry - slD : entry + slD;
+    var tp1 = dir > 0 ? entry + tpD : entry - tpD;
+    var tp2 = dir > 0 ? entry + tpD * 1.8 : entry - tpD * 1.8;
+    var tp3 = dir > 0 ? entry + tpD * 3 : entry - tpD * 3;
+
+    var topStrats = ens.fired.slice().sort(function (a, b) {
+      return (b.str * b.w) - (a.str * a.w);
+    }).slice(0, 8);
+
+    var status = (strong && cal.passed) ? "nashr" : "kuzatuv";
+    var id = symId + "|" + tfId + "|" + bars[n].t + "|" + dir;
+    return {
+      id: id, sym: symId, symName: S.name, tf: tfId, tfLab: T.lab, dir: dir,
+      dirLab: dir > 0 ? "BUY" : "SELL",
+      status: status, cov: nz(cfg.cov, 0), thr: cfg.thr,
+      fitLb: cfg.fit ? cfg.fit.lb : cfg.lb,
+      valLb: (cfg.val && cfg.val.n >= 8) ? cfg.val.lb : null,
+      valN: cfg.val ? cfg.val.n : 0, validated: !!cfg.validated,
+      entry: entry, sl: sl, tp1: tp1, tp2: tp2, tp3: tp3,
+      atr: atr, tpAtr: cfg.tp, slAtr: cfg.sl, rr: cfg.rr,
+      precision: cfg.hit, precisionLb: cfg.lb, sample: cfg.n, expR: cfg.expR,
+      gate: nz(opts.gate, CFG.gate), passed: cfg.lb >= nz(opts.gate, CFG.gate),
+      score: ens.score, agree: ens.agree, fired: ens.count, strong: strong,
+      conf: conf, regime: ens.regime.id, regimeLab: ens.regime.lab,
+      session: ens.regime.ses.lab, mtf: mt.list, mtfAlign: mt.align,
+      strats: topStrats, allFired: ens.fired.length,
+      barTime: bars[n].t, at: nowMs(), dp: S.dp, source: seriesSource(symId, tfId),
+      expirySec: T.sec * clamp(cal.horizon, 6, 40),
+      invalidation: dir > 0 ? Math.min(sl, bars[n].l - atr * 0.1) : Math.max(sl, bars[n].h + atr * 0.1)
+    };
+  }
+
+  /* barcha tanlangan TF/instrument uchun skanerlash */
+  function sigScan(opts) {
+    opts = opts || {};
+    var syms = opts.syms || CFG.syms, tfs = opts.tfs || CFG.tfs;
+    var out = [];
+    for (var s = 0; s < syms.length; s++) {
+      for (var t = 0; t < tfs.length; t++) {
+        var sig = safe(function () { return buildSignal(syms[s], tfs[t], opts); }, null);
+        if (sig) out.push(sig);
+      }
+    }
+    out.sort(function (a, b) {
+      if (b.precisionLb !== a.precisionLb) return b.precisionLb - a.precisionLb;
+      return b.conf - a.conf;
+    });
+    LAST_SCAN = { at: nowMs(), list: out };
+    return out;
+  }
+  var LAST_SCAN = { at: 0, list: [] };
+
+  /* nashr etiladigan (darvozadan o'tgan) signallar */
+  function sigPublishable(list) {
+    return (list || LAST_SCAN.list || []).filter(function (s) {
+      return s.passed && s.strong && s.sample >= CFG.minSample;
+    });
+  }
+
+  /* ============================================================
+     TARIX VA NATIJA KUZATUVI (o'z-o'zini o'rganish)
+     ============================================================ */
+  var HIST = loadJSON(SIG.LS.hist, []);
+  function histSave() { saveJSON(SIG.LS.hist, HIST.slice(-400)); }
+  function histAdd(sig) {
+    for (var i = HIST.length - 1; i >= 0 && i > HIST.length - 60; i--) if (HIST[i].id === sig.id) return false;
+    HIST.push({
+      id: sig.id, sym: sig.sym, tf: sig.tf, dir: sig.dir, entry: sig.entry, sl: sig.sl, tp1: sig.tp1,
+      at: sig.at, prec: sig.precisionLb, expR: sig.expR, strats: sig.strats.map(function (x) { return x.id; }),
+      status: "open", tpAtr: sig.tpAtr, slAtr: sig.slAtr, atr: sig.atr
+    });
+    histSave();
+    return true;
+  }
+  function histResolve() {
+    var changed = 0;
+    for (var i = 0; i < HIST.length; i++) {
+      var h = HIST[i];
+      if (h.status !== "open") continue;
+      var bars = seriesSync(h.sym, h.tf);
+      if (!bars || !bars.length) continue;
+      var hit = null;
+      for (var j = 0; j < bars.length; j++) {
+        if (bars[j].t <= h.at) continue;
+        var favOk = h.dir > 0 ? bars[j].h >= h.tp1 : bars[j].l <= h.tp1;
+        var advOk = h.dir > 0 ? bars[j].l <= h.sl : bars[j].h >= h.sl;
+        if (favOk) { hit = "win"; break; }
+        if (advOk) { hit = "loss"; break; }
+      }
+      if (hit) {
+        h.status = hit;
+        changed++;
+        (h.strats || []).forEach(function (sid) { learn(sid, hit === "win"); });
+      }
+    }
+    if (changed) { histSave(); saveWeights(); }
+    return changed;
+  }
+  function histStats() {
+    var w = 0, l = 0, o = 0, sumR = 0;
+    for (var i = 0; i < HIST.length; i++) {
+      var h = HIST[i];
+      if (h.status === "win") { w++; sumR += nz(h.tpAtr, 0); }
+      else if (h.status === "loss") { l++; sumR -= nz(h.slAtr, 0); }
+      else o++;
+    }
+    var n = w + l;
+    return { wins: w, losses: l, open: o, n: n, hit: n ? w / n : 0, lb: wilsonLower(w, n), sumR: sumR, total: HIST.length };
+  }
+
+  /* ============================================================
+     TELEGRAM
+     ============================================================ */
+  var TG = (function () {
+    var t = loadJSON(SIG.LS.tg, {});
+    return { token: t.token || "", chat: t.chat || "", on: t.on === undefined ? 1 : t.on };
+  })();
+  function tgSave() { saveJSON(SIG.LS.tg, TG); }
+  function tgConfig() {
+    if (TG.token && TG.chat) return { token: TG.token, chat: TG.chat, src: "sig" };
+    var legacy = safe(function () {
+      if (typeof window.getTGConfig === "function") return window.getTGConfig();
+      return null;
+    }, null);
+    if (legacy && legacy.token && legacy.chat) return { token: legacy.token, chat: legacy.chat, src: "app" };
+    return null;
+  }
+  function tgSetConfig(token, chat) {
+    TG.token = String(token || "").trim();
+    TG.chat = String(chat || "").trim();
+    tgSave();
+    return tgConfig();
+  }
+
+  var TG_LOG = loadJSON(SIG.LS.log, []);
+  function tgLog(entry) {
+    TG_LOG.push(entry);
+    if (TG_LOG.length > 120) TG_LOG = TG_LOG.slice(-120);
+    saveJSON(SIG.LS.log, TG_LOG);
+    return entry;
+  }
+  var TG_SENT = {};
+  var TG_QUEUE = [];
+  var TG_BUSY = false;
+  var TG_TIMES = [];
+
+  function tgRateOk() {
+    var cut = nowMs() - 3600000;
+    TG_TIMES = TG_TIMES.filter(function (t) { return t > cut; });
+    return TG_TIMES.length < nz(CFG.maxPerHour, 20);
+  }
+
+  function tgFormat(sig) {
+    var dp = sig.dp;
+    var arrow = sig.dir > 0 ? "🟢 BUY" : "🔴 SELL";
+    var lines = [
+      "<b>" + arrow + " " + esc(sig.sym) + "</b>  <i>" + esc(sig.tfLab) + "</i>",
+      "━━━━━━━━━━━━━━",
+      "🎯 Kirish: <b>" + fmtN(sig.entry, dp) + "</b>",
+      "🛑 Stop: <b>" + fmtN(sig.sl, dp) + "</b>",
+      "✅ TP1: <b>" + fmtN(sig.tp1, dp) + "</b>",
+      "✅ TP2: " + fmtN(sig.tp2, dp),
+      "✅ TP3: " + fmtN(sig.tp3, dp),
+      "━━━━━━━━━━━━━━",
+      "📊 O'lchangan aniqlik: <b>" + fmtPct(sig.precision, 1) + "</b>",
+      "🔒 95% ishonch pastki chegarasi: <b>" + fmtPct(sig.precisionLb, 1) + "</b>",
+      "🧪 Namuna: " + sig.sample + " savdo (walk-forward)",
+      "📐 TP/SL: " + sig.tpAtr + " / " + sig.slAtr + " ATR  (R:R " + sig.rr.toFixed(2) + ")",
+      "💡 Kutilma: " + sig.expR.toFixed(3) + " ATR / savdo",
+      "🤖 Kelishuv: " + Math.round(sig.agree * 100) + "% (" + sig.fired + " strategiya)",
+      "🌐 Rejim: " + esc(sig.regimeLab) + " · " + esc(sig.session),
+      "🔎 Manba: " + (sig.source === "LIVE" ? "jonli ma'lumot" : "simulyatsiya"),
+      "",
+      "<i>Ta'lim maqsadida. Risk boshqaruvisiz savdo qilmang.</i>"
+    ];
+    return lines.join("\n");
+  }
+
+  function tgPost(text, opts) {
+    opts = opts || {};
+    var cfg = tgConfig();
+    var dry = CFG.dry || opts.dry || !cfg;
+    if (dry) {
+      tgLog({ at: nowMs(), ok: true, dry: true, text: text.slice(0, 400), reason: cfg ? "quruq rejim" : "token yo'q" });
+      return Promise.resolve({ ok: true, dry: true });
+    }
+    var url = "https://api.telegram.org/bot" + cfg.token + "/sendMessage";
+    var payload = { chat_id: cfg.chat, text: text, parse_mode: "HTML", disable_web_page_preview: true };
+    var attempt = 0;
+    function once() {
+      attempt++;
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then(function (res) {
+        return res.json()["catch"](function () { return { ok: res.ok }; });
+      }).then(function (j) {
+        if (j && j.ok) {
+          TG_TIMES.push(nowMs());
+          tgLog({ at: nowMs(), ok: true, attempt: attempt, text: text.slice(0, 200) });
+          return { ok: true, attempt: attempt };
+        }
+        throw new Error((j && (j.description || j.error_code)) || "noma'lum xato");
+      });
+    }
+    function retry(errMsg) {
+      if (attempt >= 3) {
+        tgLog({ at: nowMs(), ok: false, attempt: attempt, err: String(errMsg).slice(0, 160), text: text.slice(0, 160) });
+        return { ok: false, err: String(errMsg) };
+      }
+      var wait = attempt === 1 ? 1500 : 4000;
+      return new Promise(function (res) { setTimeout(res, wait); }).then(function () {
+        return once()["catch"](function (e) { return retry(e && e.message ? e.message : e); });
+      });
+    }
+    return once()["catch"](function (e) { return retry(e && e.message ? e.message : e); });
+  }
+
+  function tgDrain() {
+    if (TG_BUSY || !TG_QUEUE.length) return Promise.resolve(0);
+    TG_BUSY = true;
+    var item = TG_QUEUE.shift();
+    return tgPost(item.text)["catch"](function () { return { ok: false }; }).then(function (r) {
+      TG_BUSY = false;
+      if (TG_QUEUE.length) setTimeout(function () { tgDrain(); }, 1200);
+      return r && r.ok ? 1 : 0;
+    });
+  }
+
+  function tgEnqueueSignal(sig, opts) {
+    opts = opts || {};
+    if (!opts.force) {
+      if (TG_SENT[sig.id]) return { ok: false, reason: "takroriy" };
+      if (!tgRateOk()) return { ok: false, reason: "soatlik chegara" };
+      var lastAt = TG_SENT["__last:" + sig.sym + sig.tf] || 0;
+      if (nowMs() - lastAt < nz(CFG.cooldownSec, 45) * 1000) return { ok: false, reason: "sovish davri" };
+    }
+    TG_SENT[sig.id] = nowMs();
+    TG_SENT["__last:" + sig.sym + sig.tf] = nowMs();
+    TG_QUEUE.push({ text: tgFormat(sig), id: sig.id });
+    tgDrain();
+    return { ok: true, queued: TG_QUEUE.length };
+  }
+
+  function sigTgTest() {
+    var txt = [
+      "<b>✅ TraderPro ULTIMATE MAX — test xabari</b>",
+      "Signal dvigateli ulandi.",
+      "Strategiyalar: " + STRATS.length,
+      "Timeframelar: " + TFS.length + " (15s → 1W)",
+      "Aniqlik darvozasi: " + fmtPct(CFG.gate, 0) + " (Wilson pastki chegarasi)",
+      "Vaqt: " + new Date().toLocaleString("uz-UZ")
+    ].join("\n");
+    return tgPost(txt);
+  }
+
+  /* ============================================================
+     AVTOPILOT
+     ============================================================ */
+  var NEXT_RUN = {};
+  var AUTO_TIMER = null;
+  var AUTO_STATE = { runs: 0, sent: 0, lastAt: 0, lastCount: 0 };
+
+  function autoTick(force) {
+    if (!CFG.auto && !force) return 0;
+    var tfs = CFG.tfs || [], syms = CFG.syms || [], sent = 0;
+    for (var t = 0; t < tfs.length; t++) {
+      var T = tfById(tfs[t]);
+      var key = tfs[t];
+      var period = Math.max(10000, Math.min(T.sec * 1000, 300000));
+      if (NEXT_RUN[key] && nowMs() < NEXT_RUN[key]) continue;
+      NEXT_RUN[key] = nowMs() + period;
+      for (var s = 0; s < syms.length; s++) {
+        var sig = safe(function () { return buildSignal(syms[s], tfs[t]); }, null);
+        if (!sig || !sig.passed || !sig.strong) continue;
+        if (!histAdd(sig)) continue;
+        if (CFG.tgAuto) {
+          var r = tgEnqueueSignal(sig);
+          if (r.ok) sent++;
+        }
+      }
+    }
+    AUTO_STATE.runs++;
+    AUTO_STATE.sent += sent;
+    AUTO_STATE.lastAt = nowMs();
+    AUTO_STATE.lastCount = sent;
+    safe(function () { histResolve(); }, 0);
+    return sent;
+  }
+
+  function autoStart() {
+    if (AUTO_TIMER) return;
+    AUTO_TIMER = window.setInterval(function () { safe(autoTick); }, 5000);
+  }
+  function autoStop() {
+    if (AUTO_TIMER) { window.clearInterval(AUTO_TIMER); AUTO_TIMER = null; }
+  }
+
+  /* har bir timeframe uchun bittadan signal (16/16 kafolati) */
+  function sigPerTf(symId) {
+    var sym = symId || CFG.syms[0] || "XAUUSD";
+    var out = [];
+    for (var i = 0; i < TFS.length; i++) {
+      var s = safe(function () { return buildSignal(sym, TFS[i].id); }, null);
+      if (s) out.push(s);
+    }
+    return out;
+  }
+
+  /* ---- 2-qism eksporti ---- */
+  SIG.viewAt = viewAt;
+  SIG.detectRegime = detectRegime;
+  SIG.ensembleAt = ensembleAt;
+  SIG.mtfBias = mtfBias;
+  SIG.wilsonLower = wilsonLower;
+  SIG.calibrate = calibrate;
+  SIG.calibrateTf = calibrateTf;
+  SIG.tradesFor = tradesFor;
+  SIG.ensureCalibrated = ensureCalibrated;
+  SIG.calCached = calCached;
+  SIG.POOL_SYMS = POOL_SYMS;
+  SIG.buildSignal = buildSignal;
+  SIG.sigScan = sigScan;
+  SIG.sigPublishable = sigPublishable;
+  SIG.sigPerTf = sigPerTf;
+  SIG.evalGrid = evalGrid;
+  SIG.CFG = CFG;
+  SIG.sigSet = sigSet;
+  SIG.cfgSave = cfgSave;
+  SIG.HIST = HIST;
+  SIG.histAdd = histAdd;
+  SIG.histResolve = histResolve;
+  SIG.histStats = histStats;
+  SIG.WEIGHTS = WEIGHTS;
+  SIG.learn = learn;
+  SIG.saveWeights = saveWeights;
+  SIG.wOf = wOf;
+  SIG.TG = TG;
+  SIG.tgConfig = tgConfig;
+  SIG.tgSetConfig = tgSetConfig;
+  SIG.tgFormat = tgFormat;
+  SIG.tgPost = tgPost;
+  SIG.tgEnqueueSignal = tgEnqueueSignal;
+  SIG.sigTgTest = sigTgTest;
+  SIG.tgLogAll = function () { return TG_LOG.slice(); };
+  SIG.autoTick = autoTick;
+  SIG.autoStart = autoStart;
+  SIG.autoStop = autoStop;
+  SIG.AUTO_STATE = AUTO_STATE;
+  SIG.lastScan = function () { return LAST_SCAN; };
+  SIG.TP_GRID = TP_GRID;
+  SIG.SL_GRID = SL_GRID;
+  SIG.loadJSON = loadJSON;
+  SIG.saveJSON = saveJSON;
+
+  /* ============================================================
+     SIG ULTIMATE MAX v1 - 3-QISM
+     Interfeys: signal markazi + o'z grafik dvigateli + panel + boot
+     ============================================================ */
+
+  var CSS = [
+    ".sg-wrap{margin:0 0 18px;display:block}",
+    ".sg-card{position:relative;border-radius:16px;padding:14px 16px;margin-bottom:12px;",
+    "background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));",
+    "border:1px solid rgba(255,255,255,.09);box-shadow:0 10px 32px rgba(0,0,0,.28)}",
+    ".sg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}",
+    ".sg-title{font-weight:800;font-size:14px;letter-spacing:.2px;display:flex;align-items:center;gap:8px;min-width:0}",
+    ".sg-badge{font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap;",
+    "border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06)}",
+    ".sg-badge.live{color:#00E676;border-color:rgba(0,230,118,.45);background:rgba(0,230,118,.1)}",
+    ".sg-badge.sim{color:#FFB000;border-color:rgba(255,176,0,.42);background:rgba(255,176,0,.1)}",
+    ".sg-badge.gate{color:#8A7CFF;border-color:rgba(138,124,255,.45);background:rgba(138,124,255,.12)}",
+    ".sg-spacer{flex:1 1 auto;min-width:8px}",
+    ".sg-btn{cursor:pointer;font-size:11px;font-weight:700;padding:6px 11px;border-radius:9px;",
+    "border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:inherit;white-space:nowrap;",
+    "transition:transform .16s ease,background .2s ease,border-color .2s ease}",
+    ".sg-btn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px)}",
+    ".sg-btn.on{background:rgba(0,230,118,.16);border-color:rgba(0,230,118,.5);color:#00E676}",
+    ".sg-btn.gold{background:linear-gradient(135deg,rgba(255,176,0,.22),rgba(255,120,0,.12));border-color:rgba(255,176,0,.45);color:#FFB000}",
+    ".sg-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin-bottom:4px}",
+    ".sg-kpi{border-radius:12px;padding:9px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);min-width:0}",
+    ".sg-kpi-l{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;opacity:.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".sg-kpi-v{font-size:17px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap}",
+    ".sg-up{color:#00E676}.sg-dn{color:#FF5252}.sg-mut{opacity:.6}",
+    ".sg-radar{overflow-x:auto;overflow-y:hidden;padding-bottom:4px}",
+    ".sg-rtab{border-collapse:separate;border-spacing:3px;font-size:10px;min-width:100%}",
+    ".sg-rtab th{font-size:9px;font-weight:700;opacity:.62;padding:2px 4px;text-align:center;white-space:nowrap}",
+    ".sg-rtab td.sym{font-size:10px;font-weight:700;text-align:left;padding:2px 8px 2px 2px;white-space:nowrap;opacity:.85}",
+    ".sg-cell{width:38px;height:24px;border-radius:6px;text-align:center;font-weight:800;font-size:9.5px;",
+    "border:1px solid rgba(255,255,255,.07);font-variant-numeric:tabular-nums}",
+    ".sg-sig{border-radius:14px;padding:12px 13px;margin-bottom:10px;border:1px solid rgba(255,255,255,.1);",
+    "background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,.012))}",
+    ".sg-sig.buy{border-left:3px solid #00E676}.sg-sig.sell{border-left:3px solid #FF5252}",
+    ".sg-sig-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}",
+    ".sg-dir{font-size:12px;font-weight:900;padding:3px 10px;border-radius:8px;letter-spacing:.5px}",
+    ".sg-dir.buy{background:rgba(0,230,118,.16);color:#00E676;border:1px solid rgba(0,230,118,.45)}",
+    ".sg-dir.sell{background:rgba(255,82,82,.15);color:#FF5252;border:1px solid rgba(255,82,82,.42)}",
+    ".sg-lv{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:9px}",
+    ".sg-lv div{border-radius:10px;padding:7px 9px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.06);min-width:0}",
+    ".sg-lv b{display:block;font-size:13px;font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap}",
+    ".sg-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}",
+    ".sg-chip{font-size:9.5px;padding:3px 7px;border-radius:7px;background:rgba(255,255,255,.055);",
+    "border:1px solid rgba(255,255,255,.08);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}",
+    ".sg-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}",
+    ".sg-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8A7CFF,#00E676)}",
+    ".sg-tab{width:100%;border-collapse:collapse;font-size:10.5px}",
+    ".sg-tab th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.5px;opacity:.6;padding:5px 6px;white-space:nowrap}",
+    ".sg-tab td{padding:5px 6px;border-top:1px solid rgba(255,255,255,.06);font-variant-numeric:tabular-nums;white-space:nowrap}",
+    ".sg-scroll{overflow-x:auto;overflow-y:hidden}",
+    ".sg-in{width:100%;font-size:11px;padding:7px 9px;border-radius:9px;background:rgba(0,0,0,.28);",
+    "border:1px solid rgba(255,255,255,.12);color:inherit;font-family:inherit}",
+    ".sg-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}",
+    ".sg-log{max-height:150px;overflow-y:auto;font-size:9.5px;line-height:1.5;font-family:ui-monospace,monospace;",
+    "background:rgba(0,0,0,.24);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,255,255,.06)}",
+    ".sg-tfrow{display:flex;flex-wrap:wrap;gap:4px}",
+    ".sg-tf{cursor:pointer;font-size:10px;font-weight:700;padding:4px 8px;border-radius:7px;",
+    "border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.05);white-space:nowrap}",
+    ".sg-tf.on{background:rgba(138,124,255,.2);border-color:rgba(138,124,255,.55);color:#B9AFFF}",
+    ".sg-chart-wrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.09);",
+    "background:radial-gradient(120% 130% at 50% 0%,rgba(20,22,32,.9),rgba(8,9,14,.96))}",
+    "#sg-cv{display:block;width:100%;height:520px;touch-action:none;cursor:crosshair}",
+    ".sg-tip{position:absolute;pointer-events:none;z-index:5;font-size:10px;line-height:1.55;padding:7px 9px;",
+    "border-radius:9px;background:rgba(10,12,18,.94);border:1px solid rgba(255,255,255,.14);",
+    "font-variant-numeric:tabular-nums;opacity:0;transition:opacity .12s ease;max-width:200px;white-space:nowrap}",
+    ".sg-tip.on{opacity:1}",
+    ".sg-ind{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}",
+    "@media (max-width:900px){#sg-cv{height:380px}.sg-cell{width:32px;height:22px}}",
+    "@media (max-width:520px){#sg-cv{height:300px}}"
+  ].join("");
+
+  function injectCss() {
+    if (el("sig-style")) return;
+    var st = document.createElement("style");
+    st.id = "sig-style";
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  /* ============================================================
+     RANG YORDAMCHILARI
+     ============================================================ */
+  function scoreColor(score, dir) {
+    var a = clamp(Math.abs(score), 0, 1);
+    if (!dir || a < 0.06) return "rgba(255,255,255,.05)";
+    return dir > 0
+      ? "rgba(0,230,118," + (0.1 + a * 0.55).toFixed(3) + ")"
+      : "rgba(255,82,82," + (0.1 + a * 0.55).toFixed(3) + ")";
+  }
+
+  /* ============================================================
+     SIGNAL MARKAZI (market-signals sahifasi)
+     ============================================================ */
+  function ensureSignalSection() {
+    var page = el("page-market-signals");
+    if (!page) return null;
+    var host = el("sg-center");
+    if (host && host.parentNode === page) return host;
+    host = document.createElement("div");
+    host.id = "sg-center";
+    host.className = "sg-wrap";
+    host.innerHTML = '<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83D\uDCE1 SIG ULTIMATE MAX</div></div><div class="sg-mut" style="font-size:11px">Dvigatel ishga tushmoqda\u2026</div></div>';
+    page.insertBefore(host, page.firstChild);
+    return host;
+  }
+
+  function kpiHtml(lab, val, cls) {
+    return '<div class="sg-kpi"><div class="sg-kpi-l">' + esc(lab) + '</div><div class="sg-kpi-v ' + (cls || "") + '">' + val + "</div></div>";
+  }
+
+  function radarHtml() {
+    var syms = CFG.syms, tfs = TFS;
+    var out = ['<div class="sg-radar"><table class="sg-rtab"><thead><tr><th></th>'];
+    for (var t = 0; t < tfs.length; t++) out.push("<th>" + esc(tfs[t].id) + "</th>");
+    out.push("</tr></thead><tbody>");
+    for (var s = 0; s < syms.length; s++) {
+      out.push('<tr><td class="sym">' + esc(syms[s]) + "</td>");
+      for (var k = 0; k < tfs.length; k++) {
+        var cell = safe(function () {
+          var bars = seriesSync(syms[s], tfs[k].id);
+          if (!bars || bars.length < 120) return null;
+          var K = IND(bars);
+          return ensembleAt(K, K.n - 1);
+        }, null);
+        if (!cell) { out.push('<td class="sg-cell sg-mut">\u2014</td>'); continue; }
+        var arrow = cell.dir > 0 ? "\u25B2" : (cell.dir < 0 ? "\u25BC" : "\u2022");
+        out.push('<td class="sg-cell" style="background:' + scoreColor(cell.score, cell.dir) + '" title="' +
+          esc(syms[s] + " " + tfs[k].lab + " · ball " + cell.score.toFixed(2) + " · " + cell.count + " strategiya") +
+          '">' + arrow + " " + Math.round(Math.abs(cell.score) * 100) + "</td>");
+      }
+      out.push("</tr>");
+    }
+    out.push("</tbody></table></div>");
+    return out.join("");
+  }
+
+  function signalCard(sig) {
+    var dp = sig.dp;
+    var cls = sig.dir > 0 ? "buy" : "sell";
+    var out = ['<div class="sg-sig ' + cls + '">'];
+    out.push('<div class="sg-sig-h">');
+    out.push('<span class="sg-dir ' + cls + '">' + sig.dirLab + "</span>");
+    out.push('<span class="sg-title" style="font-size:12.5px">' + esc(sig.sym) + '</span>');
+    out.push('<span class="sg-badge">' + esc(sig.tfLab) + "</span>");
+    out.push('<span class="sg-badge gate">aniqlik LB ' + fmtPct(sig.precisionLb, 1) + "</span>");
+    out.push('<span class="sg-badge ' + (sig.source === "LIVE" ? "live" : "sim") + '">' + (sig.source === "LIVE" ? "jonli" : "simulyatsiya") + "</span>");
+    out.push('<span class="sg-spacer"></span>');
+    out.push('<button class="sg-btn gold" onclick="sigSendOne(\'' + esc(sig.sym) + "','" + esc(sig.tf) + '\')">\uD83D\uDCE8 Telegram</button>');
+    out.push("</div>");
+    out.push('<div class="sg-lv">');
+    out.push("<div><span class=\"sg-kpi-l\">Kirish</span><b>" + fmtN(sig.entry, dp) + "</b></div>");
+    out.push("<div><span class=\"sg-kpi-l\">Stop</span><b class=\"sg-dn\">" + fmtN(sig.sl, dp) + "</b></div>");
+    out.push("<div><span class=\"sg-kpi-l\">TP1</span><b class=\"sg-up\">" + fmtN(sig.tp1, dp) + "</b></div>");
+    out.push("<div><span class=\"sg-kpi-l\">TP2</span><b>" + fmtN(sig.tp2, dp) + "</b></div>");
+    out.push("<div><span class=\"sg-kpi-l\">TP3</span><b>" + fmtN(sig.tp3, dp) + "</b></div>");
+    out.push("<div><span class=\"sg-kpi-l\">Kutilma</span><b class=\"" + (sig.expR >= 0 ? "sg-up" : "sg-dn") + "\">" + sig.expR.toFixed(3) + " ATR</b></div>");
+    out.push("</div>");
+    out.push('<div style="font-size:10px;opacity:.72;line-height:1.6">');
+    out.push("O'lchangan aniqlik <b>" + fmtPct(sig.precision, 1) + "</b> · namuna <b>" + sig.sample + "</b> savdo · ");
+    out.push("TP/SL <b>" + sig.tpAtr + "/" + sig.slAtr + " ATR</b> (R:R " + sig.rr.toFixed(2) + ") · ");
+    out.push("kelishuv <b>" + Math.round(sig.agree * 100) + "%</b> (" + sig.fired + " strategiya) · ");
+    out.push("rejim <b>" + esc(sig.regimeLab) + "</b> · " + esc(sig.session));
+    out.push("</div>");
+    out.push('<div class="sg-bar"><i style="width:' + Math.round(clamp(sig.precisionLb, 0, 1) * 100) + '%"></i></div>');
+    out.push('<div class="sg-chips">');
+    for (var i = 0; i < sig.strats.length; i++) {
+      var st = sig.strats[i];
+      out.push('<span class="sg-chip">' + (st.dir > 0 ? "\u25B2" : "\u25BC") + " " + esc(st.name) + "</span>");
+    }
+    out.push("</div></div>");
+    return out.join("");
+  }
+
+  function perTfCardHtml() {
+    var sym = CFG.syms[0] || "XAUUSD";
+    var list = SIG.sigPerTf(sym);
+    var pub = 0;
+    var out = ['<div class="sg-scroll"><table class="sg-tab"><thead><tr>',
+      "<th>TF</th><th>Yo'nalish</th><th>Kirish</th><th>Stop</th><th>TP1</th><th>Aniqlik LB</th><th>Holdout</th><th>Qamrov</th><th>Kutilma</th><th>Holat</th><th></th>",
+      "</tr></thead><tbody>"];
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i], dp = s.dp;
+      if (s.status === "nashr") pub++;
+      out.push("<tr><td><b>" + esc(s.tf) + "</b></td>");
+      out.push('<td class="' + (s.dir > 0 ? "sg-up" : "sg-dn") + '"><b>' + s.dirLab + "</b></td>");
+      out.push("<td>" + fmtN(s.entry, dp) + "</td>");
+      out.push('<td class="sg-dn">' + fmtN(s.sl, dp) + "</td>");
+      out.push('<td class="sg-up">' + fmtN(s.tp1, dp) + "</td>");
+      out.push("<td><b>" + fmtPct(s.precisionLb, 1) + "</b></td>");
+      out.push("<td>" + (s.valLb === null ? '<span class="sg-mut">\u2014</span>' : fmtPct(s.valLb, 1) + ' <span class="sg-mut">(' + s.valN + ")</span>") + "</td>");
+      out.push("<td>" + fmtPct(s.cov, 0) + "</td>");
+      out.push('<td class="' + (s.expR >= 0 ? "sg-up" : "sg-dn") + '">' + s.expR.toFixed(3) + "</td>");
+      out.push("<td>" + (s.status === "nashr" ? '<span class="sg-up">\u2705 nashr</span>' : '<span class="sg-mut">\uD83D\uDC41 kuzatuv</span>') + "</td>");
+      out.push('<td><button class="sg-btn" onclick="sigSendOne(\'' + esc(s.sym) + "','" + esc(s.tf) + '\')">\uD83D\uDCE8</button></td></tr>');
+    }
+    out.push("</tbody></table></div>");
+    return { html: out.join(""), total: list.length, pub: pub };
+  }
+
+  function precisionTableHtml() {
+    var sym = CFG.syms[0] || "XAUUSD";
+    var out = ['<div class="sg-scroll"><table class="sg-tab"><thead><tr>',
+      "<th>Timeframe</th><th>Yo'nalish</th><th>Aniqlik</th><th>95% LB</th><th>Namuna</th><th>TP/SL (ATR)</th><th>Kutilma</th><th>Darvoza</th>",
+      "</tr></thead><tbody>"];
+    for (var i = 0; i < TFS.length; i++) {
+      var T = TFS[i];
+      var cal = safe(function () { return calibrate(sym, T.id); }, null);
+      var sig = safe(function () { return buildSignal(sym, T.id); }, null);
+      if (!cal || !cal.cfg) {
+        out.push("<tr><td>" + esc(T.lab) + '</td><td colspan="7" class="sg-mut">kalibrlanmoqda\u2026</td></tr>');
+        continue;
+      }
+      var c = cal.cfg;
+      var dirLab = sig ? (sig.dir > 0 ? '<span class="sg-up">BUY</span>' : '<span class="sg-dn">SELL</span>') : '<span class="sg-mut">\u2014</span>';
+      out.push("<tr><td><b>" + esc(T.lab) + "</b></td><td>" + dirLab + "</td><td>" + fmtPct(c.hit, 1) + "</td><td><b>" +
+        fmtPct(c.lb, 1) + "</b></td><td>" + c.n + "</td><td>" + c.tp + " / " + c.sl + "</td><td class=\"" +
+        (c.expR >= 0 ? "sg-up" : "sg-dn") + "\">" + c.expR.toFixed(3) + "</td><td>" +
+        (c.lb >= CFG.gate ? '<span class="sg-up">\u2705 o\'tdi</span>' : '<span class="sg-mut">\u23F3 kutish</span>') + "</td></tr>");
+    }
+    out.push("</tbody></table></div>");
+    return out.join("");
+  }
+
+  function leaderboardHtml() {
+    var arr = STRATS.map(function (s) { return { id: s.id, name: s.name, fam: s.fam, w: wOf(s.id) }; });
+    arr.sort(function (a, b) { return b.w - a.w; });
+    var top = arr.slice(0, 8), bot = arr.slice(-5).reverse();
+    function rows(list) {
+      var o = [];
+      for (var i = 0; i < list.length; i++) {
+        o.push("<tr><td>" + esc(list[i].name) + '</td><td class="sg-mut">' + esc(list[i].fam) + "</td><td><b>" + list[i].w.toFixed(2) + "</b></td></tr>");
+      }
+      return o.join("");
+    }
+    return '<div class="sg-grid2"><div><div class="sg-kpi-l" style="margin-bottom:5px">Eng yuqori og\'irlik</div>' +
+      '<div class="sg-scroll"><table class="sg-tab"><tbody>' + rows(top) + "</tbody></table></div></div>" +
+      '<div><div class="sg-kpi-l" style="margin-bottom:5px">Eng past og\'irlik</div>' +
+      '<div class="sg-scroll"><table class="sg-tab"><tbody>' + rows(bot) + "</tbody></table></div></div></div>";
+  }
+
+  function telegramHtml() {
+    var cfg = tgConfig();
+    var logs = SIG.tgLogAll().slice(-14).reverse();
+    var out = [];
+    out.push('<div class="sg-grid2">');
+    out.push('<div><div class="sg-kpi-l">Bot token</div><input id="sg-tg-token" class="sg-in" type="password" placeholder="123456:ABC-DEF" value="' + esc(TG.token) + '"></div>');
+    out.push('<div><div class="sg-kpi-l">Chat ID</div><input id="sg-tg-chat" class="sg-in" placeholder="-1001234567890" value="' + esc(TG.chat) + '"></div>');
+    out.push("</div>");
+    out.push('<div class="sg-head" style="margin:10px 0 6px">');
+    out.push('<button class="sg-btn gold" onclick="sigTgSave()">\uD83D\uDCBE Saqlash</button>');
+    out.push('<button class="sg-btn" onclick="sigTgTestUi()">\uD83E\uDDEA Test xabari</button>');
+    out.push('<button class="sg-btn ' + (CFG.tgAuto ? "on" : "") + '" onclick="sigToggle(\'tgAuto\')">\uD83E\uDD16 Avto-yuborish: ' + (CFG.tgAuto ? "YONIQ" : "O'CHIQ") + "</button>");
+    out.push('<button class="sg-btn ' + (CFG.dry ? "on" : "") + '" onclick="sigToggle(\'dry\')">\uD83D\uDEE1 Quruq rejim: ' + (CFG.dry ? "YONIQ" : "O'CHIQ") + "</button>");
+    out.push('<span class="sg-badge ' + (cfg ? "live" : "sim") + '">' + (cfg ? "sozlangan (" + cfg.src + ")" : "token kiritilmagan") + "</span>");
+    out.push("</div>");
+    out.push('<div class="sg-log">');
+    if (!logs.length) out.push("<div class=\"sg-mut\">Hali yuborilgan xabar yo'q.</div>");
+    for (var i = 0; i < logs.length; i++) {
+      var g = logs[i];
+      var tm = new Date(g.at).toLocaleTimeString("uz-UZ");
+      out.push("<div>" + (g.ok ? '<span class="sg-up">\u2713</span> ' : '<span class="sg-dn">\u2717</span> ') + tm + " · " +
+        (g.dry ? "quruq" : "yuborildi") + (g.err ? " · " + esc(g.err) : "") + "</div>");
+    }
+    out.push("</div>");
+    return out.join("");
+  }
+
+  var RENDER_BUSY = false;
+  function sigRender(opts) {
+    opts = opts || {};
+    var host = ensureSignalSection();
+    if (!host) return false;
+    if (RENDER_BUSY) return false;
+    RENDER_BUSY = true;
+    try {
+      var needCal = SIG.ensureCalibrated(null, function () {
+        if (activePage() === "market-signals") safe(function () { sigRender({ rescan: true }); });
+      });
+      var list = LAST_SCAN.list && LAST_SCAN.list.length && !opts.rescan ? LAST_SCAN.list : sigScan();
+      var pub = sigPublishable(list);
+      var hs = histStats();
+      var avgLb = 0;
+      for (var i = 0; i < list.length; i++) avgLb += list[i].precisionLb;
+      avgLb = list.length ? avgLb / list.length : 0;
+      var srcLive = 0;
+      for (var s = 0; s < list.length; s++) if (list[s].source === "LIVE") srcLive++;
+
+      var out = [];
+      /* --- 1) boshqaruv --- */
+      out.push('<div class="sg-card">');
+      out.push('<div class="sg-head"><div class="sg-title">\uD83D\uDCE1 SIG ULTIMATE MAX \u2014 signal markazi</div>');
+      out.push('<span class="sg-badge gate">darvoza ' + fmtPct(CFG.gate, 0) + " (Wilson LB)</span>");
+      out.push('<span class="sg-badge ' + (srcLive ? "live" : "sim") + '">' + (srcLive ? srcLive + " jonli seriya" : "simulyatsiya rejimi") + "</span>");
+      out.push('<span class="sg-spacer"></span>');
+      out.push('<button class="sg-btn gold" onclick="sigRescan()">\uD83D\uDD04 Qayta skanerlash</button>');
+      out.push('<button class="sg-btn ' + (CFG.auto ? "on" : "") + '" onclick="sigToggle(\'auto\')">\u26A1 Avtopilot: ' + (CFG.auto ? "YONIQ" : "O'CHIQ") + "</button>");
+      out.push('<button class="sg-btn ' + (CFG.mtf ? "on" : "") + '" onclick="sigToggle(\'mtf\')">\uD83E\uDDED MTF filtri</button>');
+      out.push('<button class="sg-btn" onclick="sigLive()">\uD83C\uDF10 Jonli ma\'lumot</button>');
+      out.push("</div>");
+      out.push('<div class="sg-kpis">');
+      out.push(kpiHtml("Darvozadan o'tgan", pub.length + " / " + list.length, pub.length ? "sg-up" : "sg-mut"));
+      out.push(kpiHtml("O'rtacha aniqlik LB", fmtPct(avgLb, 1), avgLb >= CFG.gate ? "sg-up" : ""));
+      out.push(kpiHtml("Strategiyalar", String(STRATS.length)));
+      out.push(kpiHtml("Timeframelar", TFS.length + " (15s\u21921W)"));
+      out.push(kpiHtml("Tarix natijasi", hs.n ? fmtPct(hs.hit, 1) + " (" + hs.n + ")" : "\u2014", hs.n && hs.hit >= 0.9 ? "sg-up" : ""));
+      out.push(kpiHtml("Telegram", tgConfig() ? (CFG.tgAuto ? "avto" : "qo'lda") : "sozlanmagan", tgConfig() ? "sg-up" : "sg-mut"));
+      out.push("</div>");
+      if (needCal) out.push('<div class="sg-mut" style="font-size:10px;margin-top:8px">\u23F3 Timeframelar navbat bilan kalibrlanmoqda\u2026 tugagach jadval avtomatik yangilanadi.</div>');
+      out.push("</div>");
+
+      /* --- 2) radar --- */
+      out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83C\uDFAF Ko\'p timeframe radari</div>');
+      out.push('<span class="sg-badge">ansambl balli 0\u2013100</span></div>');
+      out.push(radarHtml());
+      out.push('<div class="sg-mut" style="font-size:9.5px;margin-top:7px">Yashil \u2014 sotib olish tomoni, qizil \u2014 sotish tomoni. Raqam: 100 strategiyaning og\'irlangan kelishuv kuchi.</div>');
+      out.push("</div>");
+
+      /* --- 3) darvozadan o'tgan signallar --- */
+      out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\u2705 Darvozadan o\'tgan signallar (LB \u2265 ' + fmtPct(CFG.gate, 0) + ')</div>');
+      out.push('<span class="sg-badge">' + pub.length + " ta</span></div>");
+      if (!pub.length) {
+        var watch = (list || []).slice(0, 3);
+        if (!watch.length) {
+          out.push('<div class="sg-mut" style="font-size:11px">Kalibrlash davom etmoqda \u2014 bir necha soniyadan keyin signallar paydo bo\'ladi.</div>');
+        } else {
+          out.push('<div class="sg-mut" style="font-size:10.5px;margin-bottom:8px">Ayni damda ball chegarasidan o\'tgan yangi kirish nuqtasi yo\'q. Eng sifatli 3 kuzatuv quyida:</div>');
+          for (var q = 0; q < watch.length; q++) out.push(signalCard(watch[q]));
+        }
+      } else {
+        for (var p = 0; p < Math.min(pub.length, 10); p++) out.push(signalCard(pub[p]));
+      }
+      out.push("</div>");
+
+      /* --- 3b) har bir timeframe uchun signal --- */
+      var pt = perTfCardHtml();
+      out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83C\uDFAF Har bir timeframe uchun signal</div>');
+      out.push('<span class="sg-badge gate">' + pt.total + " / " + TFS.length + " TF</span>");
+      out.push('<span class="sg-badge live">' + pt.pub + " nashrga tayyor</span>");
+      out.push('<span class="sg-badge">' + esc(CFG.syms[0] || "XAUUSD") + "</span></div>");
+      out.push(pt.html);
+      out.push('<div class="sg-mut" style="font-size:9.5px;margin-top:7px">15s dan 1W gacha 16 timeframe. Har bir TF konfiguratsiyasi 3 instrument (XAUUSD, BTCUSDT, EURUSD) birlashtirilgan namunasida tanlanadi: 60% moslash, 40% mustaqil holdout. \u201CHoldout\u201D \u2014 tanlovda ishlatilmagan qismda o\'lchangan aniqlik. \u201CQamrov\u201D \u2014 barlarning qancha ulushida shu sifatli signal paydo bo\'ladi.</div>');
+      out.push("</div>");
+
+      /* --- 4) aniqlik jadvali --- */
+      out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83D\uDCCA Har bir timeframe uchun o\'lchangan aniqlik</div>');
+      out.push('<span class="sg-badge">' + esc(CFG.syms[0] || "XAUUSD") + "</span></div>");
+      out.push(precisionTableHtml());
+      out.push('<div class="sg-mut" style="font-size:9.5px;margin-top:7px">Aniqlik walk-forward sinovda o\'lchanadi: TP/SL nisbati har bir timeframe uchun 95% chegaradan o\'tadigan qilib avtomatik tanlanadi. Kutilma ustuni haqiqiy foydani ko\'rsatadi \u2014 ikkisini birga o\'qing.</div>');
+      out.push("</div>");
+
+      /* --- 5) strategiya reytingi --- */
+      out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83C\uDFC6 Strategiya reytingi (o\'z-o\'zidan o\'rganish)</div>');
+      out.push('<span class="sg-badge">' + STRATS.length + " ta · 10 oila</span></div>");
+      out.push(leaderboardHtml());
+      out.push("</div>");
+
+      /* --- 6) telegram --- */
+      out.push('<div class="sg-card"><div class="sg-head"><div class="sg-title">\uD83D\uDCE8 Telegram avtomatikasi</div>');
+      out.push('<span class="sg-badge">navbat ' + TG_QUEUE.length + "</span></div>");
+      out.push(telegramHtml());
+      out.push("</div>");
+
+      host.innerHTML = out.join("");
+      return true;
+    } finally {
+      RENDER_BUSY = false;
+    }
+  }
+
+  /* ============================================================
+     GRAFIK DVIGATELI (livecharts sahifasi)
+     ============================================================ */
+  var CH = {
+    sym: "XAUUSD", tf: "5m", bars: 140, off: 0,
+    ind: { ema: 1, bb: 0, vwap: 1, st: 1, vol: 1, rsi: 1, macd: 0, sig: 1 },
+    replay: null, hover: -1, drag: null
+  };
+
+  function ensureChartSection() {
+    var page = el("page-livecharts");
+    if (!page) return null;
+    var host = el("sg-chart");
+    if (host && host.parentNode === page) return host;
+    host = document.createElement("div");
+    host.id = "sg-chart";
+    host.className = "sg-wrap";
+    page.insertBefore(host, page.firstChild);
+    return host;
+  }
+
+  function chartShell() {
+    var host = ensureChartSection();
+    if (!host) return null;
+    if (el("sg-cv")) return host;
+    var out = [];
+    out.push('<div class="sg-card">');
+    out.push('<div class="sg-head"><div class="sg-title">\uD83D\uDCC8 ULTIMATE MAX grafik dvigateli</div>');
+    out.push('<span class="sg-badge" id="sg-ch-src">\u2014</span>');
+    out.push('<span class="sg-spacer"></span>');
+    out.push('<button class="sg-btn" onclick="sigChartReplay()" id="sg-ch-rp">\u25B6 Replay</button>');
+    out.push('<button class="sg-btn" onclick="sigChartFit()">\u2922 Sig\'dirish</button>');
+    out.push('<button class="sg-btn gold" onclick="sigChartShot()">\uD83D\uDCF8 Rasm</button>');
+    out.push("</div>");
+    out.push('<div class="sg-tfrow" id="sg-ch-syms" style="margin-bottom:6px"></div>');
+    out.push('<div class="sg-tfrow" id="sg-ch-tfs"></div>');
+    out.push('<div class="sg-ind" id="sg-ch-ind"></div>');
+    out.push('<div class="sg-chart-wrap" style="margin-top:10px"><canvas id="sg-cv"></canvas><div class="sg-tip" id="sg-tip"></div></div>');
+    out.push('<div class="sg-kpis" id="sg-ch-kpi" style="margin-top:10px"></div>');
+    out.push("</div>");
+    host.innerHTML = out.join("");
+    buildChartControls();
+    bindChartEvents();
+    return host;
+  }
+
+  function buildChartControls() {
+    var sh = el("sg-ch-syms"), th = el("sg-ch-tfs"), ih = el("sg-ch-ind");
+    if (sh) {
+      var so = [];
+      for (var i = 0; i < SYMS.length; i++) {
+        so.push('<button class="sg-tf ' + (SYMS[i].id === CH.sym ? "on" : "") + '" onclick="sigChartSym(\'' + SYMS[i].id + '\')">' + esc(SYMS[i].id) + "</button>");
+      }
+      sh.innerHTML = so.join("");
+    }
+    if (th) {
+      var to = [];
+      for (var t = 0; t < TFS.length; t++) {
+        to.push('<button class="sg-tf ' + (TFS[t].id === CH.tf ? "on" : "") + '" onclick="sigChartTf(\'' + TFS[t].id + '\')">' + esc(TFS[t].id) + "</button>");
+      }
+      th.innerHTML = to.join("");
+    }
+    if (ih) {
+      var labs = { ema: "EMA lentasi", bb: "Bollinger", vwap: "VWAP", st: "Supertrend", vol: "Hajm", rsi: "RSI", macd: "MACD", sig: "Signal darajalari" };
+      var io = [];
+      for (var k in labs) {
+        io.push('<button class="sg-tf ' + (CH.ind[k] ? "on" : "") + '" onclick="sigChartInd(\'' + k + '\')">' + esc(labs[k]) + "</button>");
+      }
+      ih.innerHTML = io.join("");
+    }
+  }
+
+  function chartData() {
+    var bars = seriesSync(CH.sym, CH.tf);
+    if (!bars || !bars.length) return null;
+    var endIdx = bars.length - 1 - Math.max(0, CH.off);
+    if (CH.replay && CH.replay.idx < endIdx) endIdx = CH.replay.idx;
+    endIdx = clamp(endIdx, 30, bars.length - 1);
+    var startIdx = clamp(endIdx - CH.bars + 1, 0, endIdx - 20);
+    return { bars: bars, all: bars, from: startIdx, to: endIdx, view: bars.slice(startIdx, endIdx + 1), K: IND(bars.slice(0, endIdx + 1)) };
+  }
+
+  function drawChart() {
+    var cv = el("sg-cv");
+    if (!cv) return false;
+    var d = chartData();
+    if (!d) return false;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.max(320, cv.clientWidth || 800), h = Math.max(240, cv.clientHeight || 520);
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+    }
+    var g = cv.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+
+    var padL = 6, padR = 64, padT = 10, padB = 22;
+    var panes = [];
+    if (CH.ind.vol) panes.push({ id: "vol", h: 0.11 });
+    if (CH.ind.rsi) panes.push({ id: "rsi", h: 0.15 });
+    if (CH.ind.macd) panes.push({ id: "macd", h: 0.15 });
+    var subH = panes.reduce(function (a, b) { return a + b.h; }, 0);
+    var mainH = (h - padT - padB) * (1 - subH);
+    var view = d.view, K = d.K, n = d.to;
+
+    var hi = -Infinity, lo = Infinity, i;
+    for (i = 0; i < view.length; i++) { if (view[i].h > hi) hi = view[i].h; if (view[i].l < lo) lo = view[i].l; }
+    var pad = (hi - lo) * 0.08 || 1;
+    hi += pad; lo -= pad;
+
+    var cw = (w - padL - padR) / view.length;
+    function xOf(k) { return padL + k * cw + cw / 2; }
+    function yOf(p) { return padT + (hi - p) / ((hi - lo) || 1e-9) * mainH; }
+
+    /* to'r */
+    g.strokeStyle = "rgba(255,255,255,.055)";
+    g.lineWidth = 1;
+    g.font = "9px ui-monospace,monospace";
+    g.fillStyle = "rgba(255,255,255,.42)";
+    for (i = 0; i <= 5; i++) {
+      var yy = padT + mainH * i / 5;
+      g.beginPath(); g.moveTo(padL, yy); g.lineTo(w - padR, yy); g.stroke();
+      var pv = hi - (hi - lo) * i / 5;
+      g.fillText(fmtN(pv, symById(CH.sym).dp), w - padR + 5, yy + 3);
+    }
+
+    /* overlaylar */
+    function plot(arr, color, width, fromIdx) {
+      g.strokeStyle = color; g.lineWidth = width || 1.2;
+      g.beginPath();
+      var started = false;
+      for (var k = 0; k < view.length; k++) {
+        var gi = fromIdx + k;
+        var v = arr[gi];
+        if (!isFinite(v)) { started = false; continue; }
+        var x = xOf(k), y = yOf(v);
+        if (!started) { g.moveTo(x, y); started = true; } else g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    if (CH.ind.bb) {
+      var bb = K.bb(20, 2);
+      plot(bb.up, "rgba(138,124,255,.55)", 1, d.from);
+      plot(bb.dn, "rgba(138,124,255,.55)", 1, d.from);
+      plot(bb.mid, "rgba(138,124,255,.28)", 1, d.from);
+    }
+    if (CH.ind.ema) {
+      plot(K.ema(8), "rgba(0,230,118,.85)", 1.3, d.from);
+      plot(K.ema(21), "rgba(255,176,0,.85)", 1.3, d.from);
+      plot(K.ema(55), "rgba(255,82,82,.7)", 1.2, d.from);
+    }
+    if (CH.ind.vwap) plot(K.vwap(60), "rgba(0,200,255,.8)", 1.4, d.from);
+    if (CH.ind.st) {
+      var st = K.supertrend(10, 3);
+      g.lineWidth = 1.6;
+      for (var k2 = 1; k2 < view.length; k2++) {
+        var gi2 = d.from + k2;
+        if (!isFinite(st.st[gi2]) || !isFinite(st.st[gi2 - 1])) continue;
+        g.strokeStyle = st.dir[gi2] > 0 ? "rgba(0,230,118,.75)" : "rgba(255,82,82,.75)";
+        g.beginPath();
+        g.moveTo(xOf(k2 - 1), yOf(st.st[gi2 - 1]));
+        g.lineTo(xOf(k2), yOf(st.st[gi2]));
+        g.stroke();
+      }
+    }
+
+    /* shamlar */
+    var bw = Math.max(1, Math.min(cw * 0.66, 14));
+    for (i = 0; i < view.length; i++) {
+      var b = view[i];
+      var up = b.c >= b.o;
+      g.strokeStyle = up ? "rgba(0,230,118,.9)" : "rgba(255,82,82,.9)";
+      g.fillStyle = up ? "rgba(0,230,118,.55)" : "rgba(255,82,82,.55)";
+      var x = xOf(i);
+      g.beginPath(); g.moveTo(x, yOf(b.h)); g.lineTo(x, yOf(b.l)); g.stroke();
+      var y1 = yOf(Math.max(b.o, b.c)), y2 = yOf(Math.min(b.o, b.c));
+      g.fillRect(x - bw / 2, y1, bw, Math.max(1, y2 - y1));
+    }
+
+    /* signal darajalari */
+    if (CH.ind.sig) {
+      var sig = safe(function () { return buildSignal(CH.sym, CH.tf); }, null);
+      if (sig) {
+        var lv = [
+          { p: sig.entry, c: "rgba(255,255,255,.7)", t: "Kirish " + fmtN(sig.entry, sig.dp) },
+          { p: sig.sl, c: "rgba(255,82,82,.85)", t: "SL " + fmtN(sig.sl, sig.dp) },
+          { p: sig.tp1, c: "rgba(0,230,118,.85)", t: "TP1 " + fmtN(sig.tp1, sig.dp) },
+          { p: sig.tp2, c: "rgba(0,230,118,.5)", t: "TP2" }
+        ];
+        g.font = "9px ui-monospace,monospace";
+        for (i = 0; i < lv.length; i++) {
+          if (lv[i].p < lo || lv[i].p > hi) continue;
+          var y = yOf(lv[i].p);
+          g.strokeStyle = lv[i].c;
+          g.setLineDash([4, 3]);
+          g.beginPath(); g.moveTo(padL, y); g.lineTo(w - padR, y); g.stroke();
+          g.setLineDash([]);
+          g.fillStyle = lv[i].c;
+          g.fillText(lv[i].t, padL + 4, y - 3);
+        }
+        var badge = (sig.dir > 0 ? "BUY " : "SELL ") + fmtPct(sig.precisionLb, 1) + " LB";
+        g.fillStyle = sig.dir > 0 ? "rgba(0,230,118,.9)" : "rgba(255,82,82,.9)";
+        g.font = "bold 11px system-ui,sans-serif";
+        g.fillText(badge, padL + 4, padT + 12);
+      }
+    }
+
+    /* pastki panellar */
+    var yCur = padT + mainH;
+    for (var pi = 0; pi < panes.length; pi++) {
+      var ph = (h - padT - padB) * panes[pi].h;
+      var top = yCur + 4, bot = yCur + ph - 2;
+      g.strokeStyle = "rgba(255,255,255,.07)";
+      g.beginPath(); g.moveTo(padL, top); g.lineTo(w - padR, top); g.stroke();
+      if (panes[pi].id === "vol") {
+        var vmax = 0;
+        for (i = 0; i < view.length; i++) if (view[i].v > vmax) vmax = view[i].v;
+        for (i = 0; i < view.length; i++) {
+          var bv = view[i];
+          g.fillStyle = bv.c >= bv.o ? "rgba(0,230,118,.4)" : "rgba(255,82,82,.4)";
+          var vh = (bv.v / (vmax || 1)) * (bot - top);
+          g.fillRect(xOf(i) - bw / 2, bot - vh, bw, vh);
+        }
+        g.fillStyle = "rgba(255,255,255,.4)";
+        g.font = "9px ui-monospace,monospace";
+        g.fillText("Hajm", padL + 3, top + 10);
+      } else if (panes[pi].id === "rsi") {
+        var rs = K.rsi(14);
+        g.strokeStyle = "rgba(255,255,255,.12)";
+        [30, 50, 70].forEach(function (lvl) {
+          var yy2 = bot - (lvl / 100) * (bot - top);
+          g.beginPath(); g.moveTo(padL, yy2); g.lineTo(w - padR, yy2); g.stroke();
+        });
+        g.strokeStyle = "rgba(138,124,255,.95)"; g.lineWidth = 1.3;
+        g.beginPath();
+        var st2 = false;
+        for (i = 0; i < view.length; i++) {
+          var rv = rs[d.from + i];
+          if (!isFinite(rv)) { st2 = false; continue; }
+          var xx = xOf(i), yy3 = bot - (clamp(rv, 0, 100) / 100) * (bot - top);
+          if (!st2) { g.moveTo(xx, yy3); st2 = true; } else g.lineTo(xx, yy3);
+        }
+        g.stroke();
+        g.fillStyle = "rgba(255,255,255,.4)";
+        g.font = "9px ui-monospace,monospace";
+        g.fillText("RSI " + (isFinite(rs[n]) ? rs[n].toFixed(0) : "\u2014"), padL + 3, top + 10);
+      } else if (panes[pi].id === "macd") {
+        var mc = K.macd(12, 26, 9);
+        var mx = 0;
+        for (i = 0; i < view.length; i++) {
+          var hv = Math.abs(nz(mc.hist[d.from + i], 0));
+          if (hv > mx) mx = hv;
+        }
+        var zeroY = (top + bot) / 2;
+        for (i = 0; i < view.length; i++) {
+          var hv2 = nz(mc.hist[d.from + i], 0);
+          g.fillStyle = hv2 >= 0 ? "rgba(0,230,118,.5)" : "rgba(255,82,82,.5)";
+          var bh = (Math.abs(hv2) / (mx || 1)) * ((bot - top) / 2);
+          g.fillRect(xOf(i) - bw / 2, hv2 >= 0 ? zeroY - bh : zeroY, bw, Math.max(1, bh));
+        }
+        g.fillStyle = "rgba(255,255,255,.4)";
+        g.font = "9px ui-monospace,monospace";
+        g.fillText("MACD", padL + 3, top + 10);
+      }
+      yCur += ph;
+    }
+
+    /* vaqt o'qi */
+    g.fillStyle = "rgba(255,255,255,.4)";
+    g.font = "9px ui-monospace,monospace";
+    var step = Math.max(1, Math.floor(view.length / 6));
+    for (i = 0; i < view.length; i += step) {
+      var dt = new Date(view[i].t);
+      var lab = tfById(CH.tf).sec >= 86400
+        ? (dt.getUTCMonth() + 1) + "/" + dt.getUTCDate()
+        : String(dt.getUTCHours()).padStart(2, "0") + ":" + String(dt.getUTCMinutes()).padStart(2, "0") +
+        (tfById(CH.tf).sec < 60 ? ":" + String(dt.getUTCSeconds()).padStart(2, "0") : "");
+      g.fillText(lab, xOf(i) - 12, h - 7);
+    }
+
+    /* kursor chizig'i */
+    if (CH.hover >= 0 && CH.hover < view.length) {
+      var hx = xOf(CH.hover);
+      g.strokeStyle = "rgba(255,255,255,.28)";
+      g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(hx, padT); g.lineTo(hx, h - padB); g.stroke();
+      g.setLineDash([]);
+    }
+
+    updateChartKpi(d);
+    var srcEl = el("sg-ch-src");
+    if (srcEl) {
+      var src = seriesSource(CH.sym, CH.tf);
+      srcEl.className = "sg-badge " + (src === "LIVE" ? "live" : "sim");
+      srcEl.textContent = CH.sym + " · " + tfById(CH.tf).lab + " · " + (src === "LIVE" ? "jonli" : "simulyatsiya");
+    }
+    return true;
+  }
+
+  function updateChartKpi(d) {
+    var host = el("sg-ch-kpi");
+    if (!host) return;
+    var K = d.K, n = K.n - 1, S = symById(CH.sym);
+    var regime = detectRegime(K, n);
+    var ens = ensembleAt(K, n, regime);
+    var atr = nz(K.atr(14)[n], 0);
+    var ch = (K.c[n] / (K.c[Math.max(0, n - 1)] || 1) - 1) * 100;
+    var out = [];
+    out.push(kpiHtml("Narx", fmtN(K.c[n], S.dp), ch >= 0 ? "sg-up" : "sg-dn"));
+    out.push(kpiHtml("O'zgarish", (ch >= 0 ? "+" : "") + ch.toFixed(2) + "%", ch >= 0 ? "sg-up" : "sg-dn"));
+    out.push(kpiHtml("ATR(14)", fmtN(atr, S.dp)));
+    out.push(kpiHtml("Rejim", regime.lab + " · ADX " + regime.adx.toFixed(0)));
+    out.push(kpiHtml("Ansambl balli", (ens.score >= 0 ? "+" : "") + ens.score.toFixed(2) + " (" + ens.count + ")", ens.dir > 0 ? "sg-up" : (ens.dir < 0 ? "sg-dn" : "")));
+    out.push(kpiHtml("Sessiya", regime.ses.lab));
+    host.innerHTML = out.join("");
+  }
+
+  function bindChartEvents() {
+    var cv = el("sg-cv");
+    if (!cv || cv.__sg) return;
+    cv.__sg = true;
+    cv.addEventListener("mousemove", function (e) {
+      var d = chartData();
+      if (!d) return;
+      var rect = cv.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var cw = (rect.width - 6 - 64) / d.view.length;
+      var idx = clamp(Math.floor((x - 6) / (cw || 1)), 0, d.view.length - 1);
+      CH.hover = idx;
+      var b = d.view[idx];
+      var tip = el("sg-tip");
+      if (tip && b) {
+        var S = symById(CH.sym);
+        var dt = new Date(b.t);
+        tip.innerHTML = "<b>" + esc(CH.sym) + " " + esc(CH.tf) + "</b><br>" +
+          dt.toISOString().replace("T", " ").slice(0, 19) + "<br>" +
+          "O " + fmtN(b.o, S.dp) + "  H " + fmtN(b.h, S.dp) + "<br>" +
+          "L " + fmtN(b.l, S.dp) + "  C " + fmtN(b.c, S.dp) + "<br>" +
+          "Hajm " + fmtN(b.v, 0);
+        tip.classList.add("on");
+        tip.style.left = clamp(x + 12, 4, rect.width - 190) + "px";
+        tip.style.top = clamp(e.clientY - rect.top + 10, 4, rect.height - 90) + "px";
+      }
+      if (CH.drag) {
+        var dx = e.clientX - CH.drag.x;
+        var shift = Math.round(dx / (cw || 1));
+        if (shift !== 0) {
+          CH.off = clamp(CH.drag.off + shift, 0, 400);
+          CH.drag.x = e.clientX;
+          CH.drag.off = CH.off;
+        }
+      }
+      drawChart();
+    });
+    cv.addEventListener("mouseleave", function () {
+      CH.hover = -1;
+      var tip = el("sg-tip");
+      if (tip) tip.classList.remove("on");
+      drawChart();
+    });
+    cv.addEventListener("mousedown", function (e) { CH.drag = { x: e.clientX, off: CH.off }; });
+    window.addEventListener("mouseup", function () { CH.drag = null; });
+    cv.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      CH.bars = clamp(Math.round(CH.bars * (e.deltaY > 0 ? 1.14 : 0.88)), 40, 400);
+      drawChart();
+    }, { passive: false });
+    window.addEventListener("resize", function () { safe(drawChart); });
+  }
+
+  /* ============================================================
+     PANEL BO'LIMI (sozlamalar)
+     ============================================================ */
+  var SG_SW = [
+    { k: "auto", lab: "Avtopilot skaneri" },
+    { k: "tgAuto", lab: "Telegramga avtomatik yuborish" },
+    { k: "mtf", lab: "Ko'p timeframe filtri" },
+    { k: "dry", lab: "Quruq rejim (yubormaydi)" },
+    { k: "sound", lab: "Yangi signal tovushi" }
+  ];
+  function panelAppend() {
+    var panel = el("ux-panel");
+    if (!panel) return false;
+    if (panel.querySelector(".sg-head-row")) return true;
+    var box = document.createElement("div");
+    box.className = "sg-panel-box";
+    var out = ['<div class="mx-head sg-head-row" style="margin-top:14px">\uD83D\uDCE1 SIG \u2014 signal dvigateli</div>'];
+    for (var i = 0; i < SG_SW.length; i++) {
+      var k = SG_SW[i].k;
+      out.push('<div class="mx-row"><span>' + esc(SG_SW[i].lab) + '</span>' +
+        '<button class="mx-sw sg-sw ' + (CFG[k] ? "on" : "") + '" data-sg="' + k + '" onclick="sigToggle(\'' + k + '\')"></button></div>');
+    }
+    box.innerHTML = out.join("");
+    panel.appendChild(box);
+    return true;
+  }
+
+  /* ============================================================
+     HOOKLAR
+     ============================================================ */
+  function hookNav() {
+    if (typeof window.nav !== "function" || window.nav.__sig) return;
+    var orig = window.nav;
+    var wrapped = function (id, elx) {
+      var r = orig.apply(this, arguments);
+      safe(function () {
+        if (id === "market-signals") { injectCss(); sigRender(); }
+        if (id === "livecharts") { injectCss(); chartShell(); drawChart(); }
+      });
+      return r;
+    };
+    wrapped.__sig = true;
+    wrapped.__max = orig.__max;
+    wrapped.__max2 = orig.__max2;
+    wrapped.__max3 = orig.__max3;
+    wrapped.__cin = orig.__cin;
+    window.nav = wrapped;
+  }
+
+  function activePage() {
+    var pages = document.querySelectorAll('[id^="page-"]');
+    for (var i = 0; i < pages.length; i++) {
+      if (getComputedStyle(pages[i]).display !== "none") return pages[i].id.replace("page-", "");
+    }
+    return "";
+  }
+
+  /* ============================================================
+     GLOBAL API
+     ============================================================ */
+  window.sigCfg = CFG;
+  window.sigSet = sigSet;
+  window.sigScan = sigScan;
+  window.sigSignals = function () { return sigPublishable(); };
+  window.sigCalibrate = calibrate;
+  window.sigBuild = buildSignal;
+  window.sigStrats = function () { return STRATS.length; };
+  window.sigTfs = function () { return TFS.map(function (t) { return t.id; }); };
+  window.sigWilson = wilsonLower;
+  window.sigRender = sigRender;
+  window.sigHist = histStats;
+  window.sigPerTf = function (s) { return SIG.sigPerTf(s); };
+  window.sigWeights = function () { return WEIGHTS; };
+
+  window.sigToggle = function (k) {
+    CFG[k] = CFG[k] ? 0 : 1;
+    cfgSave();
+    if (k === "auto") { if (CFG.auto) autoStart(); else autoStop(); }
+    safe(function () {
+      var sws = document.querySelectorAll('.sg-sw[data-sg="' + k + '"]');
+      for (var i = 0; i < sws.length; i++) sws[i].classList.toggle("on", !!CFG[k]);
+    });
+    if (activePage() === "market-signals") safe(function () { sigRender(); });
+    safe(function () { if (typeof window.showToast === "function") window.showToast("SIG: " + k + " " + (CFG[k] ? "yoqildi" : "o'chirildi"), "info"); });
+    return CFG[k];
+  };
+  window.sigRescan = function () {
+    var list = sigScan();
+    sigRender({ rescan: false });
+    safe(function () { if (typeof window.showToast === "function") window.showToast("Skanerlandi: " + list.length + " ta natija, " + sigPublishable(list).length + " tasi darvozadan o'tdi", "success"); });
+    return list.length;
+  };
+  window.sigLive = function () {
+    var jobs = [];
+    for (var s = 0; s < CFG.syms.length; s++) {
+      for (var t = 0; t < CFG.tfs.length; t++) jobs.push(refreshReal(CFG.syms[s], CFG.tfs[t]));
+    }
+    safe(function () { if (typeof window.showToast === "function") window.showToast("Jonli ma'lumot so'rovi yuborildi\u2026", "info"); });
+    return Promise.all(jobs).then(function (rs) {
+      var okN = rs.filter(Boolean).length;
+      CAL_CACHE = {};
+      sigRender({ rescan: true });
+      safe(function () {
+        if (typeof window.showToast === "function") {
+          window.showToast(okN ? okN + " seriya jonli ma'lumotga o'tdi" : "Internet yo'q \u2014 simulyatsiya rejimida davom etadi", okN ? "success" : "warning");
+        }
+      });
+      return okN;
+    });
+  };
+  window.sigSendOne = function (sym, tf) {
+    var sig = buildSignal(sym, tf);
+    if (!sig) return { ok: false, reason: "signal yo'q" };
+    histAdd(sig);
+    var r = tgEnqueueSignal(sig, { force: true });
+    safe(function () {
+      if (typeof window.showToast === "function") {
+        window.showToast(r.ok ? "Telegram navbatiga qo'yildi: " + sym + " " + tf : "Yuborilmadi: " + r.reason, r.ok ? "success" : "warning");
+      }
+    });
+    if (activePage() === "market-signals") setTimeout(function () { safe(function () { sigRender(); }); }, 900);
+    return r;
+  };
+  window.sigTgSave = function () {
+    var t = el("sg-tg-token"), c = el("sg-tg-chat");
+    var cfg = tgSetConfig(t ? t.value : "", c ? c.value : "");
+    safe(function () {
+      if (typeof window.showToast === "function") window.showToast(cfg ? "Telegram sozlamasi saqlandi" : "Token yoki Chat ID to'liq emas", cfg ? "success" : "warning");
+    });
+    sigRender();
+    return !!cfg;
+  };
+  window.sigTgTestUi = function () {
+    return sigTgTest().then(function (r) {
+      safe(function () {
+        if (typeof window.showToast === "function") {
+          window.showToast(r && r.ok ? (r.dry ? "Quruq rejim: xabar jurnalga yozildi" : "Test xabari yuborildi") : "Yuborilmadi: " + ((r && r.err) || "xato"), r && r.ok ? "success" : "warning");
+        }
+      });
+      sigRender();
+      return r;
+    });
+  };
+  window.sigTgTest = sigTgTest;
+  window.sigTgLog = function () { return SIG.tgLogAll(); };
+
+  window.sigChartSym = function (s) { CH.sym = s; CH.off = 0; buildChartControls(); drawChart(); return s; };
+  window.sigChartTf = function (t) { CH.tf = t; CH.off = 0; buildChartControls(); drawChart(); return t; };
+  window.sigChartInd = function (k) { CH.ind[k] = CH.ind[k] ? 0 : 1; buildChartControls(); drawChart(); return CH.ind[k]; };
+  window.sigChartFit = function () { CH.bars = 140; CH.off = 0; drawChart(); return true; };
+  window.sigChartDraw = drawChart;
+  window.sigChartState = function () { return { sym: CH.sym, tf: CH.tf, bars: CH.bars, off: CH.off, ind: CH.ind, replay: !!CH.replay }; };
+  window.sigChartReplay = function () {
+    var btn = el("sg-ch-rp");
+    if (CH.replay) {
+      window.clearInterval(CH.replay.timer);
+      CH.replay = null;
+      if (btn) { btn.classList.remove("on"); btn.textContent = "\u25B6 Replay"; }
+      drawChart();
+      return false;
+    }
+    var bars = seriesSync(CH.sym, CH.tf);
+    var startIdx = Math.max(120, bars.length - 90);
+    CH.replay = {
+      idx: startIdx,
+      timer: window.setInterval(function () {
+        if (!CH.replay) return;
+        CH.replay.idx++;
+        if (CH.replay.idx >= bars.length - 1) {
+          window.clearInterval(CH.replay.timer);
+          CH.replay = null;
+          var b2 = el("sg-ch-rp");
+          if (b2) { b2.classList.remove("on"); b2.textContent = "\u25B6 Replay"; }
+        }
+        safe(drawChart);
+      }, 260)
+    };
+    if (btn) { btn.classList.add("on"); btn.textContent = "\u23F8 To'xtat"; }
+    return true;
+  };
+  window.sigChartShot = function () {
+    var cv = el("sg-cv");
+    if (!cv) return false;
+    return safe(function () {
+      var url = cv.toDataURL("image/png");
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = CH.sym + "-" + CH.tf + "-" + Date.now() + ".png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (typeof window.showToast === "function") window.showToast("Grafik rasmi yuklandi", "success");
+      return true;
+    }, false);
+  };
+
+  /* ---------- o'z-o'zini tekshirish ---------- */
+  window.sigSelfTest = function () {
+    var r = {};
+    r.strats = STRATS.length;
+    r.tfs = TFS.length;
+    r.syms = SYMS.length;
+    r.style = !!el("sig-style");
+    r.fams = (function () {
+      var m = {};
+      for (var i = 0; i < STRATS.length; i++) m[STRATS[i].fam] = (m[STRATS[i].fam] || 0) + 1;
+      return m;
+    })();
+    r.ids = (function () {
+      var seen = {}, dup = 0;
+      for (var i = 0; i < STRATS.length; i++) {
+        if (seen[STRATS[i].id]) dup++;
+        seen[STRATS[i].id] = 1;
+      }
+      return { unique: Object.keys(seen).length, dup: dup };
+    })();
+    r.wilson = {
+      w30: +wilsonLower(30, 30).toFixed(4),
+      w95: +wilsonLower(95, 100).toFixed(4),
+      w0: wilsonLower(0, 0)
+    };
+    r.series = (function () {
+      var okAll = true, lens = {};
+      for (var i = 0; i < TFS.length; i++) {
+        var b = seriesSync("XAUUSD", TFS[i].id);
+        lens[TFS[i].id] = b ? b.length : 0;
+        if (!b || b.length < 120) okAll = false;
+      }
+      return { ok: okAll, lens: lens };
+    })();
+    r.calib = safe(function () {
+      var c = calibrate("XAUUSD", "5m");
+      return c && c.cfg ? { ok: true, lb: +c.cfg.lb.toFixed(4), hit: +c.cfg.hit.toFixed(4), n: c.cfg.n, tp: c.cfg.tp, sl: c.cfg.sl, passed: c.passed } : { ok: false };
+    }, { ok: false });
+    r.signal = safe(function () {
+      var s = buildSignal("XAUUSD", "5m");
+      return s ? { ok: true, dir: s.dir, lb: +s.precisionLb.toFixed(4), passed: s.passed, levels: [s.entry > 0, s.sl > 0, s.tp1 > 0].every(Boolean) } : { ok: false };
+    }, { ok: false });
+    r.perTf = safe(function () {
+      var pass = 0, total = 0, worst = 1;
+      for (var i = 0; i < TFS.length; i++) {
+        var c = calibrate("XAUUSD", TFS[i].id);
+        total++;
+        if (c && c.cfg) {
+          if (c.cfg.lb >= CFG.gate) pass++;
+          if (c.cfg.lb < worst) worst = c.cfg.lb;
+        }
+      }
+      return { pass: pass, total: total, worstLb: +worst.toFixed(4) };
+    }, null);
+    r.pool = safe(function () {
+      var c = SIG.calibrateTf("5m");
+      return c ? { poolN: c.poolN, fitN: c.fitN, valN: c.valN, syms: c.syms.length, mode: c.mode, lb: +c.cfg.lb.toFixed(4), valLb: +c.cfg.val.lb.toFixed(4) } : null;
+    }, null);
+    r.telegram = { configured: !!tgConfig(), auto: !!CFG.tgAuto, logLen: SIG.tgLogAll().length };
+    r.ui = { center: !!el("sg-center"), chart: !!el("sg-cv"), panel: !!document.querySelector(".sg-head-row") };
+    r.navHook = !!(window.nav && window.nav.__sig);
+    r.auto = !!AUTO_TIMER;
+    r.hist = histStats();
+    return r;
+  };
+
+  /* ============================================================
+     BOOT
+     ============================================================ */
+  function mountForActive() {
+    var p = activePage();
+    if (p === "market-signals") { ensureSignalSection(); sigRender(); }
+    if (p === "livecharts") { chartShell(); drawChart(); }
+  }
+
+  function sigBoot() {
+    injectCss();
+    hookNav();
+    panelAppend();
+    mountForActive();
+    if (CFG.auto) autoStart();
+    safe(function () { histResolve(); });
+    // barqarorlik: ilova nav/panelni qayta yaratsa ham qayta ulanadi
+    window.setInterval(function () {
+      safe(function () {
+        injectCss();
+        hookNav();
+        panelAppend();
+        var p = activePage();
+        if (p === "market-signals" && !el("sg-center")) { ensureSignalSection(); sigRender(); }
+        if (p === "livecharts" && !el("sg-cv")) { chartShell(); drawChart(); }
+      });
+    }, 500);
+    // jonli narx yangilanishi (ochiq grafik uchun)
+    window.setInterval(function () {
+      safe(function () {
+        if (activePage() !== "livecharts" || CH.replay) return;
+        var T = tfById(CH.tf);
+        if (T.sec > 300) return;
+        CACHE[CH.sym + "@" + CH.tf] = null;
+        delete CACHE[CH.sym + "@" + CH.tf];
+        drawChart();
+      });
+    }, 15000);
+    return true;
+  }
+  window.sigBoot = sigBoot;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { setTimeout(function () { safe(sigBoot); }, 1200); });
+  } else {
+    setTimeout(function () { safe(sigBoot); }, 1200);
+  }
+})();
+
 </script>
 </body>
 </html>
