@@ -16,7 +16,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getDatabase, ref as dbRef, set as dbSet, get as dbGet, remove as dbRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, setPersistence, inMemoryPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAVVJRl0BpyLnB-kDYxloacvgQwMkLRv4E",
@@ -36,8 +36,14 @@
 
   // ─── AUTH (login/parol) ───
   const auth = getAuth(app);
-  // inMemoryPersistence: sahifa yangilanganda yoki qayta ochilganda har doim login so'raladi
-  setPersistence(auth, inMemoryPersistence).catch(()=>{});
+  /* ===== TP LOGIN FIX (patchL) ===== */
+  // MUHIM: inMemoryPersistence bilan Google 'redirect' oqimi ishlamaydi -
+  // brauzer qaytib kelganda kutilayotgan holat saqlanmagani uchun sessiya yo'qoladi
+  // va foydalanuvchi yana login ekranida qoladi. Shuning uchun sessiya xotirasi:
+  // browserSessionPersistence - oyna yopilsa login qayta so'raladi, lekin redirect qaytganda saqlanadi.
+  const __persistReady = setPersistence(auth, browserSessionPersistence)
+    .catch(() => setPersistence(auth, inMemoryPersistence))
+    .catch(() => {});
 
   // Faqat shu email — to'liq huquqli admin (o'zgartirish, qo'shish, yuklash).
   // Boshqa barcha ro'yxatdan o'tgan foydalanuvchilar faqat KO'RISH huquqiga ega bo'ladi.
@@ -65,13 +71,40 @@
     }
   }
 
+  // Kirish muvaffaqiyatli bo'lganda ilovani ochish (bitta joyda, hamma oqim uchun)
+  let __entered = false;
+  window.__enterApp = function (user) {
+    try {
+      const ls = document.getElementById('login-screen');
+      if (ls) { ls.style.display = 'none'; if (ls.parentNode) ls.parentNode.removeChild(ls); }
+      document.body.classList.add('tp-authed');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    } catch (e) { }
+    try { applyRoleUI(user); } catch (e) { }
+    try { resolveAuthReady(user); } catch (e) { }
+    if (!__entered) {
+      __entered = true;
+      try { window.dispatchEvent(new Event('tp-auth-ready')); } catch (e) { }
+      // Kafolat: biror sabab bilan ekran qolib ketsa, majburan olib tashlaymiz
+      setTimeout(function () {
+        const l = document.getElementById('login-screen');
+        if (l && l.parentNode) l.parentNode.removeChild(l);
+      }, 1500);
+    }
+  };
+  window.__loginError = function (msg) {
+    try {
+      const box = document.getElementById('login-error') || document.getElementById('signup-error');
+      if (box) box.textContent = msg; else console.warn(msg);
+    } catch (e) { console.warn(msg); }
+  };
+
   onAuthStateChanged(auth, (user) => {
-    const ls = document.getElementById('login-screen');
     if (user) {
-      if (ls) ls.style.display = 'none';
-      applyRoleUI(user);
-      resolveAuthReady(user);
+      window.__enterApp(user);
     } else {
+      const ls = document.getElementById('login-screen');
       if (ls) ls.style.display = 'flex';
       applyRoleUI(null);
     }
@@ -86,21 +119,34 @@
   const googleProvider = new GoogleAuthProvider();
   googleProvider.setCustomParameters({ prompt: 'select_account' });
   window.__doGoogleLogin = async function() {
+    try { await __persistReady; } catch (e) { }
     try {
       return await signInWithPopup(auth, googleProvider);
     } catch (e) {
       // Popup ishlamasa (bloklangan, mobil brauzer, in-app browser va h.k.) — redirect usuliga o'tamiz
-      const popupFailCodes = ['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request', 'auth/operation-not-supported-in-this-environment'];
+      const popupFailCodes = ['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request', 'auth/operation-not-supported-in-this-environment', 'auth/web-storage-unsupported'];
       if (e && popupFailCodes.includes(e.code)) {
         return signInWithRedirect(auth, googleProvider);
       }
       throw e;
     }
   };
-  // Sahifa redirect orqali qaytganda natijani ushlab olamiz
-  getRedirectResult(auth).catch((e) => {
-    console.warn('Google redirect login xatosi:', e);
-  });
+  // Sahifa redirect orqali qaytganda natijani ushlab olamiz.
+  // Avval faqat .catch bor edi: muvaffaqiyatli natija ishlanmagan va xato foydalanuvchiga ko'rinmagan.
+  __persistReady
+    .then(() => getRedirectResult(auth))
+    .then((res) => {
+      if (res && res.user) window.__enterApp(res.user);
+    })
+    .catch((e) => {
+      console.warn('Google redirect login xatosi:', e);
+      const code = (e && e.code) ? e.code : '';
+      let msg = 'Google orqali kirishda xatolik' + (code ? (': ' + code) : '');
+      if (code === 'auth/unauthorized-domain') msg = "Bu domen Firebase'da ruxsat etilmagan (Authentication -> Settings -> Authorized domains): " + location.hostname;
+      if (code === 'auth/operation-not-allowed') msg = 'Google provayder Firebase konsolida yoqilmagan (Authentication -> Sign-in method -> Google)';
+      if (code === 'auth/network-request-failed') msg = "Internet aloqasi yo'q yoki Firebase'ga ulanib bo'lmadi";
+      window.__loginError(msg);
+    });
   window.__doLogout = async function() {
     try { await signOut(auth); } catch(e) {}
     location.reload();
@@ -190,8 +236,13 @@
   window.__cloudReady = (async () => {
     await window.__authReady;
     try {
-      const snap = await getDoc(cloudDocRef);
-      if (snap.exists()) {
+      // Timeout: Firestore javob bermay qolsa ilova butunlay osilib qolmasligi kerak
+      const snap = await Promise.race([
+        getDoc(cloudDocRef),
+        new Promise((res) => setTimeout(() => res(null), 8000))
+      ]);
+      if (snap === null) console.warn('Cloud sync: 8s ichida javob yo\'q, offline davom etilmoqda.');
+      if (snap && snap.exists()) {
         const data = snap.data();
         SYNC_KEYS.forEach(k => {
           if (typeof data[k] === 'string') {
@@ -6597,7 +6648,8 @@ function loadDataFromStorage() {
 document.addEventListener('DOMContentLoaded', async () => {
   // Boshqa qurilmadagi ma'lumotlarni bulutdan olib kelishini kutamiz
   if (window.__cloudReady) {
-    try { await window.__cloudReady; } catch(e) {}
+    // Timeout: bulut javobi kechiksa ham interfeys ochilishi shart
+    try { await Promise.race([window.__cloudReady, new Promise((r) => setTimeout(r, 10000))]); } catch(e) {}
   }
   loadDataFromStorage();
 
@@ -24808,11 +24860,6 @@ window.pstRefresh = pstRefresh;
 
   /* ═══════════════ 6 — harakat kaskadi ═══════════════ */
   function maxCascade(page) {
-    var a = arguments, t = (window.__TQ && window.__TQ.tier);
-    if (t === 'eco') return;
-    setTimeout(function () { try { maxCascade__raw.apply(null, a); } catch (e) { } }, 0);
-  }
-  function maxCascade__raw(page) {
     if (!page || !maxOn("motion")) return;
     var kids = page.children, n = 0;
     for (var i = 0; i < kids.length && n < 14; i++) {
@@ -26186,9 +26233,7 @@ window.pstRefresh = pstRefresh;
 
   /* ══════ 23 — MINI-XARITA ══════ */
   function activePage() {
-    /* TQ activePage fast */
     var ps = document.querySelectorAll('[id^="page-"]'), i;
-    for (i = 0; i < ps.length; i++) if (ps[i].classList && ps[i].classList.contains("active")) return ps[i];
     for (i = 0; i < ps.length; i++) {
       if (getComputedStyle(ps[i]).display !== "none") return ps[i];
     }
@@ -27061,9 +27106,7 @@ window.pstRefresh = pstRefresh;
     return n;
   }
   function activePage() {
-    /* TQ activePage fast */
     var ps = document.querySelectorAll('[id^="page-"]'), i;
-    for (i = 0; i < ps.length; i++) if (ps[i].classList && ps[i].classList.contains("active")) return ps[i];
     for (i = 0; i < ps.length; i++) if (getComputedStyle(ps[i]).display !== "none") return ps[i];
     return null;
   }
@@ -27453,16 +27496,10 @@ window.pstRefresh = pstRefresh;
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
   function nz(v, d) { v = +v; return isFinite(v) ? v : (d === undefined ? 0 : d); }
   function last(a) { return a && a.length ? a[a.length - 1] : undefined; }
-  var __fmtCache = {};
   function fmtN(v, dp) {
     v = nz(v, 0);
     if (dp === undefined) dp = Math.abs(v) >= 1000 ? 1 : (Math.abs(v) >= 10 ? 2 : 4);
-    var f = __fmtCache[dp];
-    if (!f) {
-      try { f = __fmtCache[dp] = new Intl.NumberFormat("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
-      catch (e) { return v.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
-    }
-    return f.format(v);
+    return v.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
   }
   function fmtPct(v, dp) { return (nz(v, 0) * 100).toFixed(dp === undefined ? 1 : dp) + "%"; }
   function nowMs() { return Date.now(); }
@@ -27682,77 +27719,7 @@ window.pstRefresh = pstRefresh;
   /* ============================================================
      INDIKATORLAR KUTUBXONASI
      ============================================================ */
-  /* ===== TQ MEMO (patchT) ===== */
-  var __TQMEM = new Map(), __TQMID = 0, __TQHIT = 0, __TQMISS = 0;
-  function __tqPart(v) {
-    if (v == null) return 'n';
-    if (typeof v === 'object') {
-      if (typeof v.length === 'number') {
-        var id = v.__mid;
-        if (!id) {
-          id = ++__TQMID;
-          try { Object.defineProperty(v, '__mid', { value: id, configurable: true, writable: true, enumerable: false }); }
-          catch (e) { return 'x' + (++__TQMID); }
-        }
-        var L = v.length, last = L ? v[L - 1] : 0;
-        if (last && typeof last === 'object') { last = (last.c != null ? last.c : (last.close != null ? last.close : (last.t != null ? last.t : 0))); }
-        return 'a' + id + ':' + L + ':' + last;
-      }
-      return 'o';
-    }
-    return String(v);
-  }
-  function __tqMemo(nm, fn, ar) {
-    var k, i, r;
-    try {
-      k = nm;
-      for (i = 0; i < ar.length; i++) { k += '|' + __tqPart(ar[i]); }
-      if (__TQMEM.has(k)) { __TQHIT++; return __TQMEM.get(k); }
-    } catch (e) { return fn.apply(null, ar); }
-    r = fn.apply(null, ar);
-    try { if (__TQMEM.size > 9000) __TQMEM.clear(); __TQMEM.set(k, r); __TQMISS++; } catch (e) { }
-    return r;
-  }
-  window.tqMemoStats = function () { return { hit: __TQHIT, miss: __TQMISS, size: __TQMEM.size, ind: (typeof __INDM !== 'undefined' ? __INDM.size : 0) }; };
-  window.tqMemoClear = function () { __TQMEM.clear(); try { __INDM.clear(); } catch (e) { } return true; };
-  function smaArr() { return smaArr__raw.apply(null, arguments); }
-  function emaArr() { return emaArr__raw.apply(null, arguments); }
-  function wmaArr() { return wmaArr__raw.apply(null, arguments); }
-  function hmaArr() { return hmaArr__raw.apply(null, arguments); }
-  function stdevArr() { return stdevArr__raw.apply(null, arguments); }
-  function rsiArr() { return rsiArr__raw.apply(null, arguments); }
-  function trArr() { return trArr__raw.apply(null, arguments); }
-  function atrArr() { return atrArr__raw.apply(null, arguments); }
-  function adxArr() { return adxArr__raw.apply(null, arguments); }
-  function macdArr() { return macdArr__raw.apply(null, arguments); }
-  function stochArr() { return stochArr__raw.apply(null, arguments); }
-  function stochRsiArr() { return stochRsiArr__raw.apply(null, arguments); }
-  function bbArr() { return bbArr__raw.apply(null, arguments); }
-  function keltnerArr() { return keltnerArr__raw.apply(null, arguments); }
-  function donchianArr() { return donchianArr__raw.apply(null, arguments); }
-  function vwapArr() { return vwapArr__raw.apply(null, arguments); }
-  function obvArr() { return obvArr__raw.apply(null, arguments); }
-  function mfiArr() { return mfiArr__raw.apply(null, arguments); }
-  function cciArr() { return cciArr__raw.apply(null, arguments); }
-  function willrArr() { return willrArr__raw.apply(null, arguments); }
-  function supertrendArr() { return supertrendArr__raw.apply(null, arguments); }
-  function psarArr() { return psarArr__raw.apply(null, arguments); }
-  function linregArr() { return linregArr__raw.apply(null, arguments); }
-  function zscoreArr() { return zscoreArr__raw.apply(null, arguments); }
-  function chopArr() { return chopArr__raw.apply(null, arguments); }
-  function tsiArr() { return tsiArr__raw.apply(null, arguments); }
-  function vortexArr() { return vortexArr__raw.apply(null, arguments); }
-  (function () {
-    try {
-      var CP = window.CanvasRenderingContext2D ? CanvasRenderingContext2D.prototype : null;
-      if (!CP) return;
-      var oa = CP.arc, oe = CP.ellipse, og = CP.createRadialGradient;
-      if (oa && !oa.__tqr) { var fa = function () { var a = Array.prototype.slice.call(arguments); if (!(a[2] >= 0)) a[2] = 0; return oa.apply(this, a); }; fa.__tqr = 1; CP.arc = fa; }
-      if (oe && !oe.__tqr) { var fe = function () { var a = Array.prototype.slice.call(arguments); if (!(a[2] >= 0)) a[2] = 0; if (!(a[3] >= 0)) a[3] = 0; return oe.apply(this, a); }; fe.__tqr = 1; CP.ellipse = fe; }
-      if (og && !og.__tqr) { var fg = function () { var a = Array.prototype.slice.call(arguments); if (!(a[2] >= 0)) a[2] = 0; if (!(a[5] >= 0)) a[5] = 0; return og.apply(this, a); }; fg.__tqr = 1; CP.createRadialGradient = fg; }
-    } catch (e) { }
-  })();
-  function smaArr__raw(a, p) {
+  function smaArr(a, p) {
     var out = [], sum = 0;
     for (var i = 0; i < a.length; i++) {
       sum += a[i];
@@ -27761,7 +27728,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function emaArr__raw(a, p) {
+  function emaArr(a, p) {
     var out = [], k = 2 / (p + 1), prev = NaN;
     for (var i = 0; i < a.length; i++) {
       if (!isFinite(prev)) {
@@ -27778,7 +27745,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function wmaArr__raw(a, p) {
+  function wmaArr(a, p) {
     var out = [], den = p * (p + 1) / 2;
     for (var i = 0; i < a.length; i++) {
       if (i < p - 1) { out.push(NaN); continue; }
@@ -27788,13 +27755,13 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function hmaArr__raw(a, p) {
+  function hmaArr(a, p) {
     var half = Math.max(2, Math.round(p / 2));
     var w1 = wmaArr(a, half), w2 = wmaArr(a, p), raw = [];
     for (var i = 0; i < a.length; i++) raw.push(2 * w1[i] - w2[i]);
     return wmaArr(raw, Math.max(2, Math.round(Math.sqrt(p))));
   }
-  function stdevArr__raw(a, p) {
+  function stdevArr(a, p) {
     var out = [];
     for (var i = 0; i < a.length; i++) {
       if (i < p - 1) { out.push(NaN); continue; }
@@ -27806,7 +27773,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function rsiArr__raw(C, p) {
+  function rsiArr(C, p) {
     var out = [], up = 0, dn = 0;
     for (var i = 0; i < C.length; i++) {
       if (i === 0) { out.push(NaN); continue; }
@@ -27823,14 +27790,14 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function trArr__raw(H, L, C) {
+  function trArr(H, L, C) {
     var out = [NaN];
     for (var i = 1; i < C.length; i++) {
       out.push(Math.max(H[i] - L[i], Math.abs(H[i] - C[i - 1]), Math.abs(L[i] - C[i - 1])));
     }
     return out;
   }
-  function atrArr__raw(H, L, C, p) {
+  function atrArr(H, L, C, p) {
     var tr = trArr(H, L, C), out = [], prev = NaN;
     for (var i = 0; i < tr.length; i++) {
       if (i < p) { out.push(NaN); if (i === p - 1) { var s = 0; for (var j = 1; j < p; j++) s += tr[j]; prev = s / (p - 1); } continue; }
@@ -27839,7 +27806,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function adxArr__raw(H, L, C, p) {
+  function adxArr(H, L, C, p) {
     var tr = trArr(H, L, C), pdm = [NaN], mdm = [NaN], i;
     for (i = 1; i < C.length; i++) {
       var up = H[i] - H[i - 1], dw = L[i - 1] - L[i];
@@ -27858,14 +27825,14 @@ window.pstRefresh = pstRefresh;
     }
     return { adx: emaArr(dx, p), pdi: pdi, mdi: mdi };
   }
-  function macdArr__raw(C, f, s, g) {
+  function macdArr(C, f, s, g) {
     var ef = emaArr(C, f), es = emaArr(C, s), m = [];
     for (var i = 0; i < C.length; i++) m.push((ef[i] || NaN) - (es[i] || NaN));
     var sig = emaArr(m.map(function (x) { return isFinite(x) ? x : 0; }), g), hist = [];
     for (var j = 0; j < m.length; j++) hist.push(m[j] - sig[j]);
     return { macd: m, sig: sig, hist: hist };
   }
-  function stochArr__raw(H, L, C, p, kS, dS) {
+  function stochArr(H, L, C, p, kS, dS) {
     var k = [];
     for (var i = 0; i < C.length; i++) {
       if (i < p - 1) { k.push(NaN); continue; }
@@ -27876,7 +27843,7 @@ window.pstRefresh = pstRefresh;
     var kk = smaArr(k.map(function (x) { return isFinite(x) ? x : 50; }), kS || 3);
     return { k: kk, d: smaArr(kk.map(function (x) { return isFinite(x) ? x : 50; }), dS || 3) };
   }
-  function stochRsiArr__raw(C, p, kS, dS) {
+  function stochRsiArr(C, p, kS, dS) {
     var r = rsiArr(C, p), k = [];
     for (var i = 0; i < r.length; i++) {
       if (i < p * 2) { k.push(NaN); continue; }
@@ -27890,7 +27857,7 @@ window.pstRefresh = pstRefresh;
     var kk = smaArr(k.map(function (x) { return isFinite(x) ? x : 50; }), kS || 3);
     return { k: kk, d: smaArr(kk.map(function (x) { return isFinite(x) ? x : 50; }), dS || 3), rsi: r };
   }
-  function bbArr__raw(C, p, mult) {
+  function bbArr(C, p, mult) {
     var mid = smaArr(C, p), sd = stdevArr(C, p), up = [], dn = [], w = [];
     for (var i = 0; i < C.length; i++) {
       up.push(mid[i] + mult * sd[i]);
@@ -27899,12 +27866,12 @@ window.pstRefresh = pstRefresh;
     }
     return { mid: mid, up: up, dn: dn, w: w, sd: sd };
   }
-  function keltnerArr__raw(C, H, L, p, mult) {
+  function keltnerArr(C, H, L, p, mult) {
     var mid = emaArr(C, p), at = atrArr(H, L, C, p), up = [], dn = [];
     for (var i = 0; i < C.length; i++) { up.push(mid[i] + mult * at[i]); dn.push(mid[i] - mult * at[i]); }
     return { mid: mid, up: up, dn: dn, atr: at };
   }
-  function donchianArr__raw(H, L, p) {
+  function donchianArr(H, L, p) {
     var up = [], dn = [], mid = [];
     for (var i = 0; i < H.length; i++) {
       if (i < p - 1) { up.push(NaN); dn.push(NaN); mid.push(NaN); continue; }
@@ -27914,7 +27881,7 @@ window.pstRefresh = pstRefresh;
     }
     return { up: up, dn: dn, mid: mid };
   }
-  function vwapArr__raw(H, L, C, V, p) {
+  function vwapArr(H, L, C, V, p) {
     var out = [];
     for (var i = 0; i < C.length; i++) {
       if (i < p - 1) { out.push(NaN); continue; }
@@ -27927,12 +27894,12 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function obvArr__raw(C, V) {
+  function obvArr(C, V) {
     var out = [0];
     for (var i = 1; i < C.length; i++) out.push(out[i - 1] + (C[i] > C[i - 1] ? V[i] : (C[i] < C[i - 1] ? -V[i] : 0)));
     return out;
   }
-  function mfiArr__raw(H, L, C, V, p) {
+  function mfiArr(H, L, C, V, p) {
     var out = [];
     for (var i = 0; i < C.length; i++) {
       if (i < p) { out.push(NaN); continue; }
@@ -27945,7 +27912,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function cciArr__raw(H, L, C, p) {
+  function cciArr(H, L, C, p) {
     var tp = [], out = [];
     for (var i = 0; i < C.length; i++) tp.push((H[i] + L[i] + C[i]) / 3);
     var m = smaArr(tp, p);
@@ -27958,7 +27925,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function willrArr__raw(H, L, C, p) {
+  function willrArr(H, L, C, p) {
     var out = [];
     for (var i = 0; i < C.length; i++) {
       if (i < p - 1) { out.push(NaN); continue; }
@@ -27968,7 +27935,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function supertrendArr__raw(H, L, C, p, mult) {
+  function supertrendArr(H, L, C, p, mult) {
     var at = atrArr(H, L, C, p), st = [], dir = [], prevSt = NaN, prevDir = 1;
     for (var i = 0; i < C.length; i++) {
       if (!isFinite(at[i])) { st.push(NaN); dir.push(1); continue; }
@@ -27990,7 +27957,7 @@ window.pstRefresh = pstRefresh;
     }
     return { st: st, dir: dir, atr: at };
   }
-  function psarArr__raw(H, L, step, maxAf) {
+  function psarArr(H, L, step, maxAf) {
     step = step || 0.02; maxAf = maxAf || 0.2;
     var out = [], af = step, ep = L[0], sar = L[0], up = true;
     for (var i = 0; i < H.length; i++) {
@@ -28007,7 +27974,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function linregArr__raw(C, p) {
+  function linregArr(C, p) {
     var slope = [], val = [], dev = [];
     for (var i = 0; i < C.length; i++) {
       if (i < p - 1) { slope.push(NaN); val.push(NaN); dev.push(NaN); continue; }
@@ -28021,12 +27988,12 @@ window.pstRefresh = pstRefresh;
     }
     return { slope: slope, val: val, dev: dev };
   }
-  function zscoreArr__raw(C, p) {
+  function zscoreArr(C, p) {
     var m = smaArr(C, p), s = stdevArr(C, p), out = [];
     for (var i = 0; i < C.length; i++) out.push((C[i] - m[i]) / (s[i] || 1e-9));
     return out;
   }
-  function chopArr__raw(H, L, C, p) {
+  function chopArr(H, L, C, p) {
     var tr = trArr(H, L, C), out = [];
     for (var i = 0; i < C.length; i++) {
       if (i < p) { out.push(NaN); continue; }
@@ -28040,7 +28007,7 @@ window.pstRefresh = pstRefresh;
     }
     return out;
   }
-  function tsiArr__raw(C, lng, shrt) {
+  function tsiArr(C, lng, shrt) {
     var m = [0], am = [0], i;
     for (i = 1; i < C.length; i++) { m.push(C[i] - C[i - 1]); am.push(Math.abs(C[i] - C[i - 1])); }
     var e1 = emaArr(m, lng), e2 = emaArr(e1.map(function (x) { return isFinite(x) ? x : 0; }), shrt);
@@ -28049,7 +28016,7 @@ window.pstRefresh = pstRefresh;
     for (i = 0; i < C.length; i++) out.push(100 * (e2[i] || 0) / ((a2[i] || 1e-9)));
     return out;
   }
-  function vortexArr__raw(H, L, C, p) {
+  function vortexArr(H, L, C, p) {
     var tr = trArr(H, L, C), vp = [NaN], vm = [NaN], i;
     for (i = 1; i < C.length; i++) { vp.push(Math.abs(H[i] - L[i - 1])); vm.push(Math.abs(L[i] - H[i - 1])); }
     var vip = [], vim = [];
@@ -28110,29 +28077,7 @@ window.pstRefresh = pstRefresh;
   }
 
   /* ---------------- indikator keshi ---------------- */
-  /* ===== TQ IND MEMO (patchU) ===== */
-  /* ===== TQ BOOT FIX (patchX) ===== */
-  var __INDM = new Map();
   function IND(bars) {
-    var k = null, id, L, last;
-    try {
-      if (!bars || typeof bars.length !== 'number' || !bars.length) return IND__raw(bars);
-      id = bars.__mid;
-      if (!id) {
-        id = ++__TQMID;
-        try { Object.defineProperty(bars, '__mid', { value: id, configurable: true, writable: true, enumerable: false }); }
-        catch (e) { return IND__raw(bars); }
-      }
-      L = bars.length; last = bars[L - 1];
-      if (last && typeof last === 'object') last = (last.c != null ? last.c : (last.close != null ? last.close : (last.t != null ? last.t : 0)));
-      k = id + ':' + L + ':' + last;
-      if (__INDM.has(k)) { __TQHIT++; return __INDM.get(k); }
-    } catch (e) { return IND__raw(bars); }
-    var r = IND__raw(bars);
-    try { if (__INDM.size > 60) __INDM.clear(); if (k) { __INDM.set(k, r); __TQMISS++; } } catch (e) { }
-    return r;
-  }
-  function IND__raw(bars) {
     var O = [], H = [], L = [], C = [], V = [];
     for (var i = 0; i < bars.length; i++) {
       O.push(bars[i].o); H.push(bars[i].h); L.push(bars[i].l); C.push(bars[i].c); V.push(bars[i].v);
@@ -31334,9 +31279,7 @@ window.pstRefresh = pstRefresh;
   }
 
   function activePage() {
-    /* TQ activePage fast */
-    var pages = document.querySelectorAll('[id^="page-"]'), j;
-    for (j = 0; j < pages.length; j++) if (pages[j].classList && pages[j].classList.contains("active")) return pages[j].id.replace("page-", "");
+    var pages = document.querySelectorAll('[id^="page-"]');
     for (var i = 0; i < pages.length; i++) {
       if (getComputedStyle(pages[i]).display !== "none") return pages[i].id.replace("page-", "");
     }
@@ -31597,376 +31540,6 @@ window.pstRefresh = pstRefresh;
   }
 })();
 
-</script>
-<script>
-/* ===== TURBO PERFORMANCE GOVERNOR (addon_turbo.js) ===== */
-(function () {
-  if (window.__turboBooted) return;
-  window.__turboBooted = true;
-
-  var TQ = {
-    tier: "full", mode: "auto", fps: 60, low: 0, high: 0,
-    hudN: 0, hudSkip: 4, hudOff: 0, blind: 0, drawGuard: true,
-    slowIv: [], skipTicks: 0, navSkip: 0, lastInput: 0, deferred: 0,
-    frames: 0, fAt: 0, samples: 0
-  };
-  window.__TQ = TQ;
-
-  var doc = document, root = doc.documentElement;
-  function nowMs() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
-  function safe(fn, d) { try { return fn(); } catch (e) { return d; } }
-
-  /* ---------------- 1) sifat darajalari uchun CSS ---------------- */
-  var CSS = [
-    "html.tq-fast *,html.tq-fast *::before,html.tq-fast *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}",
-    "html.tq-fast *{transition-duration:.12s!important}",
-    "html.tq-fast .page:not(.active) *{animation:none!important}",
-    "html.tq-eco *,html.tq-eco *::before,html.tq-eco *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;box-shadow:none!important;text-shadow:none!important}",
-    "html.tq-eco *{transition-duration:.08s!important}",
-    "html.tq-eco *:not(.tq-keep){animation-duration:.2s!important;animation-iteration-count:1!important}",
-    "html.tq-eco .spinner,html.tq-eco .loader,html.tq-eco .ld,html.tq-eco .tq-keep{animation-duration:1s!important;animation-iteration-count:infinite!important}",
-    "html.tq-eco .page:not(.active) *{animation:none!important}",
-    "#tq-card{background:rgba(18,22,34,.72);border:1px solid rgba(120,150,255,.18);border-radius:16px;padding:16px 18px;margin:0 0 16px}",
-    "#tq-card h3{margin:0 0 4px;font-size:15px;font-weight:700}",
-    "#tq-card .tq-note{opacity:.62;font-size:12px;margin:0 0 12px}",
-    "#tq-card .tq-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}",
-    "#tq-card .tq-b{cursor:pointer;border:1px solid rgba(130,160,255,.24);background:rgba(255,255,255,.04);color:inherit;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600}",
-    "#tq-card .tq-b.on{background:linear-gradient(135deg,#4f7cff,#8a5cff);border-color:transparent;color:#fff}",
-    "#tq-card .tq-g{display:flex;flex-wrap:wrap;gap:10px}",
-    "#tq-card .tq-c{flex:1 1 92px;min-width:92px;background:rgba(255,255,255,.04);border-radius:12px;padding:8px 10px}",
-    "#tq-card .tq-k{font-size:11px;opacity:.6}",
-    "#tq-card .tq-v{font-size:16px;font-weight:700;margin-top:2px}"
-  ].join("");
-
-  function injectCss() {
-    if (doc.getElementById("turbo-style")) return true;
-    var st = doc.createElement("style");
-    st.id = "turbo-style";
-    st.textContent = CSS;
-    (doc.head || root).appendChild(st);
-    return true;
-  }
-
-  /* ---------------- 2) ko'rinmayotgan canvas himoyasi ---------------- */
-  var HOT = ["clearRect", "fillRect", "strokeRect", "fill", "stroke", "fillText", "strokeText", "drawImage", "putImageData"];
-
-  function canvasVisible(c) {
-    var t = nowMs();
-    if (c.__tqVAt && (t - c.__tqVAt) < 400) return c.__tqV;
-    if (c.__tqPg === undefined) { try { c.__tqPg = c.closest ? c.closest('.page') : null; } catch (e) { c.__tqPg = null; } }
-    if (c.__tqPg && c.__tqPg.classList && !c.__tqPg.classList.contains('active')) { c.__tqVAt = t; c.__tqV = false; return false; }
-    var v = true;
-    try {
-      var r = c.getBoundingClientRect();
-      if (r.width < 2 || r.height < 2) v = false;
-      else if (r.bottom < -100 || r.right < -100 || r.top > (window.innerHeight || 0) + 100 || r.left > (window.innerWidth || 0) + 100) v = false;
-      else {
-        var st = getComputedStyle(c);
-        if (st.display === "none" || st.visibility === "hidden" || parseFloat(st.opacity || "1") < 0.03) v = false;
-        else {
-          var p = c.parentElement, hop = 0;
-          while (p && hop < 8) {
-            var ps = getComputedStyle(p);
-            if (ps.display === "none" || ps.visibility === "hidden") { v = false; break; }
-            p = p.parentElement; hop++;
-          }
-        }
-      }
-    } catch (e) { v = true; }
-    c.__tqVAt = t; c.__tqV = v;
-    return v;
-  }
-
-  function allowDraw(ctx) {
-    if (!TQ.drawGuard) return true;
-    var c = ctx.canvas;
-    if (!c || c.__tqNo) return true;
-    c.__tqW = (c.__tqW || 0) + 1;
-    if (!c.__tqAnim) {
-      if (c.__tqW > 180) c.__tqAnim = 1;
-      else return true;
-    }
-    if (!c.isConnected) return true;
-    if (canvasVisible(c)) return true;
-    c.__tqB = (c.__tqB || 0) + 1;
-    TQ.blind++;
-    return false;
-  }
-
-  function guardCanvas() {
-    var CP = window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype;
-    if (!CP || CP.__tq) return !!CP;
-    HOT.forEach(function (m) {
-      var o = CP[m];
-      if (typeof o !== "function") return;
-      CP[m] = function () { if (!allowDraw(this)) return; return o.apply(this, arguments); };
-    });
-    var gi = CP.getImageData;
-    if (typeof gi === "function") {
-      CP.getImageData = function () { try { this.canvas.__tqNo = 1; } catch (e) { } return gi.apply(this, arguments); };
-    }
-    var HC = window.HTMLCanvasElement && HTMLCanvasElement.prototype;
-    if (HC) {
-      ["toDataURL", "toBlob"].forEach(function (m) {
-        var o = HC[m];
-        if (typeof o !== "function") return;
-        HC[m] = function () { try { this.__tqNo = 1; } catch (e) { } return o.apply(this, arguments); };
-      });
-    }
-    CP.__tq = 1;
-    return true;
-  }
-
-  /* ---------------- 3) Ultron HUD siklini bo'g'ish ---------------- */
-  function throttleHud() {
-    var o = window._ultronLoopHud;
-    if (typeof o !== "function" || o.__tq) return !!(o && o.__tq);
-    var RAF = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : null;
-    var w = function () {
-      TQ.hudN++;
-      var c = doc.getElementById("ultron-hud-canvas");
-      var vis = c ? canvasVisible(c) : false;
-      var skip = (!vis) || (TQ.hudN % TQ.hudSkip);
-      if (skip) {
-        TQ.hudOff++;
-        if (RAF) window._ultronHudRaf = RAF(window._ultronLoopHud);
-        return;
-      }
-      return o.apply(this, arguments);
-    };
-    w.__tq = 1; w.__o = o;
-    window._ultronLoopHud = w;
-    return true;
-  }
-
-  /* ---------------- 4) interval hokimi (governor) ---------------- */
-  var IVS = [];
-  function wrapIntervals() {
-    var OI = window.setInterval;
-    if (typeof OI !== "function" || OI.__tq) return !!(OI && OI.__tq);
-    var w = function (fn, ms) {
-      if (typeof fn !== "function") return OI.apply(window, arguments);
-      var extra = Array.prototype.slice.call(arguments, 2);
-      var rec = { ms: ms || 0, n: 0, tt: 0, tmax: 0, mult: 1, bad: 0, good: 0, skip: 0, id: 0 };
-      IVS.push(rec);
-      var id = OI.call(window, function () {
-        rec.n++;
-        if (rec.mult > 1 && (rec.n % rec.mult)) { rec.skip++; TQ.skipTicks++; return; }
-        if (rec.tmax > 220 && (nowMs() - TQ.lastInput) < 900) { rec.skip++; TQ.skipTicks++; return; }
-        var a = nowMs();
-        try { return fn.apply(null, extra); }
-        finally {
-          var d = nowMs() - a;
-          rec.tt += d;
-          if (d > rec.tmax) rec.tmax = d;
-          if (d > 140) {
-            rec.bad++; rec.good = 0;
-            if (rec.bad >= 2 && rec.mult < 4 && rec.ms > 0 && rec.ms < 30000) {
-              rec.mult = rec.mult * 2; rec.bad = 0;
-              TQ.slowIv.push({ ms: rec.ms, mult: rec.mult, tmax: Math.round(rec.tmax) });
-            }
-          } else if (d < 40) {
-            rec.good++;
-            if (rec.good > 25 && rec.mult > 1) { rec.mult = Math.max(1, rec.mult / 2); rec.good = 0; }
-          }
-        }
-      }, ms);
-      rec.id = id;
-      return id;
-    };
-    w.__tq = 1;
-    window.setInterval = w;
-    return true;
-  }
-
-  /* ---------------- 5) og'ir init larni kechiktirish ---------------- */
-  function wrapInit(name, ttl, ready) {
-    var o = window[name];
-    if (typeof o !== "function" || o.__tq) return !!(o && o.__tq);
-    var last = 0;
-    var w = function () {
-      var t = nowMs(), args = arguments, self = this;
-      if ((t - last) < ttl && ready && safe(ready, false)) { TQ.navSkip++; return; }
-      last = t;
-      TQ.deferred++;
-      setTimeout(function () { try { o.apply(self, args); } catch (e) { } }, 0);
-    };
-    w.__tq = 1; w.__o = o;
-    window[name] = w;
-    return true;
-  }
-
-  function sigReady() {
-    var n = doc.querySelectorAll("#page-market-signals .signal-card, #page-market-signals .sg-card").length;
-    return n > 0;
-  }
-  function lcReady() {
-    var p = doc.getElementById("page-livecharts");
-    return !!(p && p.children && p.children.length > 1);
-  }
-
-  /* ---------------- 6) FPS o'lchagich va avtomatik daraja ---------------- */
-  function applyTier(t) {
-    TQ.tier = t;
-    root.classList.remove("tq-fast", "tq-eco");
-    if (t === "fast") { root.classList.add("tq-fast"); TQ.hudSkip = 6; }
-    else if (t === "eco") { root.classList.add("tq-eco"); TQ.hudSkip = 12; }
-    else { TQ.hudSkip = 4; }
-    paintUi();
-  }
-  function stepDown() {
-    if (TQ.tier === "full") applyTier("fast");
-    else if (TQ.tier === "fast") applyTier("eco");
-  }
-  function stepUp() {
-    if (TQ.tier === "eco") applyTier("fast");
-    else if (TQ.tier === "fast") applyTier("full");
-  }
-  function autoTier() {
-    if (!TQ.ready) return;
-    if (TQ.fps < 26) { TQ.low++; TQ.high = 0; if (TQ.low >= 2) { TQ.low = 0; stepDown(); } }
-    else if (TQ.fps > 52) { TQ.high++; TQ.low = 0; if (TQ.high >= 5) { TQ.high = 0; stepUp(); } }
-  }
-  function fpsLoop() {
-    var RAF = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : null;
-    if (!RAF) return false;
-    TQ.fAt = nowMs();
-    (function step() {
-      TQ.frames++;
-      var t = nowMs(), dt = t - TQ.fAt;
-      if (dt >= 1000) {
-        TQ.fps = Math.round((TQ.frames * 1000) / dt);
-        TQ.frames = 0; TQ.fAt = t; TQ.samples++;
-        if (TQ.mode === "auto") autoTier();
-        if (TQ.samples % 3 === 0) paintUi();
-      }
-      RAF(step);
-    })();
-    return true;
-  }
-
-  function setMode(m) {
-    if (["auto", "full", "fast", "eco"].indexOf(m) < 0) return false;
-    TQ.mode = m; TQ.low = 0; TQ.high = 0;
-    if (m !== "auto") applyTier(m); else paintUi();
-    safe(function () { localStorage.setItem("tp-perf", JSON.stringify({ mode: m })); });
-    return true;
-  }
-
-  /* ---------------- 7) Sozlamalardagi tezlik paneli ---------------- */
-  function cardHtml() {
-    var b = function (id, t) {
-      return "<button class='tq-b" + (TQ.mode === id ? " on" : "") + "' data-tq='" + id + "'>" + t + "</button>";
-    };
-    var st = "<div class='tq-g'>" +
-      "<div class='tq-c'><div class='tq-k'>FPS</div><div class='tq-v'>" + TQ.fps + "</div></div>" +
-      "<div class='tq-c'><div class='tq-k'>Daraja</div><div class='tq-v'>" + TQ.tier + "</div></div>" +
-      "<div class='tq-c'><div class='tq-k'>Tejalgan kadr</div><div class='tq-v'>" + TQ.hudOff + "</div></div>" +
-      "<div class='tq-c'><div class='tq-k'>Ko'rinmas chizish</div><div class='tq-v'>" + TQ.blind + "</div></div>" +
-      "<div class='tq-c'><div class='tq-k'>Sekin taymer</div><div class='tq-v'>" + TQ.slowIv.length + "</div></div>" +
-      "</div>";
-    return "<h3>⚡ Tezlik rejimi</h3>" +
-      "<p class='tq-note'>Avto rejim FPS ni kuzatib, og'ir effektlarni o'zi kamaytiradi. Eski qurilmada Tez yoki Ekonom ni tanlang.</p>" +
-      "<div class='tq-row'>" + b("auto", "Avto") + b("full", "To'liq") + b("fast", "Tez") + b("eco", "Ekonom") + "</div>" + st;
-  }
-
-  function paintUi() {
-    var host = doc.getElementById("tq-card");
-    if (!host) return false;
-    var p = doc.getElementById("page-settings");
-    if (p && p.classList && !p.classList.contains("active") && host.__once) return false;
-    host.innerHTML = cardHtml();
-    host.__once = 1;
-    return true;
-  }
-
-  function mountUi() {
-    if (doc.getElementById("tq-card")) return true;
-    var p = doc.getElementById("page-settings");
-    if (!p) return false;
-    var d = doc.createElement("div");
-    d.id = "tq-card";
-    d.innerHTML = cardHtml();
-    d.addEventListener("click", function (e) {
-      var t = e.target && e.target.closest ? e.target.closest("[data-tq]") : null;
-      if (!t) return;
-      setMode(t.getAttribute("data-tq"));
-      paintUi();
-    });
-    if (p.firstChild) p.insertBefore(d, p.firstChild); else p.appendChild(d);
-    return true;
-  }
-
-  /* ---------------- 8) ishga tushirish ---------------- */
-  injectCss();
-  guardCanvas();
-  wrapIntervals();
-
-  ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (ev) {
-    safe(function () { window.addEventListener(ev, function () { TQ.lastInput = nowMs(); }, { passive: true, capture: true }); });
-  });
-
-  safe(function () {
-    var s = JSON.parse(localStorage.getItem("tp-perf") || "null");
-    if (s && s.mode) TQ.mode = s.mode;
-  });
-  var weak = safe(function () {
-    return (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4);
-  }, false);
-  var __tqFirst = (TQ.mode === "auto") ? (weak ? "fast" : "full") : TQ.mode;
-  TQ.tier = __tqFirst;
-  function __tqLate() { TQ.ready = 1; applyTier(TQ.mode === "auto" ? __tqFirst : TQ.mode); }
-  if (doc.readyState === "complete") setTimeout(__tqLate, 2200);
-  else window.addEventListener("load", function () { setTimeout(__tqLate, 2200); });
-
-  var tries = 0;
-  var bootIv = setInterval(function () {
-    tries++;
-    throttleHud();
-    wrapInit("initMarketSignals", 20000, sigReady);
-    wrapInit("initLiveChart", 15000, lcReady);
-    mountUi();
-    var t = window.turboSelfTest();
-    if ((t.hudWrapped && t.navWrapped && t.ui) || tries >= 24) clearInterval(bootIv);
-  }, 500);
-
-  if (doc.readyState === "complete" || doc.readyState === "interactive") setTimeout(fpsLoop, 1200);
-  else window.addEventListener("DOMContentLoaded", function () { setTimeout(fpsLoop, 1200); });
-
-  /* ---------------- 9) tashqi interfeys ---------------- */
-  window.turboSet = setMode;
-  window.turboTier = function () { return TQ.tier; };
-  window.turboFps = function () { return TQ.fps; };
-  window.turboStats = function () {
-    return {
-      tier: TQ.tier, mode: TQ.mode, fps: TQ.fps,
-      timers: IVS.length, slowed: TQ.slowIv.length, skippedTicks: TQ.skipTicks,
-      blindDraws: TQ.blind, hudFrames: TQ.hudN, hudHidden: TQ.hudOff,
-      navSkipped: TQ.navSkip, deferred: TQ.deferred, guard: TQ.drawGuard,
-      heap: safe(function () { return Math.round(performance.memory.usedJSHeapSize / 1048576); }, 0)
-    };
-  };
-  window.turboSelfTest = function () {
-    return {
-      booted: !!window.__turboBooted,
-      style: !!doc.getElementById("turbo-style"),
-      guard: !!(window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype.__tq),
-      hudWrapped: !!(window._ultronLoopHud && window._ultronLoopHud.__tq),
-      navWrapped: !!(window.initMarketSignals && window.initMarketSignals.__tq),
-      lcWrapped: !!(window.initLiveChart && window.initLiveChart.__tq),
-      ivWrapped: !!(window.setInterval && window.setInterval.__tq),
-      ui: !!doc.getElementById("tq-card"),
-      tier: TQ.tier
-    };
-  };
-  window.turboHeal = function () {
-    injectCss(); guardCanvas(); wrapIntervals(); throttleHud();
-    wrapInit("initMarketSignals", 20000, sigReady);
-    wrapInit("initLiveChart", 15000, lcReady);
-    mountUi(); paintUi();
-    return window.turboSelfTest();
-  };
-})();
 </script>
 </body>
 </html>
